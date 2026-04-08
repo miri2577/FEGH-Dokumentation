@@ -13,6 +13,9 @@ Mitarbeiter _$MitarbeiterFromJson(Map<String, dynamic> json) => Mitarbeiter(
   email: json['email'] as String,
   telefon: json['telefon'] as String,
   teamNummer: (json['teamNummer'] as num).toInt(),
+  teamIds:
+      (json['teamIds'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
   bereich: $enumDecode(_$MitarbeiterBereichEnumMap, json['bereich']),
   createdAt: DateTime.parse(json['createdAt'] as String),
   isActive: json['isActive'] as bool? ?? true,
@@ -28,6 +31,7 @@ Map<String, dynamic> _$MitarbeiterToJson(Mitarbeiter instance) =>
       'email': instance.email,
       'telefon': instance.telefon,
       'teamNummer': instance.teamNummer,
+      'teamIds': instance.teamIds,
       'bereich': _$MitarbeiterBereichEnumMap[instance.bereich]!,
       'createdAt': instance.createdAt.toIso8601String(),
       'isActive': instance.isActive,

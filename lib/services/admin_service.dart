@@ -80,29 +80,35 @@ class AdminService {
   /// Lädt alle Teams aus der Organisation.
   Future<List<Team>> listTeams() async {
     try {
-      final result = await adminSync.listOrgScopedRecords('teams');
+      debugPrint('[ADMIN] listTeams: lade von HiDrive...');
+      final result = await adminSync.listOrgScopedDirectories('teams');
+      debugPrint('[ADMIN] listTeams: success=${result.isSuccess}, dirs=${result.data}');
       if (!result.isSuccess || result.data == null) return [];
 
       final teams = <Team>[];
       for (final teamDir in result.data!) {
+        debugPrint('[ADMIN] listTeams: lade Team "$teamDir"...');
         try {
           final infoResult = await adminSync.downloadOrgScopedRecord(
             'teams/$teamDir',
             'team-info',
           );
+          debugPrint('[ADMIN] listTeams: download success=${infoResult.isSuccess}, hasData=${infoResult.data != null}');
           if (infoResult.isSuccess && infoResult.data != null) {
             final encJson = jsonDecode(utf8.decode(infoResult.data!));
             final clearBytes = await crypto.decryptRecord(encJson);
             final teamJson = jsonDecode(utf8.decode(clearBytes));
             teams.add(Team.fromJson(teamJson));
+            debugPrint('[ADMIN] listTeams: OK -> ${teamJson['name']}');
           }
         } catch (e) {
-          if (kDebugMode) debugPrint('[ADMIN] Team $teamDir laden fehlgeschlagen: $e');
+          debugPrint('[ADMIN] Team $teamDir FEHLER: $e');
         }
       }
+      debugPrint('[ADMIN] listTeams: ${teams.length} Teams geladen');
       return teams;
     } catch (e) {
-      if (kDebugMode) debugPrint('[ADMIN] listTeams error: $e');
+      debugPrint('[ADMIN] listTeams error: $e');
       return [];
     }
   }

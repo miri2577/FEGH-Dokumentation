@@ -8,7 +8,9 @@ part of 'app_settings.dart';
 
 AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   userName: json['userName'] as String,
-  isAdmin: json['isAdmin'] as bool,
+  userRole:
+      $enumDecodeNullable(_$UserRoleEnumMap, json['userRole']) ??
+      UserRole.teamMember,
   speechAvailable: json['speechAvailable'] as bool,
   calendarKeywords: (json['calendarKeywords'] as List<dynamic>)
       .map((e) => e as String)
@@ -52,7 +54,7 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
 Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
     <String, dynamic>{
       'userName': instance.userName,
-      'isAdmin': instance.isAdmin,
+      'userRole': _$UserRoleEnumMap[instance.userRole]!,
       'speechAvailable': instance.speechAvailable,
       'calendarKeywords': instance.calendarKeywords,
       'clientNamePatterns': instance.clientNamePatterns,
@@ -80,3 +82,11 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'openRouteServiceApiKey': instance.openRouteServiceApiKey,
       'uiCustomization': _uiCustomizationToJson(instance.uiCustomization),
     };
+
+const _$UserRoleEnumMap = {
+  UserRole.orgAdmin: 'org_admin',
+  UserRole.pvAdmin: 'pv_admin',
+  UserRole.teamLead: 'team_lead',
+  UserRole.teamMember: 'team_member',
+  UserRole.orgAuditor: 'org_auditor',
+};

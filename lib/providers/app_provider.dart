@@ -120,7 +120,17 @@ class AppProvider extends ChangeNotifier {
   Mitarbeiter? get currentUser => _currentUser;
 
   // Setup Wizard
-  bool get setupCompleted => _settings.setupCompleted;
+  bool get setupCompleted {
+    debugPrint('[DEBUG] setupCompleted=${_settings.setupCompleted}, userRole=${_settings.userRole}, isAdmin=${_settings.isAdmin}, orgId=${_settings.organizationId}');
+    return _settings.setupCompleted;
+  }
+
+  /// Setzt die UserRole auf orgAdmin (fuer Migration von altem isAdmin-Flag)
+  Future<void> forceAdminRole() async {
+    _settings = _settings.copyWith(userRole: UserRole.orgAdmin);
+    await updateSettings(_settings);
+    debugPrint('[DEBUG] forceAdminRole: userRole jetzt ${_settings.userRole}');
+  }
 
   Future<bool> completeSetup() async {
     try {
@@ -477,6 +487,16 @@ class AppProvider extends ChangeNotifier {
     final setupFromPrefs = prefs.getBool(_setupCompletedKey);
     if (setupFromPrefs == true && !_settings.setupCompleted) {
       _settings = _settings.copyWith(setupCompleted: true);
+    }
+    // Migration: Wenn orgId gesetzt und teamId leer → war vermutlich Admin-Setup
+    // aber userRole ist noch teamMember (altes isAdmin-Flag nicht migriert)
+    if (_settings.organizationId.isNotEmpty &&
+        _settings.teamId.isEmpty &&
+        _settings.userRole == UserRole.teamMember &&
+        _settings.setupCompleted) {
+      debugPrint('[MIGRATION] Auto-fix: orgId gesetzt + kein Team → setze userRole auf orgAdmin');
+      _settings = _settings.copyWith(userRole: UserRole.orgAdmin);
+      _storageService.saveSettings(_settings);
     }
   }
 

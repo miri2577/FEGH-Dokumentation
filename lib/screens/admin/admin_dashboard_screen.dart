@@ -198,7 +198,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     child: _StatCard(
                       icon: Icons.people,
                       label: 'Mitarbeiter',
-                      value: '${app.mitarbeiterList.length}',
+                      value: '${app.mitarbeiter.length}',
                       color: theme.colorScheme.secondary,
                     ),
                   ),

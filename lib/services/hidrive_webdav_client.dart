@@ -198,20 +198,42 @@ class HiDriveWebDAVClient {
       }
 
       final xml = response.body;
+      debugPrint('[WEBDAV] listDetailed RAW response (first 2000 chars): ${xml.substring(0, xml.length > 2000 ? 2000 : xml.length)}');
       final items = <WebDavItem>[];
 
-      final blockRegex = RegExp(r'<d:response[\s\S]*?</d:response>', multiLine: true);
-      final nameRegex = RegExp(r'<d:displayname[^>]*>([^<]+)</d:displayname>');
-      final modRegex = RegExp(r'<d:getlastmodified[^>]*>([^<]+)</d:getlastmodified>');
-      final lenRegex = RegExp(r'<d:getcontentlength[^>]*>([^<]+)</d:getcontentlength>');
+      final blockRegex = RegExp(r'<[Dd]:response[\s\S]*?</[Dd]:response>', multiLine: true);
+      final nameRegex = RegExp(r'<[^>]*displayname[^>]*>([^<]+)</[^>]*displayname>', caseSensitive: false);
+      final hrefRegex = RegExp(r'<[Dd]:href>([^<]+)</[Dd]:href>');
+      final modRegex = RegExp(r'<[^>]*getlastmodified[^>]*>([^<]+)</[^>]*getlastmodified>', caseSensitive: false);
+      final lenRegex = RegExp(r'<[^>]*getcontentlength[^>]*>([^<]+)</[^>]*getcontentlength>', caseSensitive: false);
+
+      bool isFirst = true; // Erster Response-Block ist der Parent-Ordner selbst
 
       for (final match in blockRegex.allMatches(xml)) {
+        // Ersten Eintrag ueberspringen (Parent-Ordner)
+        if (isFirst) { isFirst = false; continue; }
+
         final block = match.group(0) ?? '';
         final lower = block.toLowerCase();
-        final isDir = lower.contains('<d:collection') || lower.contains('<collection/');
+        final isDir = lower.contains('collection');
+
+        // Name aus displayname oder href extrahieren
         final nameMatch = nameRegex.firstMatch(block);
-        final name = nameMatch?.group(1) ?? '';
-        if (name.isEmpty) continue; // skip self or invalid
+        String name = nameMatch?.group(1) ?? '';
+
+        // Fallback: Name aus href-Pfad extrahieren
+        if (name.isEmpty) {
+          final hrefMatch = hrefRegex.firstMatch(block);
+          if (hrefMatch != null) {
+            final href = hrefMatch.group(1) ?? '';
+            final segments = href.split('/').where((s) => s.isNotEmpty).toList();
+            if (segments.isNotEmpty) {
+              name = segments.last;
+            }
+          }
+        }
+
+        if (name.isEmpty) continue;
 
         int? size;
         final len = lenRegex.firstMatch(block)?.group(1);
@@ -857,6 +879,15 @@ class HiDriveBusinessSync {
           .map((filename) => filename.replaceAll('.bin', ''))
           .toList();
       return WebDAVResult.success(data: binFiles);
+    }
+    return WebDAVResult.failure(result.error);
+  }
+
+  /// Listet Unterordner (nicht Dateien) in einem Org-Pfad auf.
+  Future<WebDAVResult<List<String>>> listOrgScopedDirectories(String relativeDir) async {
+    final result = await _client.listDirectories(relativeDir);
+    if (result.isSuccess && result.data != null) {
+      return WebDAVResult.success(data: result.data!);
     }
     return WebDAVResult.failure(result.error);
   }
