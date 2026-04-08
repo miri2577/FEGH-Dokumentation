@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/admin_service.dart';
 import '../../services/hidrive_webdav_client.dart';
+import '../../services/recovery_service.dart';
 import '../../models/team.dart';
 import 'team_management_screen.dart';
 import 'employee_invitation_screen.dart';
@@ -103,15 +105,103 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final service = _createAdminService();
     final success = await service.initializeOrganizationStructure();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success
-            ? 'Organisation erfolgreich initialisiert'
-            : 'Fehler bei der Initialisierung'),
-        backgroundColor: success ? Colors.green : Colors.red,
+
+    if (success) {
+      // Recovery-Key generieren und anzeigen
+      final recoveryKey = RecoveryService.generateRecoveryKey();
+      // TODO: Recovery-Key verschluesselt speichern fuer spaetere Verifizierung
+      await _showRecoveryKeyDialog(recoveryKey);
+      _runHealthChecks();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fehler bei der Initialisierung'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showRecoveryKeyDialog(String recoveryKey) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.key, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 8),
+            const Text('Recovery-Key'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'WICHTIG: Notieren Sie diesen Key und bewahren Sie ihn sicher auf (ausdrucken, Safe). '
+                  'Ohne diesen Key koennen Sie bei Passwortverlust NICHT auf Ihre Daten zugreifen!',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                ),
+                child: SelectableText(
+                  recoveryKey,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontFamily: 'monospace',
+                    letterSpacing: 1,
+                    height: 1.8,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: recoveryKey));
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(content: Text('Recovery-Key kopiert')),
+                        );
+                      },
+                      icon: const Icon(Icons.copy, size: 16),
+                      label: const Text('Kopieren'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '12 Woerter · Gross-/Kleinschreibung egal · Sicher aufbewahren',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ich habe den Key gesichert'),
+          ),
+        ],
       ),
     );
-    if (success) _runHealthChecks();
   }
 
   @override

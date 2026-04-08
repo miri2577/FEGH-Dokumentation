@@ -16,6 +16,9 @@ import '../services/app_logger.dart';
 
 import '../utils/platform_utils.dart';
 import '../services/simple_webdav_test.dart';
+import '../services/totp_service.dart';
+import '../services/permission_service.dart';
+import '../models/app_settings.dart';
 import '../models/ui_customization.dart';
 import '../services/document_storage_service.dart';
 import 'team_key_qr_scan_screen.dart';
@@ -516,7 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildAccessStatusSection(AppProvider appProvider) {
     final s = appProvider.settings;
-    final isAdmin = s.isAdmin || s.teamId.isEmpty;
+    final perms = PermissionService(s.userRole);
     return _buildSection(
       title: 'Zugriffsstatus',
       icon: Icons.verified_user,
@@ -533,11 +536,170 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: Text(s.teamId.isNotEmpty ? s.teamId : 'Admin‑Modus (kein Team)'),
         ),
         ListTile(
-          leading: Icon(isAdmin ? Icons.verified_user : Icons.person),
-          title: const Text('Rollenmodus'),
-          subtitle: Text(isAdmin ? 'Admin' : 'Team‑Mitglied'),
+          leading: Icon(s.isAdmin ? Icons.verified_user : Icons.person),
+          title: const Text('Rolle'),
+          subtitle: Text(perms.roleDisplayName),
+        ),
+        // TOTP 2FA Status
+        ListTile(
+          leading: Icon(
+            s.totpSecret.isNotEmpty ? Icons.security : Icons.security_outlined,
+            color: s.totpSecret.isNotEmpty ? Colors.green : Colors.orange,
+          ),
+          title: const Text('Zwei-Faktor-Authentifizierung'),
+          subtitle: Text(s.totpSecret.isNotEmpty ? 'Aktiviert' : 'Nicht eingerichtet'),
+          trailing: s.totpSecret.isEmpty
+              ? TextButton(
+                  onPressed: () => _setupTotp(appProvider),
+                  child: const Text('Einrichten'),
+                )
+              : TextButton(
+                  onPressed: () => _showTotpInfo(appProvider),
+                  child: const Text('Details'),
+                ),
+        ),
+        // Berechtigungen
+        ExpansionTile(
+          leading: const Icon(Icons.shield_outlined),
+          title: const Text('Meine Berechtigungen'),
+          children: perms.permissionSummary
+              .map((p) => ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.check, size: 16, color: Colors.green),
+                    title: Text(p, style: const TextStyle(fontSize: 13)),
+                  ))
+              .toList(),
         ),
       ],
+    );
+  }
+
+  Future<void> _setupTotp(AppProvider appProvider) async {
+    final secret = TotpService.generateSecret();
+    final secretB32 = TotpService.secretToBase32(secret);
+    final uri = TotpService.generateOtpAuthUri(
+      secret: secretB32,
+      accountName: appProvider.settings.userName.isNotEmpty
+          ? appProvider.settings.userName
+          : 'Mitarbeiter',
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('TOTP einrichten'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Scannen Sie diesen Code mit einer Authenticator-App '
+                '(z.B. Google Authenticator, Microsoft Authenticator):',
+              ),
+              const SizedBox(height: 16),
+              // QR-Code wuerde hier angezeigt (qr_flutter)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    const Text('Manueller Code:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      secretB32,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 16, letterSpacing: 2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'otpauth URI:\n$uri',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('TOTP aktivieren'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await appProvider.updateSettings(
+        appProvider.settings.copyWith(totpSecret: secretB32),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('TOTP aktiviert. Ab der naechsten Anmeldung wird ein Code abgefragt.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showTotpInfo(AppProvider appProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('TOTP aktiv'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ListTile(
+              leading: Icon(Icons.check_circle, color: Colors.green),
+              title: Text('Zwei-Faktor-Authentifizierung ist aktiv'),
+            ),
+            const SizedBox(height: 8),
+            const Text('Bei jeder Anmeldung wird ein 6-stelliger Code aus Ihrer Authenticator-App abgefragt.'),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: const Text('TOTP deaktivieren?'),
+                    content: const Text('Die Zwei-Faktor-Authentifizierung wird deaktiviert. Dies verringert die Sicherheit.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Deaktivieren'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await appProvider.updateSettings(
+                    appProvider.settings.copyWith(totpSecret: ''),
+                  );
+                }
+              },
+              icon: const Icon(Icons.security_outlined, color: Colors.red),
+              label: const Text('TOTP deaktivieren', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+        ],
+      ),
     );
   }
 
