@@ -1,0 +1,73 @@
+{
+  "name": "eingliederungshilfe-admin",
+  "version": "1.0.0",
+  "description": "Teamleitungs-Administration für Eingliederungshilfe",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "test": "vitest run",
+    "package": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "date-fns": "^2.30.0",
+    "electron": "^28.0.0",
+    "electron-store": "^9.0.0",
+    "keytar": "^7.9.0",
+    "libsodium-wrappers-sumo": "^0.7.13",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.1",
+    "webdav": "^5.3.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/uuid": "^9.0.7",
+    "@vitejs/plugin-react": "^4.1.1",
+    "electron-builder": "^24.6.4",
+    "electron-vite": "^2.0.0",
+    "jsdom": "^23.0.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "vitest": "^0.34.6"
+  },
+  "build": {
+    "appId": "com.eingliederungshilfe.admin",
+    "productName": "Eingliederungshilfe Admin",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "author": "Mirko Richter",
+  "license": "UNLICENSED"
+}

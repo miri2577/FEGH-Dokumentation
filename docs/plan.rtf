@@ -1,0 +1,211 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 Menlo-BoldItalic;\f2\fnil\fcharset0 Menlo-Bold;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red168\green168\blue168;\red196\green196\blue196;
+\red101\green101\blue101;\red25\green0\blue255;}
+{\*\expandedcolortbl;;\csgray\c0;\cspthree\c71602\c71602\c71602;\csgenericrgb\c76863\c76863\c76863;
+\csgenericrgb\c39498\c39498\c39498;\cssrgb\c14288\c5774\c100000;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs26 \cf2 \cb3 \CocoaLigature0 Here is Claude's plan:                                                                                                \
+\cf4 \uc0\u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \u9548 \cf2 \
+ 
+\f1\i\b \cf5 \ul \ulc5 Plan: Fachleistungsstunden (FLS) professionell umsetzen
+\f0\i0\b0 \cf2 \ulnone \
+\
+ 
+\f2\b Kontext
+\f0\b0 \
+\
+ Die App erfasst bereits Termine mit automatischer FLS-Berechnung (\cf6 duration.inMinutes\cf2  \cf6 /\cf2  \cf6 60.0\cf2 ), trackt verbrauchte\
+ Stunden pro Klient und zeigt Ampel-Status (gr\'fcn/gelb/rot). Allerdings fehlen:\
+\
+ - 
+\f2\b Kalkulationsfaktor
+\f0\b0  
+\f2\b (KLE)
+\f0\b0  \'97 f\'fcr interne Gesamtzeitberechnung (Berlin-typisch: 1,25\'961,33)\
+ - 
+\f2\b Stundensatz
+\f0\b0  \'97 f\'fcr Abrechnungs\'fcbersicht in EUR (Berlin: 30\'9644 EUR je nach Qualifikation)\
+ - 
+\f2\b Konfigurierbarkeit
+\f0\b0  \'97 kein UI zum Einstellen dieser Werte\
+ - 
+\f2\b Pr\'e4zision
+\f0\b0  \'97 \cf6 verbrauchteStunden\cf2  ist \cf6 int\cf2 , verliert durch \cf6 .round()\cf2  Genauigkeit\
+\
+ Termine flie\'dfen bereits automatisch in die FLS ein \'97 das bleibt so. Wir erg\'e4nzen die fehlenden Berechnungs- und\
+ Konfigurationsbausteine.\
+\
+ ---\
+ 
+\f2\b \'c4nderungen
+\f0\b0 \
+\
+ 
+\f2\b 1.
+\f0\b0  
+\f2\b \cf6 lib/models/app_settings.dart\cf2  \'97
+\f0\b0  
+\f2\b FLS-Einstellungen
+\f0\b0 \
+\
+ Neue Felder mit sinnvollen Defaults:\
+ - \cf6 double\cf2  \cf6 kalkulationsfaktor\cf2  (Default: 1.33)\
+ - \cf6 double\cf2  \cf6 stundensatz\cf2  (Default: 40.0 EUR)\
+\
+ Anpassen: \cf6 copyWith\cf2 , \cf6 defaultSettings\cf2 , Konstruktor\
+ Danach: \cf6 build_runner\cf2  f\'fcr \cf6 .g.dart\cf2 \
+\
+ 
+\f2\b 2.
+\f0\b0  
+\f2\b \cf6 lib/models/client.dart\cf2  \'97
+\f0\b0  
+\f2\b Pr\'e4zision
+\f0\b0  
+\f2\b +
+\f0\b0  
+\f2\b Override
+\f0\b0 \
+\
+ - \cf6 verbrauchteStunden\cf2 : von \cf6 int\cf2  \uc0\u8594  \cf6 double\cf2  (Default: 0.0)\
+ - Neues Feld: \cf6 double?\cf2  \cf6 kalkulationsfaktorOverride\cf2  (optional, \'fcberschreibt globalen Wert)\
+ - Neues Feld: \cf6 double?\cf2  \cf6 stundensatzOverride\cf2  (optional, \'fcberschreibt globalen Wert)\
+ - \cf6 stundenverbrauchProzent\cf2  bleibt double, \cf6 verfuegbareStunden\cf2  wird auch \cf6 double\cf2 \
+\
+ Anpassen: \cf6 copyWith\cf2 , beide Konstruktoren, Hilfsmethoden\
+ Danach: \cf6 build_runner\cf2  f\'fcr \cf6 .g.dart\cf2 \
+\
+ 
+\f2\b 3.
+\f0\b0  
+\f2\b \cf6 lib/providers/app_provider.dart\cf2  \'97
+\f0\b0  
+\f2\b Berechnungslogik
+\f0\b0 \
+\
+ Neue Hilfsmethoden:\
+ - \cf6 double\cf2  \cf6 getKalkulationsfaktor(Client\cf2  \cf6 c)\cf2  \uc0\u8594  \cf6 c.kalkulationsfaktorOverride\cf2  \cf6 ??\cf2  \cf6 settings.kalkulationsfaktor\cf2 \
+ - \cf6 double\cf2  \cf6 getStundensatz(Client\cf2  \cf6 c)\cf2  \uc0\u8594  \cf6 c.stundensatzOverride\cf2  \cf6 ??\cf2  \cf6 settings.stundensatz\cf2 \
+ - \cf6 double\cf2  \cf6 getGesamtarbeitsstunden(Client\cf2  \cf6 c)\cf2  \uc0\u8594  \cf6 c.verbrauchteStunden\cf2  \cf6 *\cf2  \cf6 getKalkulationsfaktor(c)\cf2 \
+ - \cf6 double\cf2  \cf6 getAbrechnungsbetrag(Client\cf2  \cf6 c)\cf2  \uc0\u8594  \cf6 min(verbraucht,\cf2  \cf6 vereinbart)\cf2  \cf6 *\cf2  \cf6 getStundensatz(c)\cf2 \
+\
+ \cf6 updateStundenverbrauch\cf2  anpassen:\
+ - \cf6 .round()\cf2  entfernen \uc0\u8594  direkt \cf6 double\cf2  speichern\
+ - Clamping auf \cf6 double\cf2 : \cf6 clamp(0.0,\cf2  \cf6 fachleistungsstunden?.toDouble()\cf2  \cf6 ??\cf2  \cf6 0.0)\cf2 \
+\
+ 
+\f2\b 4.
+\f0\b0  
+\f2\b \cf6 lib/screens/settings_screen.dart\cf2  \'97
+\f0\b0  
+\f2\b FLS-Konfiguration
+\f0\b0  
+\f2\b UI
+\f0\b0 \
+\
+ Neue Section \cf6 _buildFLSSection()\cf2  nach Datenverwaltung, vor DSGVO:\
+\
+ \uc0\u55357 \u56522  Fachleistungsstunden (Kalkulation)\
+ \uc0\u9500 \u9472  Kalkulationsfaktor: [1.33]\
+ \uc0\u9474    "Verh\'e4ltnis Gesamtarbeitszeit zu abrechnungsf\'e4higer Zeit (Berlin-typisch: 1,25\'961,33)"\
+ \uc0\u9500 \u9472  Stundensatz (EUR): [40.00]\
+ \uc0\u9474    "Verg\'fctung pro Fachleistungsstunde"\
+ \uc0\u9492 \u9472  Info-Card: "Pro Klient im Stammblatt \'fcberschreibbar"\
+\
+ Speichern \'fcber \cf6 appProvider.updateSettings()\cf2 .\
+\
+ 
+\f2\b 5.
+\f0\b0  
+\f2\b Klienten-Formular
+\f0\b0  
+\f2\b \'97
+\f0\b0  
+\f2\b Override-Felder
+\f0\b0 \
+\
+ Dort wo Klienten angelegt/bearbeitet werden, zwei optionale Felder erg\'e4nzen:\
+ - Kalkulationsfaktor (leer = global)\
+ - Stundensatz EUR (leer = global)\
+\
+ Muss den exakten Screen noch identifizieren (vermutlich \cf6 clients_screen.dart\cf2  oder ein separates Formular).\
+\
+ 
+\f2\b 6.
+\f0\b0  
+\f2\b Klienten-Detail
+\f0\b0  
+\f2\b \'97
+\f0\b0  
+\f2\b Erweiterte
+\f0\b0  
+\f2\b FLS-Anzeige
+\f0\b0 \
+\
+ Die bestehende FLS-Anzeige (verbraucht/verf\'fcgbar/Ampel) erweitern um:\
+ - 
+\f2\b Gesamtarbeitszeit
+\f0\b0 : FLS \'d7 Kalkulationsfaktor (z.B. "20,0h FLS \uc0\u8594  26,6h Gesamtarbeitszeit")\
+ - 
+\f2\b Abrechnungsbetrag
+\f0\b0 : min(verbraucht, vereinbart) \'d7 Stundensatz (z.B. "800,00 EUR")\
+ - Anzeige welcher Faktor/Satz gilt (global vs. klient-spezifisch)\
+\
+ ---\
+ 
+\f2\b Wichtig:
+\f0\b0  
+\f2\b Was
+\f0\b0  
+\f2\b sich
+\f0\b0  
+\f2\b NICHT
+\f0\b0  
+\f2\b \'e4ndert
+\f0\b0 \
+\
+ - \cf6 lib/models/appointment.dart\cf2  \'97 \cf6 fachleistungsstunden:\cf2  \cf6 double\cf2  bleibt\
+ - \cf6 create_appointment_screen.dart\cf2  \'97 FLS = Terminl\'e4nge in Stunden bleibt (kein Faktor bei Erfassung!)\
+ - Der Kalkulationsfaktor ist NUR f\'fcr Anzeige/Controlling, NICHT f\'fcr die Terminerfassung\
+ - Termine flie\'dfen weiterhin automatisch in den Stundenverbrauch ein\
+\
+ ---\
+ 
+\f2\b Reihenfolge
+\f0\b0 \
+\
+ \uc0\u9484 \u9472 \u9472 \u9472 \u9472 \u9472 \u9516 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9516 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9488 \
+ \uc0\u9474   #  \u9474               Datei               \u9474                      Was                     \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  1   \u9474  \cf6 lib/models/app_settings.dart\cf2      \uc0\u9474  +kalkulationsfaktor, +stundensatz           \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  2   \u9474  \cf6 lib/models/client.dart\cf2            \uc0\u9474  verbrauchteStunden\u8594 double, +Override-Felder \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  3   \u9474  \cf6 build_runner\cf2  ausf\'fchren           \uc0\u9474  \cf6 .g.dart\cf2  regenerieren                        \uc0\u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  4   \u9474  \cf6 lib/providers/app_provider.dart\cf2   \uc0\u9474  Neue Getter, round() entfernen              \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  5   \u9474  \cf6 lib/screens/settings_screen.dart\cf2  \uc0\u9474  FLS-Section UI                              \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  6   \u9474  Klienten-Formular                \u9474  Override-Felder UI                          \u9474 \
+ \uc0\u9500 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9532 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9508 \
+ \uc0\u9474  7   \u9474  Klienten-Detail                  \u9474  Erweiterte FLS-Anzeige                      \u9474 \
+ \uc0\u9492 \u9472 \u9472 \u9472 \u9472 \u9472 \u9524 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9524 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9496 \
+\
+ ---\
+ 
+\f2\b Verifizierung
+\f0\b0 \
+\
+ 1. \cf6 flutter\cf2  \cf6 pub\cf2  \cf6 run\cf2  \cf6 build_runner\cf2  \cf6 build\cf2  \'97 generierte Dateien ok\
+ 2. \cf6 flutter\cf2  \cf6 build\cf2  \cf6 macos\cf2  \cf6 --release\cf2  \'97 kompiliert\
+ 3. Einstellungen \uc0\u8594  FLS-Section sichtbar, Werte einstellbar\
+ 4. Klient bearbeiten \uc0\u8594  Override-Felder optional ausf\'fcllbar\
+ 5. Termin erstellen (90 Min) \uc0\u8594  verbrauchteStunden = 1.5 (nicht 2)\
+ 6. Klienten-Ansicht \uc0\u8594  Gesamtarbeitszeit + Abrechnungsbetrag korrekt\
+ 7. Klient mit Override \uc0\u8594  zeigt klient-spezifischen Faktor/Satz\
+}
