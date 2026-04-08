@@ -325,7 +325,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     FilledButton.icon(
                       onPressed: _canProceed()
                           ? () async {
-                              if (_currentPage == 1) {
+                              // Profil-Seite: Admin-Pfad = Seite 1, Einladung = Seite 2
+                              final isProfilePage = (_setupPath == SetupPath.invitation && _currentPage == 2) ||
+                                  (_setupPath != SetupPath.invitation && _currentPage == 1);
+                              if (isProfilePage) {
                                 if (_profilFormKey.currentState?.validate() !=
                                     true) return;
                                 await _saveProfile();
