@@ -666,38 +666,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 8),
             const Text('Bei jeder Anmeldung wird ein 6-stelliger Code aus Ihrer Authenticator-App abgefragt.'),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (c) => AlertDialog(
-                    title: const Text('TOTP deaktivieren?'),
-                    content: const Text('Die Zwei-Faktor-Authentifizierung wird deaktiviert. Dies verringert die Sicherheit.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(c, true),
-                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('Deaktivieren'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await appProvider.updateSettings(
-                    appProvider.settings.copyWith(totpSecret: ''),
-                  );
-                }
-              },
-              icon: const Icon(Icons.security_outlined, color: Colors.red),
-              label: const Text('TOTP deaktivieren', style: TextStyle(color: Colors.red)),
-            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          OutlinedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (!mounted) return;
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('TOTP deaktivieren?'),
+                  content: const Text('Die Zwei-Faktor-Authentifizierung wird deaktiviert. Dies verringert die Sicherheit.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Deaktivieren'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && mounted) {
+                await appProvider.updateSettings(
+                  appProvider.settings.copyWith(totpSecret: ''),
+                );
+              }
+            },
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('TOTP deaktivieren'),
+          ),
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
         ],
       ),
     );
