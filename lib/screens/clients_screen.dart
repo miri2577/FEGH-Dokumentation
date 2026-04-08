@@ -6,6 +6,7 @@ import '../models/icf_bereiche.dart';
 import '../models/kostentraeger.dart';
 import '../utils/responsive_utils.dart';
 import '../services/export_service.dart';
+import '../services/permission_service.dart';
 import '../models/export_format.dart';
 import 'package:intl/intl.dart';
 import 'create_appointment_screen.dart';
@@ -89,12 +90,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
             ),
           ),
           body: _buildClientsList(context, appProvider, clients),
-          floatingActionButton: FloatingActionButton.extended(
-            heroTag: "clients_fab",
-            onPressed: _navigateToCreateClient,
-            icon: const Icon(Icons.person_add),
-            label: const Text('Neuer Klient'),
-          ),
+          floatingActionButton: PermissionService(appProvider.settings.userRole).canCreateClient
+              ? FloatingActionButton.extended(
+                  heroTag: "clients_fab",
+                  onPressed: _navigateToCreateClient,
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Neuer Klient'),
+                )
+              : null,
         );
       },
     );

@@ -45,6 +45,7 @@ class AppSettings {
   final double stundensatz; // Vergütung pro Fachleistungsstunde in EUR
   final String? bueroStandortId; // Standard-Startort des Mitarbeiters
   final String openRouteServiceApiKey; // API-Key fuer Online-Distanzberechnung
+  final String totpSecret; // TOTP-Secret (Base32) fuer 2FA, leer = kein TOTP
   @JsonKey(fromJson: _uiCustomizationFromJson, toJson: _uiCustomizationToJson)
   final UICustomization uiCustomization;
 
@@ -76,6 +77,7 @@ class AppSettings {
     this.stundensatz = 40.0,
     this.bueroStandortId,
     this.openRouteServiceApiKey = '',
+    this.totpSecret = '',
     this.uiCustomization = const UICustomization(),
   });
 
@@ -132,6 +134,7 @@ class AppSettings {
         stundensatz = 40.0,
         bueroStandortId = null,
         openRouteServiceApiKey = '',
+        totpSecret = '',
         uiCustomization = const UICustomization();
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -172,6 +175,7 @@ class AppSettings {
     double? stundensatz,
     String? bueroStandortId,
     String? openRouteServiceApiKey,
+    String? totpSecret,
     UICustomization? uiCustomization,
   }) {
     return AppSettings(
@@ -204,6 +208,7 @@ class AppSettings {
       stundensatz: stundensatz ?? this.stundensatz,
       bueroStandortId: bueroStandortId ?? this.bueroStandortId,
       openRouteServiceApiKey: openRouteServiceApiKey ?? this.openRouteServiceApiKey,
+      totpSecret: totpSecret ?? this.totpSecret,
       uiCustomization: uiCustomization ?? this.uiCustomization,
     );
   }

@@ -204,6 +204,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       organizationId: token['org'] ?? '',
       teamId: teams.isNotEmpty ? teams.first : '',
       userRole: userRole,
+      totpSecret: token['totp'] ?? '',
     ));
 
     // Team-Key anwenden (erster Team-Key)

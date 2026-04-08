@@ -9,6 +9,7 @@ import '../models/app_settings.dart';
 import 'crypto_storage.dart';
 import 'hidrive_webdav_client.dart';
 import 'file_logger.dart';
+import 'totp_service.dart';
 
 /// Zentraler Service für Admin-Operationen:
 /// Team-Verwaltung, Mitarbeiter-Einladung, Rollen, Health Checks.
@@ -198,6 +199,10 @@ class AdminService {
         }
       }
 
+      // TOTP-Secret generieren (RFC 6238, 160 Bit)
+      final totpSecret = TotpService.generateSecret();
+      final totpSecretB32 = TotpService.secretToBase32(totpSecret);
+
       final payload = {
         'type': 'egh-provisioning-v1',
         'org': settings.organizationId,
@@ -205,6 +210,7 @@ class AdminService {
         'role': role,
         'teams': teamIds,
         'teamKeys': teamKeys,
+        'totp': totpSecretB32,
         'hidrive': {
           'username': settings.hidriveUsername,
           'appPassword': settings.hidrivePassword,

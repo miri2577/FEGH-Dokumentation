@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/client.dart';
 import '../models/appointment.dart';
 import '../models/app_settings.dart';
+import '../services/totp_service.dart';
 import '../models/arbeitszeit.dart';
 import '../models/mitarbeiter.dart';
 import '../models/freizeit_antrag.dart';
@@ -130,6 +131,16 @@ class AppProvider extends ChangeNotifier {
     _settings = _settings.copyWith(userRole: UserRole.orgAdmin);
     await updateSettings(_settings);
     debugPrint('[DEBUG] forceAdminRole: userRole jetzt ${_settings.userRole}');
+  }
+
+  /// Ob TOTP fuer diesen Nutzer aktiviert ist
+  bool get hasTotpEnabled => _settings.totpSecret.isNotEmpty;
+
+  /// TOTP-Code verifizieren
+  bool verifyTotpCode(String code) {
+    if (!hasTotpEnabled) return true; // Kein TOTP = immer OK
+    final secret = TotpService.base32ToSecret(_settings.totpSecret);
+    return TotpService.verifyCode(secret, code);
   }
 
   Future<bool> completeSetup() async {

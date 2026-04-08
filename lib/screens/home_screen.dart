@@ -24,6 +24,7 @@ import 'benutzerprofil_screen.dart';
 import 'create_client_screen.dart';
 import 'dokumentation_uebersicht_screen.dart';
 import 'admin/admin_dashboard_screen.dart';
+import '../services/permission_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,7 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       body: _getScreen(_currentIndex),
-      floatingActionButton: (_currentIndex == 0 || _currentIndex == 4)
+      floatingActionButton: (_currentIndex == 0 || _currentIndex == 4) &&
+              PermissionService(Provider.of<AppProvider>(context, listen: false).settings.userRole).canManageAppointments
           ? FloatingActionButton.extended(
               heroTag: "home_fab",
               onPressed: () {

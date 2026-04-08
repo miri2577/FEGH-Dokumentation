@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../utils/platform_utils.dart';
 import '../services/demo_data_service.dart';
+import '../services/totp_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -20,9 +21,12 @@ class _AuthScreenState extends State<AuthScreen>
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _totpController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isSettingPassword = false;
+  bool _awaitingTotp = false;
+  String? _totpError;
 
   @override
   void initState() {
@@ -57,6 +61,7 @@ class _AuthScreenState extends State<AuthScreen>
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _totpController.dispose();
     super.dispose();
   }
 
@@ -157,6 +162,9 @@ class _AuthScreenState extends State<AuthScreen>
                                     ),
                                   ],
                                 )
+                              else if (_awaitingTotp)
+                                // TOTP 2FA Verification
+                                _buildTotpVerification(context, appProvider)
                               else if (appProvider.useAppPassword && !appProvider.isPasswordSet)
                                 // Password Setup (Web or Desktop without device auth)
                                 _buildPasswordSetup(context, appProvider)
@@ -650,14 +658,115 @@ class _AuthScreenState extends State<AuthScreen>
   void _loginWithPassword() {
     final username = _usernameController.text;
     final password = _passwordController.text;
-    
+
     if (username.isEmpty || password.isEmpty) {
       _showSnackBar('Bitte geben Sie Benutzername und Passwort ein');
       return;
     }
-    
+
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     appProvider.authenticateWithCredentials(username, password);
+
+    // Nach erfolgreichem Login: TOTP-Schritt wenn aktiviert
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (appProvider.isAuthenticated && appProvider.hasTotpEnabled) {
+        setState(() {
+          _awaitingTotp = true;
+          // Auth temporaer zuruecknehmen bis TOTP verifiziert
+          appProvider.logout();
+        });
+      }
+    });
+  }
+
+  void _verifyTotp() {
+    final code = _totpController.text.trim();
+    if (code.length != 6) {
+      setState(() => _totpError = 'Bitte 6-stelligen Code eingeben');
+      return;
+    }
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    if (appProvider.verifyTotpCode(code)) {
+      setState(() { _awaitingTotp = false; _totpError = null; });
+      // Re-Authentifizieren
+      final username = _usernameController.text;
+      final password = _passwordController.text;
+      appProvider.authenticateWithCredentials(username, password);
+    } else {
+      setState(() => _totpError = 'Ungültiger Code. Bitte erneut versuchen.');
+      _totpController.clear();
+    }
+  }
+
+  Widget _buildTotpVerification(BuildContext context, AppProvider appProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Icon(Icons.security, size: 48, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 16),
+        Text(
+          'Zwei-Faktor-Authentifizierung',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          controller: _totpController,
+          decoration: InputDecoration(
+            labelText: 'TOTP-Code',
+            hintText: '000000',
+            prefixIcon: const Icon(Icons.pin),
+            errorText: _totpError,
+          ),
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            letterSpacing: 8,
+          ),
+          onSubmitted: (_) => _verifyTotp(),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _verifyTotp,
+          icon: const Icon(Icons.check),
+          label: const Text('Verifizieren'),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => setState(() { _awaitingTotp = false; _totpError = null; }),
+          child: const Text('Zurueck zur Anmeldung'),
+        ),
+        const SizedBox(height: 16),
+        // Verbleibende Zeit anzeigen
+        StreamBuilder(
+          stream: Stream.periodic(const Duration(seconds: 1)),
+          builder: (context, _) {
+            final remaining = TotpService.remainingSeconds();
+            return Text(
+              'Naechster Code in $remaining Sekunden',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            );
+          },
+        ),
+      ],
+    );
   }
 
   void _showPasswordForgottenDialog(BuildContext context) {

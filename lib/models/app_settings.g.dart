@@ -44,6 +44,7 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   stundensatz: (json['stundensatz'] as num?)?.toDouble() ?? 40.0,
   bueroStandortId: json['bueroStandortId'] as String?,
   openRouteServiceApiKey: json['openRouteServiceApiKey'] as String? ?? '',
+  totpSecret: json['totpSecret'] as String? ?? '',
   uiCustomization: json['uiCustomization'] == null
       ? const UICustomization()
       : _uiCustomizationFromJson(
@@ -80,6 +81,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'stundensatz': instance.stundensatz,
       'bueroStandortId': instance.bueroStandortId,
       'openRouteServiceApiKey': instance.openRouteServiceApiKey,
+      'totpSecret': instance.totpSecret,
       'uiCustomization': _uiCustomizationToJson(instance.uiCustomization),
     };
 
