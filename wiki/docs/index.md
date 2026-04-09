@@ -2,7 +2,7 @@
 
 **Digitale Eingliederungshilfe-Dokumentation** -- die App fuer Fachkraefte in der Eingliederungshilfe.
 
-Version: **0.1.0-alpha.1** | [GitHub Repository](https://github.com/miri2577/FEGH-Dokumentation)
+Version: **0.2.0-beta.1** | [GitHub Repository](https://github.com/miri2577/FEGH-Dokumentation)
 
 ---
 
@@ -20,9 +20,10 @@ Die App laeuft auf **Windows, macOS, Linux, iOS, Android und im Browser**.
 | **Terminplanung** | Kalender mit Wochen-/Monatsansicht, farbkodierte Klienten |
 | **Arbeitszeiterfassung** | Taetigkeitsbasiert mit automatischer Berechnung |
 | **Berichte** | Berliner Informationsbericht (137 Felder), PDF-Export |
-| **Team-Arbeit** | Multi-Team-Struktur, Cloud-Sync ueber HiDrive |
+| **Verschluesselter Chat** | Matrix-basiert, E2E (Megolm), eigener Server, Video-Calls |
+| **Team-Arbeit** | Multi-Team-Struktur, Cloud-Sync (HiDrive, Nextcloud, eigener Server) |
 | **Administration** | Teams erstellen, Mitarbeiter einladen, Rollen verwalten |
-| **Sicherheit** | AES-256-GCM Verschluesselung, TOTP 2FA, DSGVO-konform |
+| **Sicherheit** | AES-256-GCM, TOTP 2FA, Audit-Logging, DSGVO-konform |
 
 ## Schnellstart
 

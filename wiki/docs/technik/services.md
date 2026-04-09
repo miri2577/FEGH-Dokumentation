@@ -5,21 +5,23 @@
 | Service | Datei | Zweck |
 |---------|-------|-------|
 | SecureStorageService | `secure_storage_service.dart` | Zentrale Datenpersistenz mit Verschluesselung |
-| CryptoStorage | `crypto_storage.dart` | AES-256-GCM Verschluesselung (MEK/DEK) |
+| CryptoStorage | `crypto_storage.dart` | AES-256-GCM (MEK/DEK), sichere Loeschung |
+| CloudStorageAdapter | `cloud_storage_adapter.dart` | Abstraktionsschicht (HiDrive/Nextcloud/Lokal) |
 | HiDriveWebDAVClient | `hidrive_webdav_client.dart` | WebDAV-Client fuer HiDrive |
+| MatrixChatService | `matrix_chat_service.dart` | E2E-Chat (Matrix/Conduit), Raeume, Dateien |
 | AdminService | `admin_service.dart` | Team-CRUD, Provisioning, Rollen, Health Checks |
-| PermissionService | `permission_service.dart` | Rollenbasierte Zugriffskontrolle |
-| TotpService | `totp_service.dart` | TOTP 2FA nach RFC 6238 |
-| RecoveryService | `recovery_service.dart` | Passwort-Recovery und Admin-Recovery-Key |
+| PermissionService | `permission_service.dart` | Rollenbasierte Zugriffskontrolle (5 Rollen) |
+| TotpService | `totp_service.dart` | TOTP 2FA nach RFC 6238, offline |
+| RecoveryService | `recovery_service.dart` | Recovery-Token + 12-Wort Admin-Recovery-Key |
+| AuditLogger | `audit_logger.dart` | DSGVO Audit-Log (JSON-Lines, persistent) |
 | DocumentLockService | `document_lock_service.dart` | Optimistic Locking fuer Dokumente |
 | PdfGeneratorService | `pdf_generator_service.dart` | PDF-Export (3 Varianten) |
 | ExportService | `export_service.dart` | CSV/JSON-Datenexport |
 | GdprService | `gdpr_service.dart` | DSGVO-Export und Crypto-Erasure |
 | BackupService | `backup_service.dart` | Backup/Restore mit optionaler Verschluesselung |
-| MessageService | `message_service.dart` | Internes Nachrichtensystem |
 | TeamKeyService | `team_key_service.dart` | Team-Key laden und anwenden |
-| AuthenticationService | `authentication_service.dart` | Biometrische Authentifizierung |
-| WebAuthService | `web_auth_service.dart` | Web/Desktop Passwort-Auth |
+| AuthenticationService | `authentication_service.dart` | Biometrie + Session-Timeout |
+| WebAuthService | `web_auth_service.dart` | PBKDF2 100k Passwort-Auth |
 | SecurityService | `security_service.dart` | Geraetesicherheit (Root, Jailbreak, USB-Debug) |
 | DistanceService | `distance_service.dart` | Fahrtstrecken-Berechnung (OpenRouteService) |
 | DemoDataService | `demo_data_service.dart` | Demo-Daten fuer Ersteinrichtung |

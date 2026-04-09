@@ -78,3 +78,35 @@ Ein verschluesseltes Manifest (`manifest.json`) indexiert alle gespeicherten Dat
 ## Dateinamen
 
 Alle Dateien auf HiDrive werden mit UUIDs benannt (z.B. `a1b2c3d4-e5f6-...bin`). Es sind keine personenbezogenen Daten in Dateinamen oder Ordnerstrukturen sichtbar.
+
+## Sichere Loeschung (Crypto-Erasure)
+
+Bei der Datenlöschung (`cryptoErasure()`) werden:
+
+1. Alle Dateien einzeln mit **Zufallsdaten ueberschrieben** (verhindert forensische Wiederherstellung)
+2. Danach geloescht
+3. Der MEK wird aus dem Keychain entfernt
+4. Der Cache wird geleert
+
+Selbst wenn eine Datei physisch wiederhergestellt werden koennte, ist sie ohne MEK nicht entschluesselbar.
+
+## Passwort-Hashing
+
+App-Passwoerter werden mit **PBKDF2** gehasht:
+
+- 100.000 Iterationen HMAC-SHA256
+- Zufaelliger Salt pro Passwort
+- Salt und Hash zusammen gespeichert (`salt:hash`)
+- Abwaertskompatible Migration von altem SHA256-Format
+
+## Audit-Logging
+
+Alle sicherheitsrelevanten Aktionen werden persistent protokolliert:
+
+- Login/Logout (erfolgreich und fehlgeschlagen)
+- Klient erstellt/geaendert/geloescht
+- Team erstellt, User eingeladen, Rolle geaendert
+- Datenexport, Datenloeschung
+- Recovery-Token generiert/eingeloest
+
+Format: JSON-Lines in `audit.log`, eine Zeile pro Eintrag mit Zeitstempel, Aktion und User-ID.
