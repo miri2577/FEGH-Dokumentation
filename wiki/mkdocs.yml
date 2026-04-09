@@ -79,6 +79,7 @@ nav:
     - HiDrive-Integration: technik/hidrive.md
     - Storage-Alternativen: technik/cloud-alternativen.md
     - Matrix-Chat: technik/matrix-chat.md
+    - Matrix-Server aufsetzen: technik/matrix-setup.md
     - API und Services: technik/services.md
     - Plattformen: technik/plattformen.md
   - Entwicklung:
