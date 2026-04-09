@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/responsive_utils.dart';
 
 class HilfeScreen extends StatelessWidget {
   const HilfeScreen({super.key});
+
+  static const String _wikiUrl = 'https://miri2577.github.io/FEGH-Dokumentation/';
 
   @override
   Widget build(BuildContext context) {
@@ -11,6 +14,18 @@ class HilfeScreen extends StatelessWidget {
         title: const Text('Hilfe & Dokumentation'),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: _wikiUrl));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Wiki-URL kopiert: miri2577.github.io/FEGH-Dokumentation')),
+              );
+            },
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('Online-Wiki'),
+          ),
+        ],
       ),
       body: ResponsiveUtils.adaptiveScaffoldBody(
         context: context,
@@ -25,21 +40,23 @@ class HilfeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildNavigationSection(context),
               const SizedBox(height: 24),
-              _buildTerminSection(context),
+              _buildClientSection(context),
               const SizedBox(height: 24),
-              _buildClientManagementSection(context),
+              _buildTerminSection(context),
               const SizedBox(height: 24),
               _buildTimeTrackingSection(context),
               const SizedBox(height: 24),
-              _buildFahrwegeSection(context),
+              _buildChatSection(context),
               const SizedBox(height: 24),
-              _buildExportSection(context),
-              const SizedBox(height: 24),
-              _buildSettingsSection(context),
+              _buildAdminSection(context),
               const SizedBox(height: 24),
               _buildSecuritySection(context),
               const SizedBox(height: 24),
+              _buildExportSection(context),
+              const SizedBox(height: 24),
               _buildTroubleshootingSection(context),
+              const SizedBox(height: 24),
+              _buildVersionSection(context),
               const SizedBox(height: 100),
             ],
           ),
@@ -57,52 +74,24 @@ class HilfeScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.waving_hand,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 28,
-                ),
+                Icon(Icons.accessibility_new, color: Theme.of(context).colorScheme.primary, size: 28),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Willkommen zur FEGH-Dokumentation',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text('Willkommen zur FEGH-Dokumentation',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Text(
-              'FEGH-Dokumentation ist Ihre zentrale App zur Verwaltung von Klienten, Terminen, Arbeitszeiten, Fahrwegen und Berichten in der Eingliederungshilfe. Alle Daten werden lokal verschlüsselt gespeichert und optional mit HiDrive synchronisiert.',
+              'FEGH-Dokumentation ist Ihre App fuer die digitale Eingliederungshilfe. '
+              'Verwalten Sie Klienten, Termine, Arbeitszeiten und Berichte -- verschluesselt und DSGVO-konform. '
+              'Kommunizieren Sie sicher ueber den integrierten Ende-zu-Ende verschluesselten Chat.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.security,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Alle Daten sind mit AES-256-GCM verschlüsselt. Ohne Cloud-Anbindung bleiben alle Daten ausschließlich auf Ihrem Gerät.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildInfoBox(context, Icons.security, Colors.green,
+              'Alle Daten sind mit AES-256-GCM verschluesselt. Chat-Nachrichten sind Ende-zu-Ende verschluesselt (Megolm).'),
           ],
         ),
       ),
@@ -110,628 +99,150 @@ class HilfeScreen extends StatelessWidget {
   }
 
   Widget _buildQuickStartSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Schnellstart',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildStepItem(
-              context,
-              '1',
-              'Ersteinrichtung abschließen',
-              'Beim ersten Start führt Sie der Einrichtungs-Assistent durch die Grundkonfiguration: Name, Speichermodus und optionale Cloud-Anbindung.',
-            ),
-            _buildStepItem(
-              context,
-              '2',
-              'Klienten anlegen',
-              'Legen Sie Ihre Klienten mit Stammdaten an: Name, Adresse, Rechtsgrundlage, Kostenträger und Betreuungszeitraum.',
-            ),
-            _buildStepItem(
-              context,
-              '3',
-              'Termine dokumentieren',
-              'Erstellen Sie Termine für Ihre Klienten mit Datum, Uhrzeit, Leistungsart und optionaler Fahrweg-Dokumentation.',
-            ),
-            _buildStepItem(
-              context,
-              '4',
-              'Arbeitszeiten erfassen',
-              'Dokumentieren Sie Ihre täglichen Arbeitszeiten nach Typ (Klientenarbeit, Fahrt, Büro, etc.) im Arbeitszeit-Tab.',
-            ),
-            _buildStepItem(
-              context,
-              '5',
-              'Standorte einrichten (optional)',
-              'Für die km-Erfassung: Legen Sie unter Einstellungen > Standorte Ihr Büro und häufige Ziele an.',
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildSection(context, 'Schnellstart', [
+      _buildStepItem(context, '1', 'Ersteinrichtung',
+        'Beim ersten Start: "Organisation einrichten" (Admin) oder "Einladungscode verwenden" (Mitarbeiter).'),
+      _buildStepItem(context, '2', 'Klienten anlegen',
+        'Im Klienten-Tab: Stammdaten, Kostenuebernahme, Fachleistungsstunden und TIB-Ziele erfassen.'),
+      _buildStepItem(context, '3', 'Termine dokumentieren',
+        'Ueber den "+"-Button: Klient, Datum, Uhrzeit, Terminart und Dokumentation erfassen.'),
+      _buildStepItem(context, '4', 'Chat einrichten',
+        'Im Nachrichten-Tab: Mit Matrix-Zugangsdaten anmelden fuer verschluesselten Team-Chat.'),
+      _buildStepItem(context, '5', 'TOTP aktivieren (empfohlen)',
+        'Einstellungen > Zugriffsstatus > "Einrichten" fuer Zwei-Faktor-Authentifizierung.'),
+    ]);
   }
 
   Widget _buildNavigationSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Navigation & Bedienung',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.dashboard,
-              'Dashboard (Startseite)',
-              'Übersicht mit Kalender, Statistiken, Quick-Actions und heutigen Terminen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.people,
-              'Klienten-Tab',
-              'Verwaltung aller Klienten mit Suche, Filter und Stammblatt-Zugang',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.access_time,
-              'Arbeitszeit-Tab',
-              'Zeiterfassung, Fahrwege-Statistik und Freizeit-/Urlaubsanträge',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.help,
-              'Hilfe-Tab',
-              'Diese Dokumentation mit Anleitungen und Problemlösungen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.settings,
-              'Einstellungen',
-              'Über das Zahnrad-Symbol erreichbar: Profil, Standorte, Cloud-Sync, Export und mehr',
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildSection(context, 'Navigation', [
+      _buildFeatureItem(context, Icons.dashboard, 'Dashboard',
+        'Uebersicht mit Statistiken, Ampel-System fuer Fachleistungsstunden und Schnellaktionen'),
+      _buildFeatureItem(context, Icons.people, 'Klienten',
+        'Verwaltung aller Klienten mit Suche, FLS-Tracking und Stammdaten'),
+      _buildFeatureItem(context, Icons.article, 'Dokumentation',
+        'Chronologische Uebersicht aller Termin-Dokumentationen mit Volltextsuche'),
+      _buildFeatureItem(context, Icons.access_time, 'Arbeitszeit',
+        'Taetigkeitsbasierte Zeiterfassung mit Statistiken und Soll/Ist-Vergleich'),
+      _buildFeatureItem(context, Icons.calendar_view_month, 'Kalender',
+        'Wochen-/Monatsansicht mit farbkodierten Klienten (24 Farben)'),
+      _buildFeatureItem(context, Icons.chat, 'Nachrichten',
+        'Ende-zu-Ende verschluesselter Matrix-Chat mit Datei-Versand'),
+      _buildFeatureItem(context, Icons.assessment, 'Berichte',
+        'Informationsberichte (Berliner Formular 101) und Auswertungen'),
+      _buildFeatureItem(context, Icons.file_download, 'Export',
+        'Datenexport als PDF, CSV oder JSON'),
+      _buildFeatureItem(context, Icons.settings, 'Einstellungen',
+        'Profil, Cloud-Sync, Sicherheit, FLS-Kalkulation, DSGVO'),
+      _buildFeatureItem(context, Icons.admin_panel_settings, 'Verwaltung (Admin)',
+        'Teams, Mitarbeiter, Einladungen, Rollen -- nur fuer Admins sichtbar'),
+    ]);
+  }
+
+  Widget _buildClientSection(BuildContext context) {
+    return _buildSection(context, 'Klienten-Verwaltung', [
+      _buildFeatureItem(context, Icons.person_add, 'Klient anlegen',
+        'Stammdaten, Kostenuebernahme, Fachleistungsstunden, TIB-Ziele, ICF-Bereiche'),
+      _buildFeatureItem(context, Icons.calculate, 'FLS-Kalkulation',
+        'Automatische Berechnung: Bewilligte vs. verbrauchte Stunden, Kalkulationsfaktor (1,33), Stundensatz (40 EUR)'),
+      _buildFeatureItem(context, Icons.color_lens, 'Farbkodierung',
+        'Jeder Klient kann eine eigene Farbe fuer den Kalender erhalten (24 Farben)'),
+      _buildInfoBox(context, Icons.shield, Colors.orange,
+        'Berechtigungen: Klienten anlegen koennen nur Teamleitungen und Admins. '
+        'Mitarbeiter koennen Dokumentation bearbeiten, aber keine Stammdaten aendern.'),
+    ]);
   }
 
   Widget _buildTerminSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Termin-Dokumentation',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.event,
-              'Termin erstellen',
-              'Über Quick-Action oder Klienten-Detail: Datum, Uhrzeit, Dauer und Leistungsart erfassen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.description,
-              'Dokumentation',
-              'Freitext-Dokumentation zu jedem Termin mit optionaler ICF-Bereich-Zuordnung',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.directions_car,
-              'Fahrweg dokumentieren',
-              'Optional: Start- und Zielstandort mit km-Angabe beim Termin erfassen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.calendar_month,
-              'Kalender-Integration',
-              'Alle Termine erscheinen im Dashboard-Kalender mit farblicher Markierung',
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Tipp: Beim Erstellen eines Termins können Sie die Fahrweg-Section aufklappen, um Hin- und Rückfahrt direkt mitzudokumentieren.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClientManagementSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Klienten-Verwaltung',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.person_add,
-              'Klient anlegen',
-              'Stammdaten erfassen: Name, Adresse, Geburtsdatum, Kontaktdaten',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.gavel,
-              'Rechtsgrundlage & Kostenträger',
-              'SGB-Paragraphen und Berliner Kostenträger (Jugendamt, Sozialamt, Krankenkasse etc.) zuweisen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.date_range,
-              'Betreuungszeitraum',
-              'Von-Bis-Datum und Kostenübernahme-Zeitraum dokumentieren',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.article,
-              'Informationsbericht',
-              'Strukturierten Bericht erstellen und als PDF exportieren (Berliner Amtsformular)',
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Klienten-Stammblatt:',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '• Name, Adresse, Telefon, E-Mail\n'
-              '• Geburtsdatum mit automatischer Altersberechnung\n'
-              '• Rechtsgrundlage (SGB-Paragraphen gruppiert)\n'
-              '• Kostenträger (Berliner Bezirke, Krankenkassen etc.)\n'
-              '• Betreuungszeitraum und Kostenübernahme\n'
-              '• Freitext-Notizen',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildSection(context, 'Termine & Dokumentation', [
+      _buildFeatureItem(context, Icons.event, 'Terminarten',
+        '8 Typen: Kliententermin, Buero, Dokumentation, Supervision, Teamsitzung, Fortbildung, Fahrtzeit, Sonstige'),
+      _buildFeatureItem(context, Icons.track_changes, 'TIB-Zielverknuepfung',
+        'Termine mit Teilhabezielen verknuepfen und Zeitverteilung pro Ziel dokumentieren'),
+      _buildFeatureItem(context, Icons.directions_car, 'Fahrwege',
+        'Hin- und Rueckfahrt mit Start/Ziel und Kilometern. Distanz-Cache und optionale Online-Berechnung'),
+      _buildFeatureItem(context, Icons.picture_as_pdf, 'Informationsbericht',
+        'Berliner Formular 101 (137 Felder) mit 3 PDF-Export-Varianten. Entwuerfe speicherbar'),
+    ]);
   }
 
   Widget _buildTimeTrackingSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Arbeitszeit-Erfassung',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.schedule,
-              'Tägliche Zeiterfassung',
-              'Start- und Endzeit mit automatischer Stundenberechnung',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.category,
-              'Arbeitszeit-Typen',
-              'Klientenarbeit, Fahrt, Büro, Fortbildung, Supervision und weitere',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.analytics,
-              'Statistiken',
-              'Übersicht: Stunden heute/Woche/Monat, Überstunden, gefahrene km',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.event_available,
-              'Freizeit beantragen',
-              'Urlaub, Freizeitausgleich, Sonderurlaub, Fortbildung oder Krankmeldung',
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.tertiaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Theme.of(context).colorScheme.onTertiaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Bei Arbeitszeit-Typ "Fahrt" können Sie direkt einen Fahrweg mit Start/Ziel und km-Angabe dokumentieren.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onTertiaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildSection(context, 'Arbeitszeit', [
+      _buildFeatureItem(context, Icons.schedule, 'Zeiterfassung',
+        'Start-/Endzeit mit automatischer Stundenberechnung nach 8 Taetigkeitstypen'),
+      _buildFeatureItem(context, Icons.analytics, 'Statistiken',
+        'Stunden heute/Woche/Monat, Verteilung nach Typ, Soll/Ist-Vergleich'),
+      _buildFeatureItem(context, Icons.event_available, 'Urlaub & Freizeit',
+        'Antraege fuer Urlaub, Freizeitausgleich, Sonderurlaub, Fortbildung, Krankmeldung'),
+    ]);
   }
 
-  Widget _buildFahrwegeSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Fahrwege & Standorte',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.location_on,
-              'Standorte verwalten',
-              'Einstellungen > Standorte & Fahrwege: Büro, Klienten-Standorte und Ämter anlegen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.directions_car,
-              'Fahrten erfassen',
-              'Start- und Zielstandort auswählen, km werden automatisch aus dem Cache geladen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.cached,
-              'Strecken-Cache',
-              'Einmal berechnete oder eingegebene Distanzen werden gespeichert und beim nächsten Mal automatisch vorgeschlagen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.swap_horiz,
-              'Rückfahrt',
-              'Mit einem Klick "Rückfahrt gleich" aktivieren, um die Gegenrichtung mitzuerfassen',
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Distanz berechnen (optional):',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Die km-Distanz zwischen zwei Standorten kann auf drei Arten ermittelt werden:',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            _buildStepItem(
-              context,
-              '1',
-              'Manuell eingeben',
-              'Geben Sie die km-Zahl direkt ins Distanz-Feld ein. Kein API-Key erforderlich.',
-            ),
-            _buildStepItem(
-              context,
-              '2',
-              'Aus dem Cache laden',
-              'Wenn die Strecke schon einmal erfasst wurde, wird die Distanz automatisch vorgeschlagen.',
-            ),
-            _buildStepItem(
-              context,
-              '3',
-              'Online berechnen lassen',
-              'Mit einem OpenRouteService API-Key können Sie Distanzen automatisch per Routing berechnen lassen.',
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.key, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'API-Key einrichten (optional)',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '1. Besuchen Sie openrouteservice.org und erstellen Sie ein kostenloses Konto\n'
-                    '2. Nach der Anmeldung finden Sie unter "Tokens" Ihren API-Key\n'
-                    '3. Kopieren Sie den Key und fügen Sie ihn unter Einstellungen > Standorte & Fahrwege > API-Key ein\n'
-                    '4. Das kostenlose Kontingent umfasst 2.000 Anfragen pro Tag',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.privacy_tip, color: Colors.green, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'DSGVO-konform: Adressen werden nur einmalig für die Berechnung verwendet und nicht gespeichert. Es wird ausschließlich die km-Zahl im Cache abgelegt.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.green.shade800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _buildChatSection(BuildContext context) {
+    return _buildSection(context, 'Verschluesselter Chat', [
+      _buildFeatureItem(context, Icons.lock, 'Ende-zu-Ende Verschluesselung',
+        'Megolm-Protokoll (wie Signal/Threema). Der Server sieht nur verschluesselte Nachrichten'),
+      _buildFeatureItem(context, Icons.group, 'Team-Raeume',
+        'Grupenchats fuer Teams. Alle Raeume automatisch E2E-verschluesselt'),
+      _buildFeatureItem(context, Icons.attach_file, 'Dateien senden',
+        'Bilder und Dokumente verschluesselt im Chat teilen'),
+      _buildFeatureItem(context, Icons.videocam, 'Video-/Audio-Anrufe',
+        'Aktuell ueber Element Web, native Integration geplant'),
+      _buildInfoBox(context, Icons.dns, Colors.blue,
+        'Der Chat laeuft ueber einen eigenen Server in Deutschland. '
+        'Keine Drittanbieter, keine Daten bei Google/Meta/Microsoft.'),
+    ]);
   }
 
-  Widget _buildExportSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Export & Berichte',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.picture_as_pdf,
-              'Informationsbericht (PDF)',
-              'Strukturierter Bericht im Berliner Amtsformular-Format mit allen Klientendaten',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.table_chart,
-              'Arbeitszeit-Export',
-              'Monatsübersicht der Arbeitszeiten als teilbares Dokument',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.directions_car,
-              'Fahrwege-Export',
-              'Km-Aufstellung für Fahrtkostenerstattung mit Datum, Start, Ziel und km pro Klient',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.people,
-              'Klienten-Export',
-              'Übersicht aller Klienten mit Stammdaten',
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Tipp: Der Fahrwege-Export eignet sich ideal zur Vorlage beim Arbeitgeber für die monatliche Fahrtkostenerstattung.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Einstellungen',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.person,
-              'Benutzerprofil',
-              'Name, Wochenarbeitszeit und Urlaubstage konfigurieren',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.location_on,
-              'Standorte & Fahrwege',
-              'Büro-Standort festlegen, Standorte verwalten, API-Key konfigurieren',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.cloud_sync,
-              'Cloud-Synchronisation',
-              'HiDrive-Zugangsdaten und Sync-Einstellungen für geräteübergreifende Nutzung',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.palette,
-              'Darstellung',
-              'UI-Anpassungen: Informationsdichte, Farbschema und Dark Mode',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.calculate,
-              'Kalkulation',
-              'Kalkulationsfaktor (KLE-Faktor) und Stundensatz für Abrechnungen',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.download,
-              'Export',
-              'Daten als PDF, CSV oder Markdown exportieren und teilen',
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _buildAdminSection(BuildContext context) {
+    return _buildSection(context, 'Administration', [
+      _buildFeatureItem(context, Icons.business, 'Organisation einrichten',
+        'HiDrive-Ordnerstruktur automatisch erstellen. Recovery-Key sicher aufbewahren!'),
+      _buildFeatureItem(context, Icons.groups, 'Teams verwalten',
+        'Teams erstellen mit automatischer HiDrive-Ordner- und Team-Key-Generierung'),
+      _buildFeatureItem(context, Icons.qr_code, 'Mitarbeiter einladen',
+        'QR-Code + 6-stelliger PIN. Token enthaelt alles fuer automatische Konfiguration'),
+      _buildFeatureItem(context, Icons.assignment_ind, 'Klienten zuweisen',
+        'Klienten verschluesselt in Team-Verzeichnisse auf HiDrive zuordnen'),
+      _buildFeatureItem(context, Icons.chat, 'Chat-User anlegen',
+        'Matrix-Chat-Accounts fuer Mitarbeiter erstellen'),
+      _buildFeatureItem(context, Icons.lock_reset, 'Passwort-Recovery',
+        'Recovery-Token fuer Mitarbeiter generieren (24h gueltig, PIN-verschluesselt)'),
+      _buildInfoBox(context, Icons.shield, Colors.purple,
+        'Rollen: Organisations-Admin, PV-Admin, Teamleitung, Mitarbeiter, Pruefer. '
+        'Jede Rolle hat definierte Berechtigungen (siehe Einstellungen > Meine Berechtigungen).'),
+    ]);
   }
 
   Widget _buildSecuritySection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Sicherheit & Datenschutz',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              context,
-              Icons.lock,
-              'AES-256-GCM Verschlüsselung',
-              'Alle Daten werden lokal mit höchsten Sicherheitsstandards verschlüsselt',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.storage,
-              'Lokale Speicherung',
-              'Ohne Cloud-Anbindung verbleiben alle Daten ausschließlich auf Ihrem Gerät',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.cloud_sync,
-              'Optionale Cloud-Sync',
-              'Verschlüsselte Synchronisation über HiDrive WebDAV (nur mit Passphrase)',
-            ),
-            _buildFeatureItem(
-              context,
-              Icons.privacy_tip,
-              'DSGVO-konform',
-              'Datensparsamkeit, keine GPS-Ortung, keine Adressen-Speicherung bei Fahrwegen',
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.warning_outlined,
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Wichtig: Bewahren Sie Ihre Sync-Passphrase sicher auf. Ohne sie kann nicht auf die Cloud-Daten zugegriffen werden.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildSection(context, 'Sicherheit & Datenschutz', [
+      _buildFeatureItem(context, Icons.enhanced_encryption, 'AES-256-GCM',
+        'Envelope Encryption: Jeder Datensatz hat eigenen Schluessel (DEK), geschuetzt durch Master Key (MEK)'),
+      _buildFeatureItem(context, Icons.security, 'TOTP 2FA',
+        'Zeitbasierte Einmalpasswoerter (RFC 6238). Kompatibel mit Google/Microsoft Authenticator'),
+      _buildFeatureItem(context, Icons.fingerprint, 'Biometrie',
+        'Face ID, Touch ID, Windows Hello -- je nach Plattform'),
+      _buildFeatureItem(context, Icons.timer, 'Session-Timeout',
+        'Automatische Abmeldung nach 30 Minuten Inaktivitaet'),
+      _buildFeatureItem(context, Icons.delete_forever, 'Sichere Loeschung',
+        'Crypto-Erasure: Dateien werden mit Zufallsdaten ueberschrieben vor dem Loeschen'),
+      _buildFeatureItem(context, Icons.history, 'Audit-Log',
+        'Alle sicherheitsrelevanten Aktionen werden protokolliert (Login, Klient-Zugriff, Aenderungen)'),
+      _buildInfoBox(context, Icons.gavel, Colors.red,
+        'DSGVO-konform: Daten in Deutschland (eigener Server + HiDrive), '
+        'Datenschutzfolgenabschaetzung (DSFA) vorhanden, Loeschkonzept implementiert.'),
+    ]);
+  }
+
+  Widget _buildExportSection(BuildContext context) {
+    return _buildSection(context, 'Export & Berichte', [
+      _buildFeatureItem(context, Icons.picture_as_pdf, 'Informationsbericht (PDF)',
+        '3 Varianten: Original-Formular (Syncfusion), Neuaufbau (PDF-Paket), App-Layout'),
+      _buildFeatureItem(context, Icons.table_chart, 'Arbeitszeit-Export',
+        'Monatsuebersicht als CSV oder JSON'),
+      _buildFeatureItem(context, Icons.calculate, 'FLS-Bericht',
+        'Fachleistungsstunden pro Klient mit Ampel-System'),
+      _buildFeatureItem(context, Icons.privacy_tip, 'DSGVO-Export',
+        'Vollstaendiger Datenexport nach Art. 20 DSGVO, optional passwortgeschuetzt'),
+    ]);
   }
 
   Widget _buildTroubleshootingSection(BuildContext context) {
@@ -741,187 +252,162 @@ class HilfeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Problembehandlung',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('Problembehandlung',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildTroubleshootingItem(
-              context,
-              'Distanzberechnung funktioniert nicht',
-              'Prüfen Sie unter Einstellungen > Standorte & Fahrwege, ob ein gültiger API-Key hinterlegt ist. Alternativ können Sie km immer manuell eingeben.',
-            ),
-            _buildTroubleshootingItem(
-              context,
-              'Strecke wird nicht aus dem Cache geladen',
-              'Der Cache speichert Strecken bidirektional. Stellen Sie sicher, dass Start und Ziel korrekt ausgewählt sind.',
-            ),
-            _buildTroubleshootingItem(
-              context,
-              'Synchronisation funktioniert nicht',
-              'Prüfen Sie Ihre Internetverbindung und die HiDrive-Zugangsdaten unter Einstellungen > Cloud-Synchronisation.',
-            ),
-            _buildTroubleshootingItem(
-              context,
-              'Daten fehlen nach Geräte-Wechsel',
-              'Stellen Sie sicher, dass auf beiden Geräten die gleiche Sync-Passphrase verwendet wird.',
-            ),
-            _buildTroubleshootingItem(
-              context,
-              'Export enthält keine Fahrwege',
-              'Fahrwege müssen zuerst über Termine oder den Arbeitszeit-Tab erfasst werden, bevor sie im Export erscheinen.',
-            ),
-            _buildTroubleshootingItem(
-              context,
-              'Fehler beim Speichern',
-              'Überprüfen Sie alle Pflichtfelder (rot markiert) und versuchen Sie es erneut.',
-            ),
+            _buildTroubleshootItem(context,
+              'Kein Verwaltung-Tab sichtbar',
+              'Der Tab erscheint nur fuer Admins. Pruefen Sie unter Einstellungen > Zugriffsstatus Ihre Rolle.'),
+            _buildTroubleshootItem(context,
+              'Chat-Anmeldung fehlgeschlagen',
+              'Pruefen Sie Benutzername und Passwort. Der Admin muss Ihren Chat-Account zuerst anlegen.'),
+            _buildTroubleshootItem(context,
+              'HiDrive-Sync funktioniert nicht',
+              'Pruefen Sie Ihre Internetverbindung und HiDrive-Zugangsdaten unter Einstellungen > Cloud-Sync.'),
+            _buildTroubleshootItem(context,
+              'TOTP-Code wird abgelehnt',
+              'Pruefen Sie ob die Uhrzeit auf Ihrem Geraet korrekt ist. TOTP ist zeitbasiert (+-30 Sekunden Toleranz).'),
+            _buildTroubleshootItem(context,
+              'Passwort vergessen',
+              'Wenden Sie sich an Ihre Teamleitung oder den Admin. Diese koennen einen Recovery-Token generieren.'),
+            _buildTroubleshootItem(context,
+              'Daten fehlen nach Geraetewechsel',
+              'Stellen Sie sicher dass die gleiche Sync-Passphrase verwendet wird und HiDrive-Sync aktiv ist.'),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.support_agent,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Bei weiteren Problemen wenden Sie sich an Ihren IT-Administrator.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildInfoBox(context, Icons.open_in_new, Colors.blue,
+              'Ausfuehrliche Dokumentation im Online-Wiki: miri2577.github.io/FEGH-Dokumentation'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStepItem(BuildContext context, String step, String title, String description) {
+  Widget _buildVersionSection(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text('FEGH-Dokumentation',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Version 0.2.0-beta.1',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            Text('Digitale Eingliederungshilfe-Dokumentation',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Helper Widgets ──────────────────────────────────────────────
+
+  Widget _buildSection(BuildContext context, String title, List<Widget> children) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepItem(BuildContext context, String step, String title, String desc) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 32, height: 32,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Center(
-              child: Text(
-                step,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            child: Center(child: Text(step,
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold))),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(desc, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureItem(BuildContext context, IconData icon, String title, String description) {
+  Widget _buildFeatureItem(BuildContext context, IconData icon, String title, String desc) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 24,
-          ),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(desc, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildTroubleshootingItem(BuildContext context, String problem, String solution) {
+  Widget _buildInfoBox(BuildContext context, IconData icon, Color color, String text) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTroubleshootItem(BuildContext context, String problem, String solution) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.help_outline,
-                color: Theme.of(context).colorScheme.error,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  problem,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          Row(children: [
+            Icon(Icons.help_outline, color: Theme.of(context).colorScheme.error, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(problem,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold))),
+          ]),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 28),
-            child: Text(
-              solution,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(solution, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),
