@@ -207,6 +207,20 @@ class _EingliederungshilfeAppState extends State<EingliederungshilfeApp> {
               return const SetupWizardScreen();
             }
 
+                if (kIsWeb) {
+                  // Web-Version: Warnung dass Daten nicht sicher gespeichert werden
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ModalRoute.of(context)?.isCurrent == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Web-Version: Daten werden im Browser gespeichert und sind weniger geschuetzt als auf Desktop/Mobil.'),
+                          duration: Duration(seconds: 8),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  });
+                }
                 return const HomeScreen();
               },
             ),

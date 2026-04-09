@@ -460,14 +460,32 @@ class CryptoStorage {
     _manifestCache = null;
   }
 
+  /// Sichere Loeschung: Dateien mit Zufallsdaten ueberschreiben, dann loeschen.
+  /// Verhindert forensische Wiederherstellung.
   Future<void> cryptoErasure() async {
     _cachedMEK = null;
     _manifestCache = null;
+    _forcedMEK = null;
     await secure.delete(key: storageKey);
 
     final dir = await _secureDataDir();
     if (await dir.exists()) {
-      await dir.delete(recursive: true);
+      // Dateien einzeln ueberschreiben vor dem Loeschen
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is File) {
+          try {
+            final size = await entity.length();
+            // Mit Zufallsdaten ueberschreiben
+            final randomData = _randomBytes(size > 0 ? size : 1024);
+            await entity.writeAsBytes(randomData);
+            await entity.delete();
+          } catch (_) {
+            // Trotzdem versuchen zu loeschen
+            try { await entity.delete(); } catch (_) {}
+          }
+        }
+      }
+      try { await dir.delete(recursive: true); } catch (_) {}
     }
   }
 

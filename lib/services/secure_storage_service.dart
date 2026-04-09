@@ -340,9 +340,9 @@ class SecureStorageService {
 
       // Cloud-Sync non-blocking
       if (_cloudSync != null) {
-        _syncToCloud(uuid).then((_) => _maybeUpdateClientsIndexInCloudAdd(uuid, client)).catchError((e) {
+        try { await _syncToCloud(uuid); await _maybeUpdateClientsIndexInCloudAdd(uuid, client); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync Client (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Klient gespeichert (verschluesselt): ${client.name}');
@@ -414,9 +414,9 @@ class SecureStorageService {
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
           final uuidToDelete = targetUuid!;
-          _cloudSync!.deleteRemoteRecord(uuidToDelete).then((_) => _clientsIndexRemove(uuidToDelete)).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(uuidToDelete); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Client (async) fehlgeschlagen: $e');
-          });
+          }
         }
 
         await _deleteClientAppointments(clientId);
@@ -471,9 +471,9 @@ class SecureStorageService {
 
       // Cloud-Sync non-blocking: nicht auf Netzwerk warten
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Termin gespeichert (verschluesselt): ${appointment.clientName}');
@@ -510,9 +510,9 @@ class SecureStorageService {
         _appointmentIdToUuid.remove(updatedAppointment.id);
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete (async) fehlgeschlagen: $e');
-          });
+          }
         }
       }
 
@@ -550,9 +550,9 @@ class SecureStorageService {
 
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Termin (async) fehlgeschlagen: $e');
-          });
+          }
         }
 
         AppLogger.info('Storage', 'Termin geloescht: $appointmentId');
@@ -609,9 +609,9 @@ class SecureStorageService {
 
       // Cloud-Sync non-blocking
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync Arbeitszeit (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Arbeitszeit gespeichert (verschluesselt)');
@@ -736,9 +736,9 @@ class SecureStorageService {
         _arbeitszeitIdToUuid.remove(arbeitszeit.id);
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Arbeitszeit (async) fehlgeschlagen: $e');
-          });
+          }
         }
       }
 
@@ -775,9 +775,9 @@ class SecureStorageService {
 
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Arbeitszeit (async) fehlgeschlagen: $e');
-          });
+          }
         }
 
         return true;
@@ -839,9 +839,9 @@ class SecureStorageService {
 
       // Cloud-Sync non-blocking
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync Settings (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Einstellungen gespeichert (verschluesselt)');
@@ -1811,9 +1811,9 @@ class SecureStorageService {
       _standortIdToUuid[standort.id] = uuid;
 
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync Standort (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Standort gespeichert: ${standort.name}');
@@ -1847,9 +1847,9 @@ class SecureStorageService {
         await _cryptoStorage.deleteRecord(targetUuid);
         _standortIdToUuid.remove(updatedStandort.id);
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Standort (async) fehlgeschlagen: $e');
-          });
+          }
         }
       }
 
@@ -1884,9 +1884,9 @@ class SecureStorageService {
         _standortIdToUuid.remove(standortId);
 
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Standort (async) fehlgeschlagen: $e');
-          });
+          }
         }
 
         AppLogger.info('Storage', 'Standort geloescht: $standortId');
@@ -1935,9 +1935,9 @@ class SecureStorageService {
       _fahrwegIdToUuid[fahrweg.id] = uuid;
 
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync Fahrweg (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'Fahrweg gespeichert: ${fahrweg.streckenBeschreibung}');
@@ -1972,9 +1972,9 @@ class SecureStorageService {
         _fahrwegIdToUuid.remove(fahrwegId);
 
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Fahrweg (async) fehlgeschlagen: $e');
-          });
+          }
         }
 
         AppLogger.info('Storage', 'Fahrweg geloescht: $fahrwegId');
@@ -2022,9 +2022,9 @@ class SecureStorageService {
       _streckenCacheIdToUuid[strecke.id] = uuid;
 
       if (_cloudSync != null) {
-        _syncToCloud(uuid).catchError((e) {
+        try { await _syncToCloud(uuid); } catch (e) {
           AppLogger.warning('Storage', 'Cloud-Sync StreckenCache (async) fehlgeschlagen: $e');
-        });
+        }
       }
 
       AppLogger.info('Storage', 'StreckenCache gespeichert: ${strecke.distanzKm} km');
@@ -2058,9 +2058,9 @@ class SecureStorageService {
         await _cryptoStorage.deleteRecord(targetUuid);
         _streckenCacheIdToUuid.remove(updatedStrecke.id);
         if (_cloudSync != null) {
-          _cloudSync!.deleteRemoteRecord(targetUuid).catchError((e) {
+          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete StreckenCache (async) fehlgeschlagen: $e');
-          });
+          }
         }
       }
 
