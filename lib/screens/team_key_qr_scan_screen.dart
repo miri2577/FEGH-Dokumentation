@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
@@ -99,7 +100,7 @@ class _TeamKeyQrScanScreenState extends State<TeamKeyQrScanScreen> {
           userRole: parsedRole,
         );
         await app.secureStorageService.saveSettings(updated);
-      } catch (_) {}
+      } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

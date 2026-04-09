@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/client.dart';
@@ -46,7 +47,7 @@ class SecureStorageService {
     try {
       await FileLogger().initialize();
       await FileLogger().log('🛠️ SecureStorageService.initialize()');
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
     AppLogger.info('Storage', 'SecureStorageService: Initialisierung startet...');
     AppLogger.info('Storage', 'DeveloperMode.isActive: ${DeveloperMode.isActive}');
     AppLogger.info('Storage', 'DeveloperMode.useKeychain: ${DeveloperMode.useKeychain}');
@@ -65,7 +66,7 @@ class SecureStorageService {
         _cryptoStorage.setExternalPassphrase(pass);
         await FileLogger().log('🔐 Sync-Passphrase geladen');
       }
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
 
     if (hidriveUsername != null && hidrivePassword != null) {
       // Legacy-Init ohne Orga/Team – nutzt optional Root-Unterordner
@@ -115,7 +116,7 @@ class SecureStorageService {
       _cryptoStorage.setExternalPassphrase(null);
       await _persistSyncPassphrase('');
       await FileLogger().log('🔐 Sync-Passphrase entfernt');
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
   }
 
   Future<void> _persistSyncPassphrase(String pass) async {
@@ -134,14 +135,14 @@ class SecureStorageService {
     try {
       final v = await _cryptoStorage.secure.read(key: 'sync_passphrase');
       if (v != null && v.isNotEmpty) return v;
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
     try {
       final dir = await _getSecureDataDir();
       final f = File('${dir.path}/.sync_passphrase');
       if (await f.exists()) {
         return await f.readAsString();
       }
-    } catch (_) {}
+    } catch (e) { if (kDebugMode) debugPrint("Fehler: $e"); }
     return null;
   }
 

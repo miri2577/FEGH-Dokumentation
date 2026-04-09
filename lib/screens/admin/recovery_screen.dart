@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/recovery_service.dart';
+import '../../services/web_auth_service.dart';
+import '../../services/audit_logger.dart';
 
 /// Screen zum Generieren und Einloesen von Recovery-Tokens.
 class RecoveryScreen extends StatefulWidget {
@@ -93,10 +95,15 @@ class _RecoveryScreenState extends State<RecoveryScreen> with SingleTickerProvid
         return;
       }
 
-      // Token gueltig -- Passwort kann zurueckgesetzt werden
-      // TODO: Passwort-Reset ueber AppProvider/WebAuthService integrieren
+      // Token gueltig -- Passwort zuruecksetzen
+      final authService = WebAuthService();
+      final success = await authService.setPassword(_newPasswordController.text);
+      if (success) {
+        await AuditLogger.instance.logRecoveryUsed(payload['employeeId'] ?? 'unknown');
+      }
       setState(() {
-        _recoverySuccess = true;
+        _recoverySuccess = success;
+        _recoveryError = success ? null : 'Passwort konnte nicht gesetzt werden';
         _isRecovering = false;
       });
     } catch (e) {
