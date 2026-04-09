@@ -8,6 +8,7 @@ import '../../services/recovery_service.dart';
 import '../../services/matrix_chat_service.dart';
 import '../../models/team.dart';
 import 'team_management_screen.dart';
+import 'recovery_screen.dart';
 import 'employee_invitation_screen.dart';
 import 'client_assignment_screen.dart';
 
@@ -363,6 +364,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     icon: Icons.chat,
                     label: 'Chat-User anlegen',
                     onTap: _createMatrixUser,
+                  ),
+                  _ActionChip(
+                    icon: Icons.lock_reset,
+                    label: 'Passwort-Recovery',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RecoveryScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

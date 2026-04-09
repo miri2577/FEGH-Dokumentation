@@ -4,6 +4,7 @@ import '../models/client.dart';
 import '../models/appointment.dart';
 import '../models/app_settings.dart';
 import '../services/totp_service.dart';
+import '../services/audit_logger.dart';
 import '../models/arbeitszeit.dart';
 import '../models/mitarbeiter.dart';
 import '../models/freizeit_antrag.dart';
@@ -331,6 +332,11 @@ class AppProvider extends ChangeNotifier {
           await _initAppPasswordAuth();
         }
       }
+      if (success) {
+        AuditLogger.instance.logLogin(_settings.userName, useAppPassword ? 'password' : 'biometric');
+      } else {
+        AuditLogger.instance.logLoginFailed(_settings.userName);
+      }
       notifyListeners();
       return success;
     } catch (e) {
@@ -407,7 +413,10 @@ class AppProvider extends ChangeNotifier {
     try {
       final success = await _webAuthService.authenticateWithCredentials(username, password);
       if (success) {
+        AuditLogger.instance.logLogin(username, 'credentials');
         notifyListeners();
+      } else {
+        AuditLogger.instance.logLoginFailed(username);
       }
       return success;
     } catch (e) {
@@ -643,6 +652,7 @@ class AppProvider extends ChangeNotifier {
       final success = await _storageService.addClient(client);
       if (success) {
         await _loadClients();
+        AuditLogger.instance.logClientCreate(_settings.userName, client.id);
         notifyListeners();
       }
       return success;
@@ -668,7 +678,8 @@ class AppProvider extends ChangeNotifier {
         await _loadClients();
         notifyListeners();
       } else {
-        await _loadAppointments(); // Termine aktualisieren falls Klientenname geändert
+        AuditLogger.instance.logClientUpdate(_settings.userName, client.id);
+        await _loadAppointments();
         notifyListeners();
       }
       return success;
@@ -682,6 +693,7 @@ class AppProvider extends ChangeNotifier {
     try {
       final success = await _storageService.deleteClient(clientId);
       if (success) {
+        AuditLogger.instance.logClientDelete(_settings.userName, clientId);
         await _loadClients();
         await _loadAppointments();
         notifyListeners();
