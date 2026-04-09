@@ -15,7 +15,7 @@ import '../services/app_lifecycle_service.dart';
 import '../services/app_logger.dart';
 
 import '../utils/platform_utils.dart';
-import '../services/simple_webdav_test.dart';
+import '../services/hidrive_webdav_client.dart';
 import '../services/totp_service.dart';
 import '../services/permission_service.dart';
 import '../models/app_settings.dart';
@@ -2166,42 +2166,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     try {
-      // Verwende den einfachen WebDAV-Test (keine verschlüsselten Daten)
-      final success = await SimpleWebDAVTest.testHiDriveConnection(
+      final client = HiDriveWebDAVClient(
+        baseUrl: HiDriveConfig.buildWebDAVUrl(settings.hidriveUsername),
         username: settings.hidriveUsername,
         password: settings.hidrivePassword,
+        certificatePins: HiDriveConfig.certificatePins,
       );
+      final result = await client.testConnection();
 
       if (!mounted) return;
-      if (success) {
-        // Teste auch Ordnerstruktur-Erstellung für die aktuell gewählte Organisation
-        final orgId = (settings.organizationId.isNotEmpty) ? settings.organizationId : 'default';
-        final folderSuccess = await SimpleWebDAVTest.testFolderCreation(
-          username: settings.hidriveUsername,
-          password: settings.hidrivePassword,
-          organizationId: orgId,
-        );
-
-        if (!mounted) return;
-        if (folderSuccess) {
+      if (result.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('✅ HiDrive-Verbindung erfolgreich! Ordnerstruktur bereit.'),
+              content: Text('HiDrive-Verbindung erfolgreich!'),
               backgroundColor: Colors.green,
             ),
           );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ Verbindung OK, aber Ordner-Setup fehlgeschlagen'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ HiDrive-Verbindung fehlgeschlagen'),
+          SnackBar(
+            content: Text('HiDrive-Verbindung fehlgeschlagen: ${result.error}'),
             backgroundColor: Colors.red,
           ),
         );

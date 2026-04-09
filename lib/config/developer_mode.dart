@@ -9,7 +9,7 @@ class DeveloperMode {
   static const bool isDeveloperMode = bool.fromEnvironment('DEVELOPER_MODE', defaultValue: false);
 
   // Alternative: Für Tests kann der Entwicklermodus auch über Debug-Modus aktiviert werden
-  static const bool allowDebugModeActivation = bool.fromEnvironment('ALLOW_DEBUG_DEV_MODE', defaultValue: true);
+  static const bool allowDebugModeActivation = bool.fromEnvironment('ALLOW_DEBUG_DEV_MODE', defaultValue: false);
 
   /// Gibt zurück ob der Entwicklermodus aktiv ist
   static bool get isActive => isDeveloperMode || (allowDebugModeActivation && kDebugMode);

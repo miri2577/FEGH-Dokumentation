@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
@@ -171,8 +172,7 @@ class WebAuthService {
         return await setPassword(password);
       }
       
-      final passwordHash = _hashPassword(password);
-      return passwordHash == storedHash;
+      return _verifyPassword(password, storedHash);
     } catch (e) {
       print("🌐 ❌ Fehler bei Passwort-Verifizierung: $e");
       return false;
@@ -189,8 +189,7 @@ class WebAuthService {
         return false;
       }
       
-      final passwordHash = _hashPassword(password);
-      return storedUsername == username && storedPasswordHash == passwordHash;
+      return storedUsername == username && _verifyPassword(password, storedPasswordHash);
     } catch (e) {
       print("🌐 ❌ Fehler bei Credential-Verifizierung: $e");
       return false;
@@ -239,10 +238,36 @@ class WebAuthService {
     }
   }
 
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password + 'eingliederungshilfe_salt');
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+  /// PBKDF2-basiertes Passwort-Hashing mit zufaelligem Salt.
+  /// 100.000 Iterationen HMAC-SHA256.
+  String _hashPassword(String password, {String? existingSalt}) {
+    final salt = existingSalt ?? _generateSalt();
+    List<int> key = utf8.encode(password + salt);
+    for (int i = 0; i < 100000; i++) {
+      final hmac = Hmac(sha256, utf8.encode(salt));
+      key = hmac.convert(key).bytes;
+    }
+    final hash = base64.encode(key);
+    return '$salt:$hash'; // Salt und Hash zusammen speichern
+  }
+
+  String _generateSalt() {
+    final random = DateTime.now().microsecondsSinceEpoch;
+    final bytes = utf8.encode('fegh_$random');
+    return base64.encode(sha256.convert(bytes).bytes).substring(0, 22);
+  }
+
+  bool _verifyPassword(String password, String storedHash) {
+    if (!storedHash.contains(':')) {
+      // Migration: Altes Format (einfacher SHA256) -- einmalig akzeptieren
+      final oldHash = sha256.convert(utf8.encode(password + 'eingliederungshilfe_salt')).toString();
+      return oldHash == storedHash;
+    }
+    final parts = storedHash.split(':');
+    if (parts.length != 2) return false;
+    final salt = parts[0];
+    final newHash = _hashPassword(password, existingSalt: salt);
+    return newHash == storedHash;
   }
 
   String _generateSessionToken(Map<String, dynamic> sessionData) {

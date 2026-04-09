@@ -45,20 +45,11 @@ class CryptoStorage {
     // Wenn ein externer MEK (Team-Key) gesetzt wurde, verwende diesen direkt
     if (_forcedMEK != null && _forcedMEK!.length == 32) {
       if (DeveloperMode.allowSecurityDebugLogs) {
-        print('🔐 Verwende extern gesetzten MEK (Team/Org-Key)');
+        if (kDebugMode) debugPrint('🔐 Verwende extern gesetzten MEK (Team/Org-Key)');
       }
       _cachedMEK = _forcedMEK!;
       return _cachedMEK!;
     }
-    // Entwicklermodus: Keychain direkt überspringen
-    if (!DeveloperMode.useKeychain) {
-      if (DeveloperMode.allowSecurityDebugLogs) {
-        print('🔓 DEV: Überspringe Keychain, verwende Entwicklungs-Fallback');
-      }
-      _cachedMEK = await _developmentFallback();
-      return _cachedMEK!;
-    }
-
     try {
       final existing = await secure.read(key: storageKey);
       if (existing != null) {
@@ -71,7 +62,7 @@ class CryptoStorage {
       return _cachedMEK!;
     } catch (e) {
       // SICHERE Alternative: PBKDF2-basierte Verschlüsselung
-      print('🔐 Keychain nicht verfügbar, verwende sichere PBKDF2-Verschlüsselung');
+      if (kDebugMode) debugPrint('🔐 Keychain nicht verfügbar, verwende sichere PBKDF2-Verschlüsselung');
       _cachedMEK = await _getSecurePBKDF2MEK();
       return _cachedMEK!;
     }
@@ -124,9 +115,9 @@ class CryptoStorage {
     }
 
     if (_externalPassphrase != null && _externalPassphrase!.isNotEmpty) {
-      print('🔐 PBKDF2-MEK generiert (Sync-Passphrase, 100k Iterationen)');
+      if (kDebugMode) debugPrint('🔐 PBKDF2-MEK generiert (Sync-Passphrase, 100k Iterationen)');
     } else {
-      print('🔐 PBKDF2-MEK generiert (Hardware-gebunden, 100k Iterationen)');
+      if (kDebugMode) debugPrint('🔐 PBKDF2-MEK generiert (Hardware-gebunden, 100k Iterationen)');
     }
     return result.take(32).toList(); // Nur 32 Bytes für AES-256
   }
@@ -144,24 +135,7 @@ class CryptoStorage {
     return crypto.sha256.convert(utf8.encode(combined)).toString().substring(0, 32);
   }
 
-  /// TEMPORÄRER ENTWICKLUNGS-FALLBACK - NUR FÜR DEBUG-BUILDS
-  /// WARNUNG: Diese Methode speichert den MEK unverschlüsselt auf der Festplatte!
-  /// TODO: VOR PRODUKTIONS-RELEASE ENTFERNEN!
-  Future<List<int>> _developmentFallback() async {
-    final dir = await _secureDataDir();
-    final fallbackFile = File('${dir.path}/.dev_mek_UNSECURE');
-
-    if (await fallbackFile.exists()) {
-      final content = await fallbackFile.readAsString();
-      print('🔧 DEV: Lade MEK aus unsicherer Fallback-Datei');
-      return base64.decode(content);
-    }
-
-    final mek = _randomBytes(32);
-    await fallbackFile.writeAsString(base64.encode(mek));
-    print('🔧 DEV: MEK-Fallback-Datei erstellt (UNSICHER!)');
-    return mek;
-  }
+  // _developmentFallback() ENTFERNT -- Sicherheitsrisiko, siehe PRODUKTIONSREIFE_TODO.md #3
 
   Future<void> rotateMEK() async {
     final oldMek = await secure.read(key: storageKey);
@@ -256,28 +230,33 @@ class CryptoStorage {
   }
 
   Future<List<int>> decryptRecord(Map<String, dynamic> record) async {
-    final mek = await _getOrCreateMEK();
-    final secretKeyMek = SecretKey(mek);
+    try {
+      final mek = await _getOrCreateMEK();
+      final secretKeyMek = SecretKey(mek);
 
-    final wrapped = record['dekWrapped'] as Map<String, dynamic>;
-    final dekBytes = await _aead.decrypt(
-      SecretBox(
-        base64.decode(wrapped['ciphertext']),
-        nonce: base64.decode(wrapped['nonce']),
-        mac: Mac(base64.decode(wrapped['tag'])),
-      ),
-      secretKey: secretKeyMek,
-      aad: utf8.encode('{"type":"dek"}')
-    );
+      final wrapped = record['dekWrapped'] as Map<String, dynamic>;
+      final dekBytes = await _aead.decrypt(
+        SecretBox(
+          base64.decode(wrapped['ciphertext']),
+          nonce: base64.decode(wrapped['nonce']),
+          mac: Mac(base64.decode(wrapped['tag'])),
+        ),
+        secretKey: secretKeyMek,
+        aad: utf8.encode('{"type":"dek"}')
+      );
 
-    final secretKeyDek = SecretKey(dekBytes);
-    final box = SecretBox(
-      base64.decode(record['ciphertext']),
-      nonce: base64.decode(record['nonce']),
-      mac: Mac(base64.decode(record['tag'])),
-    );
-    final aadBytes = utf8.encode(jsonEncode(record['aad'] ?? {}));
-    return _aead.decrypt(box, secretKey: secretKeyDek, aad: aadBytes);
+      final secretKeyDek = SecretKey(dekBytes);
+      final box = SecretBox(
+        base64.decode(record['ciphertext']),
+        nonce: base64.decode(record['nonce']),
+        mac: Mac(base64.decode(record['tag'])),
+      );
+      final aadBytes = utf8.encode(jsonEncode(record['aad'] ?? {}));
+      return _aead.decrypt(box, secretKey: secretKeyDek, aad: aadBytes);
+    } catch (e) {
+      if (kDebugMode) debugPrint('decryptRecord fehlgeschlagen: $e');
+      throw Exception('Entschluesselung fehlgeschlagen: Datensatz ist korrupt oder Schluessel ungueltig');
+    }
   }
 
   Future<String> saveJsonEncrypted(String schema, Map<String, dynamic> jsonObj) async {

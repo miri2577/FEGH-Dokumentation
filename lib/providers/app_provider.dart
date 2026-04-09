@@ -33,9 +33,10 @@ class AppProvider extends ChangeNotifier {
   /// (Web oder Desktop ohne Geräte-Authentifizierung)
   bool get useAppPassword => _useAppPassword || PlatformUtils.isWeb;
 
-  // Authentication State (Platform-aware)
+  // Authentication State (Platform-aware) mit Session-Timeout-Check
   bool get isAuthenticated {
     if (useAppPassword) {
+      if (!_webAuthService.checkSessionValid()) return false;
       return _webAuthService.isAuthenticated;
     }
     return _authService.isAuthenticated;
