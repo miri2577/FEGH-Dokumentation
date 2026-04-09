@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:matrix/matrix.dart';
 
 /// Matrix-Chat-Service fuer verschluesselte Team-Kommunikation.
@@ -162,6 +164,53 @@ class MatrixChatService {
   int get unreadCount {
     if (_client == null) return 0;
     return _client!.rooms.where((r) => r.isUnreadOrInvited).length;
+  }
+
+  /// Erstellt einen neuen Matrix-User auf dem Server (Admin-Funktion).
+  /// Nutzt die Registration-API direkt per HTTP.
+  static Future<Map<String, dynamic>?> createUserOnServer({
+    required String username,
+    required String password,
+    String homeserver = defaultHomeserver,
+  }) async {
+    try {
+      final url = '$homeserver/_matrix/client/v3/register';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+          'auth': {'type': 'm.login.dummy'},
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('[MATRIX] User erstellt: @$username');
+        return data;
+      } else {
+        final error = jsonDecode(response.body);
+        debugPrint('[MATRIX] User-Erstellung fehlgeschlagen: ${error['error'] ?? response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('[MATRIX] createUserOnServer error: $e');
+      return null;
+    }
+  }
+
+  /// Sendet eine Datei (Bild, Dokument) in einen Raum.
+  Future<bool> sendFile(String roomId, MatrixFile file) async {
+    if (_client == null || !isLoggedIn) return false;
+    try {
+      final room = _client!.getRoomById(roomId);
+      if (room == null) return false;
+      await room.sendFileEvent(file);
+      return true;
+    } catch (e) {
+      debugPrint('[MATRIX] Datei senden fehlgeschlagen: $e');
+      return false;
+    }
   }
 
   /// Raeumt auf.

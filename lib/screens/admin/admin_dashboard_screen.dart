@@ -5,6 +5,7 @@ import '../../providers/app_provider.dart';
 import '../../services/admin_service.dart';
 import '../../services/hidrive_webdav_client.dart';
 import '../../services/recovery_service.dart';
+import '../../services/matrix_chat_service.dart';
 import '../../models/team.dart';
 import 'team_management_screen.dart';
 import 'employee_invitation_screen.dart';
@@ -358,6 +359,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     label: 'Org initialisieren',
                     onTap: _initializeOrg,
                   ),
+                  _ActionChip(
+                    icon: Icons.chat,
+                    label: 'Chat-User anlegen',
+                    onTap: _createMatrixUser,
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -494,6 +500,68 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _createMatrixUser() async {
+    final usernameCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chat-User anlegen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Erstellt einen neuen User auf dem Matrix-Server.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: usernameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Benutzername',
+                hintText: 'z.B. max.mustermann',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passwordCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Passwort',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Anlegen')),
+        ],
+      ),
+    );
+    if (result != true || usernameCtrl.text.trim().isEmpty || passwordCtrl.text.isEmpty) return;
+    if (!mounted) return;
+
+    final data = await MatrixChatService.createUserOnServer(
+      username: usernameCtrl.text.trim(),
+      password: passwordCtrl.text,
+    );
+    if (!mounted) return;
+    if (data != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Chat-User @${usernameCtrl.text.trim()} erstellt'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fehler: User konnte nicht erstellt werden (evtl. existiert er bereits)'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _healthCheckLabel(String key) {

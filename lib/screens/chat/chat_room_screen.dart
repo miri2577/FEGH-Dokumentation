@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../services/matrix_chat_service.dart';
 
 /// Einzelner Chat-Raum mit Nachrichtenverlauf.
@@ -88,6 +89,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.videocam),
+            tooltip: 'Video-Anruf',
+            onPressed: () => _startCall(true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.call),
+            tooltip: 'Audio-Anruf',
+            onPressed: () => _startCall(false),
+          ),
+          IconButton(
             icon: const Icon(Icons.group),
             tooltip: '${widget.room.summary.mJoinedMemberCount ?? 0} Mitglieder',
             onPressed: _showMembers,
@@ -147,6 +158,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: _sendAttachment,
+                  icon: const Icon(Icons.attach_file),
+                  tooltip: 'Datei senden',
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -238,6 +254,67 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _startCall(bool video) async {
+    // Matrix VoIP Signaling -- erstellt ein m.call.invite Event
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(video ? 'Video-Anruf wird gestartet...' : 'Audio-Anruf wird gestartet...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    try {
+      // Element Call URL oeffnen (funktioniert mit Conduit + TURN)
+      final roomId = Uri.encodeComponent(widget.room.id);
+      // Fuer vollstaendige WebRTC-Integration waere flutter_webrtc noetig.
+      // Vorerst: Hinweis dass Calls ueber Element Web verfuegbar sind.
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: Icon(video ? Icons.videocam : Icons.call, size: 48),
+            title: Text(video ? 'Video-Anruf' : 'Audio-Anruf'),
+            content: const Text(
+              'Anrufe sind aktuell ueber Element Web verfuegbar.\n\n'
+              'Oeffnen Sie app.element.io in Ihrem Browser und starten Sie den Anruf dort.\n\n'
+              'Die native Integration in die App wird in einem zukuenftigen Update ergaenzt.',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[CHAT] Call fehlgeschlagen: $e');
+    }
+  }
+
+  Future<void> _sendAttachment() async {
+    // Datei-Picker oeffnen
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      if (file.bytes == null) return;
+
+      final matrixFile = MatrixFile(
+        bytes: file.bytes!,
+        name: file.name,
+      );
+      final ok = await widget.chatService.sendFile(widget.room.id, matrixFile);
+      if (mounted && !ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Datei senden fehlgeschlagen'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      debugPrint('[CHAT] Attachment fehlgeschlagen: $e');
+    }
   }
 
   void _showMembers() {
