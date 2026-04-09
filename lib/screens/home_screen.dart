@@ -24,7 +24,9 @@ import 'benutzerprofil_screen.dart';
 import 'create_client_screen.dart';
 import 'dokumentation_uebersicht_screen.dart';
 import 'admin/admin_dashboard_screen.dart';
+import 'chat/chat_list_screen.dart';
 import '../services/permission_service.dart';
+import '../services/matrix_chat_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +38,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final Map<int, Widget> _screenCache = {};
+  final MatrixChatService _chatService = MatrixChatService();
+
+  @override
+  void initState() {
+    super.initState();
+    _chatService.initialize();
+  }
 
   void _navigateToTab(int index) {
     setState(() {
@@ -51,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         case 2: return const DokumentationUebersichtScreen();
         case 3: return const WorkTimeScreen();
         case 4: return const CalendarScreen();
-        case 5: return const MessagesScreen();
+        case 5: return ChatListScreen(chatService: _chatService);
         case 6: return const BerichteScreen();
         case 7: return const ExportScreen();
         case 8: return const HilfeScreen();

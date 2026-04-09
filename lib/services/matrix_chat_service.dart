@@ -1,0 +1,173 @@
+import 'package:flutter/foundation.dart';
+import 'package:matrix/matrix.dart';
+
+/// Matrix-Chat-Service fuer verschluesselte Team-Kommunikation.
+/// Nutzt den Conduit-Server auf cavia-aperea.de.
+class MatrixChatService {
+  static const String defaultHomeserver = 'https://cavia-aperea.de';
+
+  Client? _client;
+  bool _isInitialized = false;
+
+  Client? get client => _client;
+  bool get isInitialized => _isInitialized;
+  bool get isLoggedIn => _client?.isLogged() ?? false;
+
+  /// Initialisiert den Matrix-Client.
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    try {
+      final db = await MatrixSdkDatabase.init('fegh_matrix');
+      _client = Client(
+        'FEGH-Dokumentation',
+        database: db,
+        supportedLoginTypes: {AuthenticationTypes.password},
+      );
+      await _client!.init();
+      _isInitialized = true;
+      debugPrint('[MATRIX] Client initialisiert');
+    } catch (e) {
+      debugPrint('[MATRIX] Init Fehler: $e');
+    }
+  }
+
+  /// Registriert einen neuen User auf dem Homeserver.
+  Future<bool> register({
+    required String username,
+    required String password,
+    String homeserver = defaultHomeserver,
+  }) async {
+    if (_client == null) await initialize();
+    try {
+      await _client!.checkHomeserver(Uri.parse(homeserver));
+      await _client!.uiaRequestBackground(
+        (auth) => _client!.register(
+          username: username,
+          password: password,
+          auth: auth,
+        ),
+      );
+      debugPrint('[MATRIX] Registriert: @$username');
+      return true;
+    } catch (e) {
+      debugPrint('[MATRIX] Registrierung fehlgeschlagen: $e');
+      return false;
+    }
+  }
+
+  /// Login mit Username und Passwort.
+  Future<bool> login({
+    required String username,
+    required String password,
+    String homeserver = defaultHomeserver,
+  }) async {
+    if (_client == null) await initialize();
+    try {
+      await _client!.checkHomeserver(Uri.parse(homeserver));
+      await _client!.login(
+        LoginType.mLoginPassword,
+        identifier: AuthenticationUserIdentifier(user: username),
+        password: password,
+      );
+      debugPrint('[MATRIX] Login OK: ${_client!.userID}');
+      return true;
+    } catch (e) {
+      debugPrint('[MATRIX] Login fehlgeschlagen: $e');
+      return false;
+    }
+  }
+
+  /// Logout.
+  Future<void> logout() async {
+    try {
+      await _client?.logout();
+      debugPrint('[MATRIX] Logout');
+    } catch (e) {
+      debugPrint('[MATRIX] Logout Fehler: $e');
+    }
+  }
+
+  /// Erstellt einen verschluesselten Raum fuer ein Team.
+  Future<String?> createTeamRoom(String teamName) async {
+    if (_client == null || !isLoggedIn) return null;
+    try {
+      final roomId = await _client!.createRoom(
+        name: teamName,
+        preset: CreateRoomPreset.privateChat,
+        initialState: [
+          StateEvent(
+            type: EventTypes.Encryption,
+            stateKey: '',
+            content: {'algorithm': 'm.megolm.v1.aes-sha2'},
+          ),
+        ],
+      );
+      debugPrint('[MATRIX] Team-Raum erstellt: $roomId');
+      return roomId;
+    } catch (e) {
+      debugPrint('[MATRIX] Raum erstellen fehlgeschlagen: $e');
+      return null;
+    }
+  }
+
+  /// Erstellt einen verschluesselten 1:1 Chat.
+  Future<String?> createDirectChat(String userId) async {
+    if (_client == null || !isLoggedIn) return null;
+    try {
+      final roomId = await _client!.startDirectChat(
+        userId,
+        enableEncryption: true,
+      );
+      debugPrint('[MATRIX] Direktchat erstellt: $roomId mit $userId');
+      return roomId;
+    } catch (e) {
+      debugPrint('[MATRIX] Direktchat fehlgeschlagen: $e');
+      return null;
+    }
+  }
+
+  /// Laedt einen User in einen Raum ein.
+  Future<bool> inviteToRoom(String roomId, String userId) async {
+    if (_client == null || !isLoggedIn) return false;
+    try {
+      final room = _client!.getRoomById(roomId);
+      if (room == null) return false;
+      await room.invite(userId);
+      debugPrint('[MATRIX] $userId eingeladen in $roomId');
+      return true;
+    } catch (e) {
+      debugPrint('[MATRIX] Einladung fehlgeschlagen: $e');
+      return false;
+    }
+  }
+
+  /// Sendet eine verschluesselte Textnachricht.
+  Future<bool> sendMessage(String roomId, String message) async {
+    if (_client == null || !isLoggedIn) return false;
+    try {
+      final room = _client!.getRoomById(roomId);
+      if (room == null) return false;
+      await room.sendTextEvent(message);
+      return true;
+    } catch (e) {
+      debugPrint('[MATRIX] Senden fehlgeschlagen: $e');
+      return false;
+    }
+  }
+
+  /// Alle Raeume (Chats) des Users.
+  List<Room> get rooms => _client?.rooms ?? [];
+
+  /// Alle Raeume mit ungelesenen Nachrichten.
+  int get unreadCount {
+    if (_client == null) return 0;
+    return _client!.rooms.where((r) => r.isUnreadOrInvited).length;
+  }
+
+  /// Raeumt auf.
+  Future<void> dispose() async {
+    await _client?.dispose();
+    _client = null;
+    _isInitialized = false;
+  }
+}
