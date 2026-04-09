@@ -2,7 +2,7 @@
 
 **Digitale Eingliederungshilfe-Dokumentation** -- die App fuer Fachkraefte in der Eingliederungshilfe.
 
-Version: **0.1.0-alpha.1**
+Version: **0.1.0-alpha.1** | [GitHub Repository](https://github.com/miri2577/FEGH-Dokumentation)
 
 ---
 
