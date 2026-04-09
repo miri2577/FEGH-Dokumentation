@@ -73,6 +73,7 @@ nav:
     - AV-Vereinbarung: sicherheit/av-vereinbarung.md
     - Passwort-Recovery: sicherheit/recovery.md
     - Aufbewahrungsfristen: sicherheit/aufbewahrungsfristen.md
+    - Datenpannen-Prozess: sicherheit/datenpanne.md
     - Server-Sicherheit und Audit: sicherheit/server-sicherheit.md
   - Technik:
     - Architektur: technik/architektur.md
