@@ -72,6 +72,7 @@ nav:
     - Datenschutzfolgenabschaetzung: sicherheit/dsfa.md
     - AV-Vereinbarung: sicherheit/av-vereinbarung.md
     - Passwort-Recovery: sicherheit/recovery.md
+    - Aufbewahrungsfristen: sicherheit/aufbewahrungsfristen.md
     - Server-Sicherheit und Audit: sicherheit/server-sicherheit.md
   - Technik:
     - Architektur: technik/architektur.md

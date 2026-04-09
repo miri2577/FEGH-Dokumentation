@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
+import 'screens/privacy_consent_screen.dart';
 import 'screens/setup_wizard_screen.dart';
 import 'utils/theme_config.dart';
 import 'services/security_service.dart';
@@ -70,6 +71,19 @@ class EingliederungshilfeApp extends StatefulWidget {
 }
 
 class _EingliederungshilfeAppState extends State<EingliederungshilfeApp> {
+  bool? _privacyConsented;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPrivacyConsent();
+  }
+
+  Future<void> _checkPrivacyConsent() async {
+    final consented = await PrivacyConsentScreen.hasConsented();
+    if (mounted) setState(() => _privacyConsented = consented);
+  }
+
   @override
   void dispose() {
     AppLifecycleService().dispose();
@@ -196,6 +210,13 @@ class _EingliederungshilfeAppState extends State<EingliederungshilfeApp> {
                     ],
                   ),
                 ),
+              );
+            }
+
+            // Datenschutzerklaerung muss VOR der Nutzung akzeptiert werden (Art. 13/14 DSGVO)
+            if (_privacyConsented == false) {
+              return PrivacyConsentScreen(
+                onAccepted: () => setState(() => _privacyConsented = true),
               );
             }
 
