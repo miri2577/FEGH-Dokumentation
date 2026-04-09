@@ -1,0 +1,82 @@
+site_name: FEGH-Dokumentation Wiki
+site_description: Digitale Eingliederungshilfe-Dokumentation - Handbuch und technische Dokumentation
+site_url: https://miri2577.github.io/FEGH-Dokumentation/
+repo_url: https://github.com/miri2577/FEGH-Dokumentation
+repo_name: miri2577/FEGH-Dokumentation
+
+theme:
+  name: material
+  language: de
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Dunkelmodus
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Hellmodus
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: de
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Start: index.md
+  - Anleitung:
+    - Erste Schritte: anleitung/erste-schritte.md
+    - Klienten verwalten: anleitung/klienten.md
+    - Termine und Kalender: anleitung/termine.md
+    - Arbeitszeit erfassen: anleitung/arbeitszeit.md
+    - Berichte und Export: anleitung/berichte.md
+    - Nachrichten: anleitung/nachrichten.md
+    - Einstellungen: anleitung/einstellungen.md
+  - Administration:
+    - Admin-Uebersicht: admin/uebersicht.md
+    - Organisation einrichten: admin/organisation.md
+    - Teams verwalten: admin/teams.md
+    - Mitarbeiter einladen: admin/einladung.md
+    - Klienten zuweisen: admin/klienten-zuweisung.md
+    - Rollen und Berechtigungen: admin/rollen.md
+  - Sicherheit:
+    - Verschluesselung: sicherheit/verschluesselung.md
+    - Zwei-Faktor-Authentifizierung: sicherheit/totp.md
+    - Datentrennung: sicherheit/datentrennung.md
+    - DSGVO-Konformitaet: sicherheit/dsgvo.md
+    - Passwort-Recovery: sicherheit/recovery.md
+  - Technik:
+    - Architektur: technik/architektur.md
+    - Datenmodelle: technik/datenmodelle.md
+    - HiDrive-Integration: technik/hidrive.md
+    - API und Services: technik/services.md
+    - Plattformen: technik/plattformen.md
+  - Entwicklung:
+    - Entwicklermodus: entwicklung/entwicklermodus.md
+    - Build-Anleitung: entwicklung/build.md
+    - Bekannte Probleme: entwicklung/bekannte-probleme.md
