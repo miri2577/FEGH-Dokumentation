@@ -72,11 +72,13 @@ nav:
     - Datenschutzfolgenabschaetzung: sicherheit/dsfa.md
     - AV-Vereinbarung: sicherheit/av-vereinbarung.md
     - Passwort-Recovery: sicherheit/recovery.md
+    - Server-Sicherheit und Audit: sicherheit/server-sicherheit.md
   - Technik:
     - Architektur: technik/architektur.md
     - Datenmodelle: technik/datenmodelle.md
     - HiDrive-Integration: technik/hidrive.md
     - Storage-Alternativen: technik/cloud-alternativen.md
+    - Matrix-Chat: technik/matrix-chat.md
     - API und Services: technik/services.md
     - Plattformen: technik/plattformen.md
   - Entwicklung:
