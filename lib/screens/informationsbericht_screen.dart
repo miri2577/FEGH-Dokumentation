@@ -6,6 +6,7 @@ import '../models/informationsbericht.dart';
 import '../services/export_service.dart';
 import '../services/file_storage_service.dart';
 import '../services/pdf_generator_service.dart';
+import 'pdf_preview_screen.dart';
 import '../widgets/klienten_akte_widget.dart';
 
 class InformationsberichtScreen extends StatefulWidget {
@@ -1074,14 +1075,18 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
       final fileName = 'Informationsbericht_${suffix}_${widget.client.vollstaendigerName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       if (!mounted) return;
-      await ExportService.saveAndShare(
-        context: context,
-        bytes: pdfData,
-        filename: fileName,
-        mimeType: 'application/pdf',
-        openAfterSave: true,
+      // Druckvorschau anzeigen mit Print/Save Optionen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfPreviewScreen(
+            pdfBytes: pdfData,
+            title: 'Informationsbericht ($suffix)',
+            fileName: fileName,
+          ),
+        ),
       );
-      debugPrint('[PDF] Datei gespeichert/geteilt');
+      debugPrint('[PDF] Druckvorschau geoeffnet');
     } catch (e, stackTrace) {
       debugPrint('[PDF] FEHLER: $e');
       debugPrint('[PDF] StackTrace: $stackTrace');

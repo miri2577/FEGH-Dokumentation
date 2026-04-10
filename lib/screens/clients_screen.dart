@@ -8,6 +8,7 @@ import '../utils/responsive_utils.dart';
 import '../services/export_service.dart';
 import '../services/permission_service.dart';
 import '../widgets/gdpr_delete_dialog.dart';
+import '../widgets/client_consent_dialog.dart';
 import '../models/export_format.dart';
 import 'package:intl/intl.dart';
 import 'create_appointment_screen.dart';
@@ -343,6 +344,21 @@ class _ClientsScreenState extends State<ClientsScreen> {
             onTap: () {
               Navigator.pop(context);
               _navigateToNewAppointment(context, client);
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.privacy_tip,
+              color: client.einwilligungVorhanden ? Colors.green : Colors.orange,
+            ),
+            title: const Text('DSGVO-Einwilligung'),
+            subtitle: Text(client.einwilligungVorhanden ? 'Liegt vor' : 'Nicht dokumentiert'),
+            onTap: () async {
+              Navigator.pop(context);
+              final updated = await ClientConsentDialog.show(context, client);
+              if (updated != null) {
+                await appProvider.updateClient(updated);
+              }
             },
           ),
           ListTile(

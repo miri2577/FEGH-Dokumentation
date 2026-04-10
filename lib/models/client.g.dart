@@ -51,6 +51,13 @@ Client _$ClientFromJson(Map<String, dynamic> json) => Client(
       .toList(),
   rechtsgrundlage: json['rechtsgrundlage'] as String?,
   customColor: json['customColor'] as String?,
+  einwilligungVorhanden: json['einwilligungVorhanden'] as bool? ?? false,
+  einwilligungDatum: json['einwilligungDatum'] == null
+      ? null
+      : DateTime.parse(json['einwilligungDatum'] as String),
+  einwilligungUnterschriftVon: json['einwilligungUnterschriftVon'] as String?,
+  einwilligungWiderruflichBis: json['einwilligungWiderruflichBis'] as String?,
+  einwilligungBemerkung: json['einwilligungBemerkung'] as String?,
 );
 
 Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
@@ -81,6 +88,11 @@ Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
   'individuelleTibZiele': instance.individuelleTibZiele,
   'rechtsgrundlage': instance.rechtsgrundlage,
   'customColor': instance.customColor,
+  'einwilligungVorhanden': instance.einwilligungVorhanden,
+  'einwilligungDatum': instance.einwilligungDatum?.toIso8601String(),
+  'einwilligungUnterschriftVon': instance.einwilligungUnterschriftVon,
+  'einwilligungWiderruflichBis': instance.einwilligungWiderruflichBis,
+  'einwilligungBemerkung': instance.einwilligungBemerkung,
 };
 
 const _$FachleistungsIntervallEnumMap = {

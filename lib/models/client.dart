@@ -51,6 +51,13 @@ class Client {
   // Benutzerdefinierte Kalenderfarbe (Hex-String, z.B. "FF1976D2")
   final String? customColor;
 
+  // DSGVO Art. 9 - Einwilligung zur Verarbeitung von Sozial-/Gesundheitsdaten
+  final bool einwilligungVorhanden;
+  final DateTime? einwilligungDatum;
+  final String? einwilligungUnterschriftVon; // Name des Klienten oder gesetzlichen Vertreters
+  final String? einwilligungWiderruflichBis; // Datum oder leer
+  final String? einwilligungBemerkung;
+
   Client({
     required this.id,
     this.klientenId,
@@ -78,6 +85,11 @@ class Client {
     this.individuelleTibZiele,
     this.rechtsgrundlage,
     this.customColor,
+    this.einwilligungVorhanden = false,
+    this.einwilligungDatum,
+    this.einwilligungUnterschriftVon,
+    this.einwilligungWiderruflichBis,
+    this.einwilligungBemerkung,
   });
 
   Client.create({
@@ -105,6 +117,11 @@ class Client {
     this.individuelleTibZiele,
     this.rechtsgrundlage,
     this.customColor,
+    this.einwilligungVorhanden = false,
+    this.einwilligungDatum,
+    this.einwilligungUnterschriftVon,
+    this.einwilligungWiderruflichBis,
+    this.einwilligungBemerkung,
   }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
        createdAt = DateTime.now();
 
@@ -136,6 +153,11 @@ class Client {
     List<String>? individuelleTibZiele,
     String? rechtsgrundlage,
     String? customColor,
+    bool? einwilligungVorhanden,
+    DateTime? einwilligungDatum,
+    String? einwilligungUnterschriftVon,
+    String? einwilligungWiderruflichBis,
+    String? einwilligungBemerkung,
   }) {
     return Client(
       id: id,
@@ -164,6 +186,11 @@ class Client {
       individuelleTibZiele: individuelleTibZiele ?? this.individuelleTibZiele,
       rechtsgrundlage: rechtsgrundlage ?? this.rechtsgrundlage,
       customColor: customColor ?? this.customColor,
+      einwilligungVorhanden: einwilligungVorhanden ?? this.einwilligungVorhanden,
+      einwilligungDatum: einwilligungDatum ?? this.einwilligungDatum,
+      einwilligungUnterschriftVon: einwilligungUnterschriftVon ?? this.einwilligungUnterschriftVon,
+      einwilligungWiderruflichBis: einwilligungWiderruflichBis ?? this.einwilligungWiderruflichBis,
+      einwilligungBemerkung: einwilligungBemerkung ?? this.einwilligungBemerkung,
     );
   }
 
