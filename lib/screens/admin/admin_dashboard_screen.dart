@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import '../../models/team.dart';
 import 'team_management_screen.dart';
 import 'recovery_screen.dart';
 import 'audit_log_screen.dart';
+import 'performance_test_screen.dart';
 import 'employee_invitation_screen.dart';
 import 'client_assignment_screen.dart';
 
@@ -398,6 +400,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       );
                     },
                   ),
+                  if (kDebugMode)
+                    _ActionChip(
+                      icon: Icons.speed,
+                      label: 'Performance-Test',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PerformanceTestScreen()),
+                        );
+                      },
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
