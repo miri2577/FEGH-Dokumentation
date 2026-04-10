@@ -7,6 +7,7 @@ import '../models/kostentraeger.dart';
 import '../utils/responsive_utils.dart';
 import '../services/export_service.dart';
 import '../services/permission_service.dart';
+import '../widgets/gdpr_delete_dialog.dart';
 import '../models/export_format.dart';
 import 'package:intl/intl.dart';
 import 'create_appointment_screen.dart';
@@ -399,6 +400,22 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 
   void _showDeleteClientDialog(BuildContext context, AppProvider appProvider, Client client) {
+    GdprDeleteDialog.show(
+      context: context,
+      clientId: client.id,
+      clientName: client.vollstaendigerName,
+      currentUser: appProvider.settings.userName,
+      onDelete: () => appProvider.deleteClient(client.id),
+    ).then((deleted) {
+      if (deleted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Klient DSGVO-konform geloescht'), backgroundColor: Colors.green),
+        );
+      }
+    });
+    // Alter Dialog-Code entfernt, GdprDeleteDialog uebernimmt
+    return;
+    // Dead code below kept for reference during transition
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

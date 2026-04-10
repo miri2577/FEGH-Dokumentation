@@ -84,6 +84,41 @@ class AuditLogger {
     }
   }
 
+  /// Rotiert das Log: Eintraege aelter als [maxAge] werden entfernt.
+  /// Standard: 3 Jahre (DSGVO Art. 5 Abs. 2 Rechenschaftspflicht).
+  Future<void> rotate({Duration maxAge = const Duration(days: 1095)}) async {
+    try {
+      if (kIsWeb) return;
+      final file = await _getLogFile();
+      if (!await file.exists()) return;
+
+      final cutoff = DateTime.now().subtract(maxAge);
+      final lines = await file.readAsLines();
+      final kept = <String>[];
+
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue;
+        try {
+          final entry = jsonDecode(line);
+          final ts = DateTime.parse(entry['ts']);
+          if (ts.isAfter(cutoff)) {
+            kept.add(line);
+          }
+        } catch (_) {
+          kept.add(line); // Kaputte Zeilen behalten
+        }
+      }
+
+      final removed = lines.length - kept.length;
+      if (removed > 0) {
+        await file.writeAsString('${kept.join('\n')}\n');
+        if (kDebugMode) debugPrint('[AUDIT] Rotation: $removed Eintraege entfernt');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AUDIT] Rotation-Fehler: $e');
+    }
+  }
+
   // ── Vordefinierte Audit-Aktionen ────────────────────────────────
 
   Future<void> logClientAccess(String userId, String clientId) =>

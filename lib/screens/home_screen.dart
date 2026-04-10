@@ -27,6 +27,8 @@ import 'admin/admin_dashboard_screen.dart';
 import 'chat/chat_list_screen.dart';
 import '../services/permission_service.dart';
 import '../services/matrix_chat_service.dart';
+import '../services/retention_service.dart';
+import '../widgets/retention_warning_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -223,6 +225,21 @@ class DashboardTab extends StatelessWidget {
                               padding: EdgeInsets.only(bottom: 8),
                               child: LinearProgressIndicator(),
                             ),
+
+                          // Aufbewahrungsfristen-Warnung
+                          if (appProvider.settings.isAdmin)
+                            Builder(builder: (ctx) {
+                              final warnings = [
+                                ...RetentionService.checkClientRetention(appProvider.clients),
+                                ...RetentionService.checkWorkTimeRetention(appProvider.arbeitszeiten),
+                                ...RetentionService.checkEmployeeRetention(appProvider.mitarbeiter),
+                              ];
+                              if (warnings.isEmpty) return const SizedBox.shrink();
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: RetentionWarningCard(warnings: warnings),
+                              );
+                            }),
 
                           // Welcome Section
                           _buildWelcomeSection(context, appProvider),
