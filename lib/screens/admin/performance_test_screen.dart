@@ -109,7 +109,13 @@ class _PerformanceTestScreenState extends State<PerformanceTestScreen> {
   }
 
   Widget _buildResultsTable(ThemeData theme) {
-    final operations = _results.values.first.keys.toList();
+    // Alle Operationen aus allen Szenarien sammeln (Reihenfolge beibehalten)
+    final operations = <String>[];
+    for (final scenarioResults in _results.values) {
+      for (final op in scenarioResults.keys) {
+        if (!operations.contains(op)) operations.add(op);
+      }
+    }
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,77 +205,84 @@ class _PerformanceTestScreenState extends State<PerformanceTestScreen> {
     final stopwatch = Stopwatch();
 
     setState(() => _currentStep = 'Bereinige vorherige Daten...');
-    // Bestehende Klienten loeschen
     final existing = List<Client>.from(app.clients);
     for (final c in existing) {
       await app.deleteClient(c.id);
     }
 
-    // 1. Klienten erstellen
-    setState(() => _currentStep = 'Erstelle $clientCount Klienten...');
-    stopwatch.reset();
-    stopwatch.start();
+    // Test-Daten generieren (in-memory)
     final clients = _generateClients(clientCount);
-    for (final c in clients) {
-      await app.addClient(c);
-    }
-    stopwatch.stop();
-    results['Klienten erstellen ($clientCount)'] = stopwatch.elapsedMilliseconds;
 
-    // 2. Klienten laden
-    setState(() => _currentStep = 'Lade Klienten...');
-    stopwatch.reset();
-    stopwatch.start();
-    await app.refreshData();
-    stopwatch.stop();
-    results['Klienten laden'] = stopwatch.elapsedMilliseconds;
-
-    // 3. Verschluesselung Single
+    // 1. Verschluesselung Single (Mikro-Benchmark, mehrfach gemessen)
     setState(() => _currentStep = 'Verschluesselung-Benchmark...');
     final testData = utf8.encode(jsonEncode(clients[0].toJson()));
     stopwatch.reset();
     stopwatch.start();
-    final encrypted = await crypto.encryptRecord(plaintext: testData);
+    Map<String, dynamic>? encrypted;
+    for (int i = 0; i < 100; i++) {
+      encrypted = await crypto.encryptRecord(plaintext: testData);
+    }
     stopwatch.stop();
-    results['Verschluesseln (1 Datensatz)'] = stopwatch.elapsedMilliseconds;
+    results['Verschluesseln (100x 1 Datensatz)'] = stopwatch.elapsedMilliseconds;
 
-    // 4. Entschluesselung Single
+    // 2. Entschluesselung Single
     stopwatch.reset();
     stopwatch.start();
-    await crypto.decryptRecord(encrypted);
+    for (int i = 0; i < 100; i++) {
+      await crypto.decryptRecord(encrypted!);
+    }
     stopwatch.stop();
-    results['Entschluesseln (1 Datensatz)'] = stopwatch.elapsedMilliseconds;
+    results['Entschluesseln (100x 1 Datensatz)'] = stopwatch.elapsedMilliseconds;
 
-    // 5. Verschluesselung Bulk (alle Klienten)
+    // 3. Verschluesselung Bulk (alle Klienten)
+    setState(() => _currentStep = 'Bulk-Verschluesselung...');
     stopwatch.reset();
     stopwatch.start();
     for (final c in clients) {
       await crypto.encryptRecord(plaintext: utf8.encode(jsonEncode(c.toJson())));
     }
     stopwatch.stop();
-    results['Verschluesseln ($clientCount Datensaetze)'] = stopwatch.elapsedMilliseconds;
+    results['Bulk-Verschluesseln (alle Klienten)'] = stopwatch.elapsedMilliseconds;
+
+    // 4. Klienten erstellen (mit Cloud-Sync)
+    setState(() => _currentStep = 'Erstelle $clientCount Klienten...');
+    stopwatch.reset();
+    stopwatch.start();
+    for (final c in clients) {
+      await app.addClient(c);
+    }
+    stopwatch.stop();
+    results['Erstellen (alle Klienten + Cloud-Sync)'] = stopwatch.elapsedMilliseconds;
+
+    // 5. Klienten laden
+    setState(() => _currentStep = 'Lade Klienten...');
+    stopwatch.reset();
+    stopwatch.start();
+    await app.refreshData();
+    stopwatch.stop();
+    results['Laden (alle Klienten)'] = stopwatch.elapsedMilliseconds;
 
     // 6. Suche
     setState(() => _currentStep = 'Suche-Benchmark...');
     stopwatch.reset();
     stopwatch.start();
-    for (int i = 0; i < 100; i++) {
-      app.clients.where((c) => c.name.contains('Test')).toList();
+    for (int i = 0; i < 1000; i++) {
+      app.clients.where((c) => c.name.contains('Mueller')).toList();
     }
     stopwatch.stop();
-    results['Suche (100x in $clientCount Klienten)'] = stopwatch.elapsedMilliseconds;
+    results['Suche (1000x)'] = stopwatch.elapsedMilliseconds;
 
     // 7. Statistiken berechnen
     setState(() => _currentStep = 'Statistiken-Benchmark...');
     stopwatch.reset();
     stopwatch.start();
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 1000; i++) {
       final _ = app.clientsInRedZone;
       final __ = app.clientsInYellowZone;
       final ___ = app.clientsInGreenZone;
     }
     stopwatch.stop();
-    results['Statistiken (50x)'] = stopwatch.elapsedMilliseconds;
+    results['Statistiken (1000x)'] = stopwatch.elapsedMilliseconds;
 
     // 8. Backup erstellen
     setState(() => _currentStep = 'Erstelle Backup...');
@@ -284,28 +297,29 @@ class _PerformanceTestScreenState extends State<PerformanceTestScreen> {
       password: 'test',
     );
     stopwatch.stop();
-    results['Backup erstellen (verschluesselt)'] = stopwatch.elapsedMilliseconds;
+    results['Backup (verschluesselt)'] = stopwatch.elapsedMilliseconds;
 
-    // 9. Klient updaten (alle)
-    setState(() => _currentStep = 'Aktualisiere Klienten...');
+    // 9. Update aller Klienten
+    setState(() => _currentStep = 'Aktualisiere alle Klienten...');
     stopwatch.reset();
     stopwatch.start();
-    for (int i = 0; i < clients.length && i < 50; i++) {
-      final updated = clients[i].copyWith(verbrauchteStunden: 5.0);
+    for (final c in app.clients) {
+      final updated = c.copyWith(verbrauchteStunden: 5.0);
       await app.updateClient(updated);
     }
     stopwatch.stop();
-    results['Update (50 Klienten)'] = stopwatch.elapsedMilliseconds;
+    results['Update (alle Klienten + Cloud-Sync)'] = stopwatch.elapsedMilliseconds;
 
     // 10. Klienten loeschen
     setState(() => _currentStep = 'Loesche Klienten...');
     stopwatch.reset();
     stopwatch.start();
-    for (final c in clients) {
+    final toDelete = List<Client>.from(app.clients);
+    for (final c in toDelete) {
       await app.deleteClient(c.id);
     }
     stopwatch.stop();
-    results['Loeschen ($clientCount Klienten)'] = stopwatch.elapsedMilliseconds;
+    results['Loeschen (alle + Cloud-Sync)'] = stopwatch.elapsedMilliseconds;
 
     return results;
   }
@@ -343,7 +357,12 @@ class _PerformanceTestScreenState extends State<PerformanceTestScreen> {
     buffer.writeln('| Operation | ${_scenarios.map((s) => "$s Klienten").join(" | ")} |');
     buffer.writeln('|-----------|${_scenarios.map((_) => "---").join("|")}|');
 
-    final operations = _results.values.first.keys.toList();
+    final operations = <String>[];
+    for (final scenarioResults in _results.values) {
+      for (final op in scenarioResults.keys) {
+        if (!operations.contains(op)) operations.add(op);
+      }
+    }
     for (final op in operations) {
       buffer.write('| $op |');
       for (final s in _scenarios) {
