@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import '../../services/matrix_chat_service.dart';
 import '../../models/team.dart';
 import 'team_management_screen.dart';
 import 'recovery_screen.dart';
+import 'audit_log_screen.dart';
 import 'employee_invitation_screen.dart';
 import 'client_assignment_screen.dart';
 
@@ -109,9 +111,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Recovery-Key generieren und anzeigen
+      // Recovery-Key generieren
       final recoveryKey = RecoveryService.generateRecoveryKey();
-      // TODO: Recovery-Key verschluesselt speichern fuer spaetere Verifizierung
+
+      // Aktuellen MEK abrufen und mit Recovery-Key verschluesseln
+      final app = Provider.of<AppProvider>(context, listen: false);
+      final mek = await app.secureStorageService.cryptoStorage.getCurrentMek();
+      if (mek != null) {
+        final encryptedMek = await RecoveryService.encryptMekWithRecoveryKey(
+          Uint8List.fromList(mek),
+          recoveryKey,
+        );
+        await app.secureStorageService.cryptoStorage.storeMekBackup(encryptedMek);
+      }
+
       await _showRecoveryKeyDialog(recoveryKey);
       _runHealthChecks();
     } else {
@@ -372,6 +385,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const RecoveryScreen()),
+                      );
+                    },
+                  ),
+                  _ActionChip(
+                    icon: Icons.history,
+                    label: 'Audit-Log',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuditLogScreen()),
                       );
                     },
                   ),

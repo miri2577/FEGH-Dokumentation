@@ -137,6 +137,59 @@ class CryptoStorage {
 
   // _developmentFallback() ENTFERNT -- Sicherheitsrisiko, siehe PRODUKTIONSREIFE_TODO.md #3
 
+  /// Speichert den MEK verschluesselt mit einem Recovery-Key auf der Festplatte.
+  /// Der Recovery-Key (12 Woerter) muss sicher vom User aufbewahrt werden.
+  /// Bei Passwort-Verlust kann damit der MEK wiederhergestellt werden.
+  Future<bool> storeMekBackup(String encryptedMekB64) async {
+    try {
+      final dir = await _secureDataDir();
+      final backupFile = File('${dir.path}/mek_recovery.bin');
+      await backupFile.writeAsString(encryptedMekB64);
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[CRYPTO] storeMekBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Liest den verschluesselten MEK-Backup falls vorhanden.
+  Future<String?> loadMekBackup() async {
+    try {
+      final dir = await _secureDataDir();
+      final backupFile = File('${dir.path}/mek_recovery.bin');
+      if (!await backupFile.exists()) return null;
+      return await backupFile.readAsString();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[CRYPTO] loadMekBackup error: $e');
+      return null;
+    }
+  }
+
+  /// Stellt den MEK aus einem Recovery-Backup wieder her.
+  /// Der wiederhergestellte MEK wird im Keychain gespeichert.
+  Future<bool> restoreMekFromBackup(List<int> recoveredMek) async {
+    try {
+      if (recoveredMek.length != 32) return false;
+      await secure.write(key: storageKey, value: base64.encode(recoveredMek));
+      _cachedMEK = null; // Cache invalidieren
+      _manifestCache = null;
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[CRYPTO] restoreMekFromBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Aktuellen MEK abrufen (fuer Backup-Zwecke).
+  Future<List<int>?> getCurrentMek() async {
+    try {
+      return await _getOrCreateMEK();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[CRYPTO] getCurrentMek error: $e');
+      return null;
+    }
+  }
+
   Future<void> rotateMEK() async {
     final oldMek = await secure.read(key: storageKey);
     if (oldMek == null) {

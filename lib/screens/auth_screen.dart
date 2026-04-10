@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../utils/platform_utils.dart';
 import '../services/demo_data_service.dart';
 import '../services/totp_service.dart';
+import 'mek_recovery_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -788,14 +789,24 @@ class _AuthScreenState extends State<AuthScreen>
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text('• Wenden Sie sich an Ihren Administrator, um das Passwort zurückzusetzen.'),
+            Text('• Mitarbeiter: Wenden Sie sich an Ihre Teamleitung oder den Admin fuer einen Recovery-Token.'),
             SizedBox(height: 4),
-            Text('• Alternativ können Sie in den Einstellungen unter "Datenverwaltung" alle Daten zurücksetzen und die App neu einrichten.'),
+            Text('• Admin: Nutzen Sie Ihren 12-Wort Recovery-Key (siehe Sicherheitsdokumente).'),
             SizedBox(height: 4),
             Text('• Wenn Sie sich mit Biometrie (Face ID / Touch ID) eingeloggt haben, nutzen Sie diese Option.'),
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MekRecoveryScreen()),
+              );
+            },
+            child: const Text('Recovery-Key verwenden'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Verstanden'),
