@@ -603,7 +603,7 @@ ZUSAMMENFASSUNG
 
 ============================================================
 Erstellt am: ${_formatDateTime(DateTime.now())}
-Eingliederungshilfe-App (Flutter Version)
+FEGH-Dokumentation (Flutter Version)
 ============================================================
 ''';
     }

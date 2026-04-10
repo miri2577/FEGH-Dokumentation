@@ -93,7 +93,8 @@ class _AuthScreenState extends State<AuthScreen>
                         opacity: _fadeAnimation,
                         child: SlideTransition(
                           position: _slideAnimation,
-                          child: Column(
+                          child: SingleChildScrollView(
+                            child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // App Icon/Logo
@@ -127,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen>
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  'Eingliederungshilfe',
+                                  'FEGH-Dokumentation',
                                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Theme.of(context).colorScheme.onSurface,
@@ -233,6 +234,7 @@ class _AuthScreenState extends State<AuthScreen>
                               ],
                             ],
                           ),
+                          ),
                         ),
                       );
                     },
@@ -262,7 +264,7 @@ class _AuthScreenState extends State<AuthScreen>
         const SizedBox(height: 8),
         
         Text(
-          'Erstellen Sie einen Benutzernamen und ein sicheres Passwort für Ihre Eingliederungshilfe-App',
+          'Erstellen Sie einen Benutzernamen und ein sicheres Passwort für Ihre FEGH-Dokumentation',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),

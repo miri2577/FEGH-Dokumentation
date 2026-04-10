@@ -85,7 +85,7 @@ class AuthenticationService {
 
     try {
       final bool didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Entsperren Sie die Eingliederungshilfe App mit $biometryTypeName',
+        localizedReason: 'Entsperren Sie die FEGH-Dokumentation mit $biometryTypeName',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -153,7 +153,7 @@ class AuthenticationService {
 
     try {
       final bool didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Entsperren Sie die Eingliederungshilfe App mit Ihrem Passcode',
+        localizedReason: 'Entsperren Sie die FEGH-Dokumentation mit Ihrem Passcode',
         options: const AuthenticationOptions(
           biometricOnly: false,
           stickyAuth: true,

@@ -29,7 +29,7 @@ class GDPRService {
       final export = GDPRExport(
         exportId: exportId,
         createdAt: timestamp,
-        dataSubject: 'Nutzer der Eingliederungshilfe App',
+        dataSubject: 'Nutzer der FEGH-Dokumentation',
         legalBasis: 'Art. 20 DSGVO (Datenübertragbarkeit)',
         data: exportData,
       );
@@ -156,7 +156,7 @@ class GDPRService {
 
       final result = await Share.shareXFiles(
         [XFile(filePath)],
-        text: 'DSGVO-konformer Datenexport aus der Eingliederungshilfe-App',
+        text: 'DSGVO-konformer Datenexport aus der FEGH-Dokumentation',
         subject: fileName, // Verwende originalen Dateinamen als Subject
       );
 

@@ -364,7 +364,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Eingliederungshilfe',
+              'FEGH-Dokumentation',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
