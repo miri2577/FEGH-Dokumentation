@@ -16,6 +16,7 @@ import '../services/app_logger.dart';
 
 import '../utils/platform_utils.dart';
 import '../services/hidrive_webdav_client.dart';
+import 'backup_screen.dart';
 import '../services/totp_service.dart';
 import '../services/permission_service.dart';
 import '../models/app_settings.dart';
@@ -716,6 +717,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: Text(
             '${appProvider.totalClients} Klienten • ${appProvider.totalAppointments} Termine',
           ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.backup),
+          title: const Text('Backup & Wiederherstellung'),
+          subtitle: const Text('Verschluesseltes Backup erstellen oder wiederherstellen'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BackupScreen()),
+            );
+          },
         ),
         ListTile(
           leading: Icon(
