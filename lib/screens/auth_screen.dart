@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -342,51 +343,52 @@ class _AuthScreenState extends State<AuthScreen>
         ),
         
         const SizedBox(height: 16),
-        
-        // Demo Button
-        FilledButton.tonal(
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                icon: const Icon(Icons.info_outline, size: 48, color: Colors.orange),
-                title: const Text('Demo-Modus'),
-                content: const Text(
-                  'Sie betreten den Demo-Modus.\n\n'
-                  'Bitte geben Sie keine echten personenbezogenen Daten ein. '
-                  'Die Daten werden nur lokal im Browser gespeichert und '
-                  'können jederzeit verloren gehen.\n\n'
-                  'Diese App befindet sich in einer frühen Beta-Phase.',
+
+        // Demo Button - nur in Debug-Builds sichtbar
+        if (kDebugMode)
+          FilledButton.tonal(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  icon: const Icon(Icons.info_outline, size: 48, color: Colors.orange),
+                  title: const Text('Demo-Modus'),
+                  content: const Text(
+                    'Sie betreten den Demo-Modus.\n\n'
+                    'Bitte geben Sie keine echten personenbezogenen Daten ein. '
+                    'Die Daten werden nur lokal gespeichert und '
+                    'können jederzeit verloren gehen.\n\n'
+                    'Nur fuer Schulungen und Tests verwenden.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Abbrechen'),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await appProvider.authenticate();
+                        await DemoDataService.loadDemoData(appProvider);
+                      },
+                      child: const Text('Demo starten'),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Abbrechen'),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      await appProvider.authenticate();
-                      await DemoDataService.loadDemoData(appProvider);
-                    },
-                    child: const Text('Demo starten'),
-                  ),
-                ],
-              ),
-            );
-          },
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+              );
+            },
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.preview),
+                SizedBox(width: 8),
+                Text('Demo-Modus (nur Debug-Build)'),
+              ],
+            ),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.preview),
-              SizedBox(width: 8),
-              Text('Demo-Modus starten (ohne Anmeldung)'),
-            ],
-          ),
-        ),
         
         // Error Message
         if (appProvider.authenticationError != null) ...[
