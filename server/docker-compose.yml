@@ -1,0 +1,81 @@
+version: '3.8'
+
+# FEGH-Dokumentation Server
+# Alle Dienste fuer verschluesselten Chat, Cloud-Speicher und Video-Calls.
+# Konfiguration ueber .env Datei (wird vom Setup-Skript erstellt).
+
+services:
+  # Matrix Chat-Server (Conduit, Rust)
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    container_name: fegh-conduit
+    restart: unless-stopped
+    volumes:
+      - conduit_data:/var/lib/matrix-conduit/
+      - ./conduit.toml:/etc/matrix-conduit/conduit.toml:ro
+    environment:
+      CONDUIT_CONFIG: /etc/matrix-conduit/conduit.toml
+    networks:
+      - fegh
+
+  # Nextcloud (Cloud-Speicher, HiDrive-Alternative)
+  nextcloud:
+    image: nextcloud:latest
+    container_name: fegh-nextcloud
+    restart: unless-stopped
+    volumes:
+      - nextcloud_data:/var/www/html
+    environment:
+      - SQLITE_DATABASE=nextcloud
+      - NEXTCLOUD_ADMIN_USER=${ADMIN_USER:-admin}
+      - NEXTCLOUD_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN}
+    networks:
+      - fegh
+
+  # TURN-Server fuer Video-/Audio-Calls
+  coturn:
+    image: coturn/coturn:latest
+    container_name: fegh-coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - letsencrypt_data:/etc/letsencrypt:ro
+
+  # Nginx Reverse Proxy + SSL
+  nginx:
+    image: nginx:alpine
+    container_name: fegh-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - letsencrypt_data:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - conduit
+      - nextcloud
+    networks:
+      - fegh
+
+  # Certbot fuer automatische SSL-Zertifikate
+  certbot:
+    image: certbot/certbot:latest
+    container_name: fegh-certbot
+    volumes:
+      - letsencrypt_data:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  conduit_data:
+  nextcloud_data:
+  letsencrypt_data:
+  certbot_www:
+
+networks:
+  fegh:
+    driver: bridge
