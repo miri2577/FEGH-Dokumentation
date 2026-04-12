@@ -1,6 +1,18 @@
+import 'dart:ui';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'arbeitszeit.g.dart';
+
+enum ArbeitszeitStatus {
+  @JsonValue('eingereicht')
+  eingereicht,
+  @JsonValue('genehmigt')
+  genehmigt,
+  @JsonValue('abgelehnt')
+  abgelehnt,
+  @JsonValue('korrektur')
+  korrektur,
+}
 
 @JsonSerializable()
 class Arbeitszeit {
@@ -11,9 +23,14 @@ class Arbeitszeit {
   final String taetigkeit;
   final String notizen;
   final DateTime createdAt;
-  final String? clientId; // Optional: Verknüpfung zu einem Klienten
-  final String? appointmentId; // Optional: Verknüpfung zu einem Termin
-  final ArbeitszeitTyp typ; // Betreuung, Büro, Fahrt, etc.
+  final String? clientId;
+  final String? appointmentId;
+  final ArbeitszeitTyp typ;
+  final String? mitarbeiterId;
+  final ArbeitszeitStatus genehmigungsStatus;
+  final DateTime? genehmigungsDatum;
+  final String? genehmigungsNotiz;
+  final String? genehmigtVon;
 
   Arbeitszeit({
     required this.id,
@@ -26,6 +43,11 @@ class Arbeitszeit {
     this.clientId,
     this.appointmentId,
     this.typ = ArbeitszeitTyp.betreuung,
+    this.mitarbeiterId,
+    this.genehmigungsStatus = ArbeitszeitStatus.eingereicht,
+    this.genehmigungsDatum,
+    this.genehmigungsNotiz,
+    this.genehmigtVon,
   });
 
   Arbeitszeit.create({
@@ -37,6 +59,11 @@ class Arbeitszeit {
     this.clientId,
     this.appointmentId,
     this.typ = ArbeitszeitTyp.betreuung,
+    this.mitarbeiterId,
+    this.genehmigungsStatus = ArbeitszeitStatus.eingereicht,
+    this.genehmigungsDatum,
+    this.genehmigungsNotiz,
+    this.genehmigtVon,
   }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
        createdAt = DateTime.now();
 
@@ -52,6 +79,11 @@ class Arbeitszeit {
     String? clientId,
     String? appointmentId,
     ArbeitszeitTyp? typ,
+    String? mitarbeiterId,
+    ArbeitszeitStatus? genehmigungsStatus,
+    DateTime? genehmigungsDatum,
+    String? genehmigungsNotiz,
+    String? genehmigtVon,
   }) {
     return Arbeitszeit(
       id: id,
@@ -64,7 +96,31 @@ class Arbeitszeit {
       clientId: clientId ?? this.clientId,
       appointmentId: appointmentId ?? this.appointmentId,
       typ: typ ?? this.typ,
+      mitarbeiterId: mitarbeiterId ?? this.mitarbeiterId,
+      genehmigungsStatus: genehmigungsStatus ?? this.genehmigungsStatus,
+      genehmigungsDatum: genehmigungsDatum ?? this.genehmigungsDatum,
+      genehmigungsNotiz: genehmigungsNotiz ?? this.genehmigungsNotiz,
+      genehmigtVon: genehmigtVon ?? this.genehmigtVon,
     );
+  }
+
+  // Farbkodierung fuer Status
+  static Color statusColor(ArbeitszeitStatus status) {
+    switch (status) {
+      case ArbeitszeitStatus.eingereicht: return const Color(0xFFFFA726); // Orange
+      case ArbeitszeitStatus.genehmigt: return const Color(0xFF66BB6A); // Gruen
+      case ArbeitszeitStatus.abgelehnt: return const Color(0xFFEF5350); // Rot
+      case ArbeitszeitStatus.korrektur: return const Color(0xFF42A5F5); // Blau
+    }
+  }
+
+  static String statusName(ArbeitszeitStatus status) {
+    switch (status) {
+      case ArbeitszeitStatus.eingereicht: return 'Eingereicht';
+      case ArbeitszeitStatus.genehmigt: return 'Genehmigt';
+      case ArbeitszeitStatus.abgelehnt: return 'Abgelehnt';
+      case ArbeitszeitStatus.korrektur: return 'Korrektur noetig';
+    }
   }
 
   // Berechnung der Arbeitszeit

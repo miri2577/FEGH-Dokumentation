@@ -19,6 +19,18 @@ Arbeitszeit _$ArbeitszeitFromJson(Map<String, dynamic> json) => Arbeitszeit(
   typ:
       $enumDecodeNullable(_$ArbeitszeitTypEnumMap, json['typ']) ??
       ArbeitszeitTyp.betreuung,
+  mitarbeiterId: json['mitarbeiterId'] as String?,
+  genehmigungsStatus:
+      $enumDecodeNullable(
+        _$ArbeitszeitStatusEnumMap,
+        json['genehmigungsStatus'],
+      ) ??
+      ArbeitszeitStatus.eingereicht,
+  genehmigungsDatum: json['genehmigungsDatum'] == null
+      ? null
+      : DateTime.parse(json['genehmigungsDatum'] as String),
+  genehmigungsNotiz: json['genehmigungsNotiz'] as String?,
+  genehmigtVon: json['genehmigtVon'] as String?,
 );
 
 Map<String, dynamic> _$ArbeitszeitToJson(Arbeitszeit instance) =>
@@ -33,6 +45,12 @@ Map<String, dynamic> _$ArbeitszeitToJson(Arbeitszeit instance) =>
       'clientId': instance.clientId,
       'appointmentId': instance.appointmentId,
       'typ': _$ArbeitszeitTypEnumMap[instance.typ]!,
+      'mitarbeiterId': instance.mitarbeiterId,
+      'genehmigungsStatus':
+          _$ArbeitszeitStatusEnumMap[instance.genehmigungsStatus]!,
+      'genehmigungsDatum': instance.genehmigungsDatum?.toIso8601String(),
+      'genehmigungsNotiz': instance.genehmigungsNotiz,
+      'genehmigtVon': instance.genehmigtVon,
     };
 
 const _$ArbeitszeitTypEnumMap = {
@@ -44,4 +62,11 @@ const _$ArbeitszeitTypEnumMap = {
   ArbeitszeitTyp.fortbildung: 'fortbildung',
   ArbeitszeitTyp.teambesprechung: 'teambesprechung',
   ArbeitszeitTyp.sonstige: 'sonstige',
+};
+
+const _$ArbeitszeitStatusEnumMap = {
+  ArbeitszeitStatus.eingereicht: 'eingereicht',
+  ArbeitszeitStatus.genehmigt: 'genehmigt',
+  ArbeitszeitStatus.abgelehnt: 'abgelehnt',
+  ArbeitszeitStatus.korrektur: 'korrektur',
 };

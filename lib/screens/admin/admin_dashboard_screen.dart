@@ -12,6 +12,7 @@ import '../../models/team.dart';
 import 'team_management_screen.dart';
 import 'recovery_screen.dart';
 import 'audit_log_screen.dart';
+import 'approval_screen.dart';
 import 'performance_test_screen.dart';
 import 'employee_invitation_screen.dart';
 import 'client_assignment_screen.dart';
@@ -387,6 +388,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const RecoveryScreen()),
+                      );
+                    },
+                  ),
+                  _ActionChip(
+                    icon: Icons.approval,
+                    label: 'Genehmigungen',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ApprovalScreen()),
                       );
                     },
                   ),
