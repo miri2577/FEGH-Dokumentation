@@ -151,10 +151,9 @@ apt-get update && apt-get upgrade --dry-run
 | Eigenschaft | Wert |
 |------------|------|
 | Anbieter | Let's Encrypt |
-| Domain | cavia-aperea.de |
+| Domain | Eigene Domain |
 | Algorithmus | ECDSA |
-| Erneuerung | Automatisch (certbot Timer) |
-| Gueltig bis | 08.07.2026 (erneuert sich 30 Tage vorher) |
+| Erneuerung | Automatisch (certbot Timer, alle 90 Tage) |
 
 ### Zertifikat pruefen
 
@@ -239,7 +238,7 @@ journalctl -u sshd --since "30 days ago" | grep "Failed" | wc -l
 certbot certificates
 
 # Matrix E2E aktiv? (Raeume mit Encryption)
-curl -s https://cavia-aperea.de/_matrix/client/versions | python3 -m json.tool
+curl -s https://DEINE-DOMAIN.de/_matrix/client/versions | python3 -m json.tool
 ```
 
 ### 4. Updates

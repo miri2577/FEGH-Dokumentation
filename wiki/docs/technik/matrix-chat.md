@@ -13,20 +13,19 @@ Die FEGH-Dokumentation App enthaelt einen integrierten, Ende-zu-Ende verschluess
 | **Verschluesselung** | Megolm (E2E, wie Signal/Threema) | Client-seitig, Server sieht nur Ciphertext |
 | **Client** | matrix SDK v6.2.0 (Flutter) | In die App integriert |
 | **SSL** | Let's Encrypt (automatische Erneuerung) | TLS 1.2+ |
-| **Domain** | cavia-aperea.de | A-Record auf Server-IP |
+| **Domain** | DEINE-DOMAIN.de | A-Record auf Server-IP |
 
 ## Server-Infrastruktur
 
-### Hardware
+### Hardware (Empfehlung)
 
-| Eigenschaft | Wert |
+| Eigenschaft | Mindestanforderung |
 |------------|------|
-| Anbieter | STRATO (Deutschland) |
-| OS | Debian 12 (Bookworm) |
+| OS | Debian 12 oder Ubuntu 22.04+ |
 | CPU | 2 Kerne |
-| RAM | 4 GB |
-| Speicher | ~10 GB |
-| IP | 217.154.245.124 |
+| RAM | 2 GB (empfohlen: 4 GB) |
+| Speicher | 10 GB frei |
+| Standort | Rechenzentrum Deutschland (DSGVO) |
 
 ### Software-Stack
 
@@ -34,7 +33,7 @@ Die FEGH-Dokumentation App enthaelt einen integrierten, Ende-zu-Ende verschluess
 |--------|-------|--------|
 | **Conduit** | Matrix-Homeserver (Docker) | Aktiv, Port 6167 intern |
 | **Nginx** | Reverse Proxy, SSL-Termination | Aktiv, Port 80/443 |
-| **Let's Encrypt** | SSL-Zertifikat (auto-renew) | Gueltig bis 08.07.2026 |
+| **Let's Encrypt** | SSL-Zertifikat (auto-renew) | Automatische Erneuerung |
 | **UFW** | Firewall (nur 22, 80, 443 offen) | Aktiv |
 | **fail2ban** | Brute-Force-Schutz (SSH) | Aktiv, 3 Versuche, 1h Ban |
 | **unattended-upgrades** | Automatische Sicherheitsupdates | Aktiv |
@@ -124,7 +123,7 @@ Der Chat ist in der App unter dem **Nachrichten-Tab** (Index 5) erreichbar.
 Beim ersten Zugriff melden sich Nutzer mit Matrix-Credentials an:
 - **Benutzername**: Vom Admin vergeben
 - **Passwort**: Vom Admin vergeben
-- **Server**: `cavia-aperea.de` (vorkonfiguriert)
+- **Server**: Wird vom Admin konfiguriert
 
 ### Features
 
