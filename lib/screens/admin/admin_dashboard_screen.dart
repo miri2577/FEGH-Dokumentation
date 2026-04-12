@@ -14,6 +14,7 @@ import 'recovery_screen.dart';
 import 'audit_log_screen.dart';
 import 'approval_screen.dart';
 import 'performance_test_screen.dart';
+import '../../services/test_data_generator.dart';
 import 'employee_invitation_screen.dart';
 import 'client_assignment_screen.dart';
 
@@ -420,6 +421,42 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           context,
                           MaterialPageRoute(builder: (_) => const PerformanceTestScreen()),
                         );
+                      },
+                    ),
+                  if (kDebugMode)
+                    _ActionChip(
+                      icon: Icons.dataset,
+                      label: 'Testdaten laden',
+                      onTap: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Testdaten generieren'),
+                            content: const Text(
+                              '4 Teams, 25 Mitarbeiter, 40 Klienten, 200 Termine, '
+                              '150 Arbeitszeiten, 20 Antraege.\n\n'
+                              'Bestehende Daten bleiben erhalten. Fortfahren?',
+                            ),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Generieren')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Generiere Testdaten...')),
+                          );
+                          await TestDataGenerator.generate(
+                            Provider.of<AppProvider>(context, listen: false),
+                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Testdaten erstellt!'), backgroundColor: Colors.green),
+                            );
+                            _loadData();
+                          }
+                        }
                       },
                     ),
                 ],
