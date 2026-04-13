@@ -43,7 +43,9 @@ chat.meinefirma.de → [Server-IP]
 
 ### 3. Setup starten
 
-Per SSH auf dem Server einloggen und ausfuehren:
+**[Server-Paket herunterladen (GitHub)](https://github.com/miri2577/FEGH-Dokumentation/archive/refs/heads/main.zip)**
+
+Oder per SSH auf dem Server einloggen und ausfuehren:
 
 ```bash
 ssh root@[Server-IP]
