@@ -330,9 +330,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void _showClientActions(BuildContext context, AppProvider appProvider, Client client) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      isScrollControlled: true,
+      builder: (context) => SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           ListTile(
             leading: const Icon(Icons.edit),
             title: const Text('Bearbeiten'),
@@ -428,7 +430,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
               _showDeleteClientDialog(context, appProvider, client);
             },
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
