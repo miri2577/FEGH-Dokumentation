@@ -386,8 +386,10 @@ class _DocxBuilder {
 
   void paragraph(List<_Run> runs, {String? borderBottom}) {
     _body.write('<w:p><w:pPr>');
+    // OOXML-Schema verlangt: pBdr VOR spacing
     if (borderBottom != null) {
-      _body.write('<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="4" w:color="$borderBottom"/></w:pBdr>');
+      _body.write(
+          '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="4" w:color="$borderBottom"/></w:pBdr>');
     }
     _body.write('<w:spacing w:after="60"/>');
     _body.write('</w:pPr>');
@@ -406,17 +408,18 @@ class _DocxBuilder {
   void table(List<List<(String, String, String, bool)>> rows, {bool kpiRow = false}) {
     if (rows.isEmpty) return;
     final spalten = rows.first.length;
-    final spaltenBreite = 9000 ~/ spalten; // Gesamt ca. 9000 twips (A4 - Margin)
+    final spaltenBreite = 9000 ~/ spalten; // twips fuer tblGrid
     _body.write('<w:tbl><w:tblPr>');
+    // Prozent-basierte Breite passt sich der Seitengroesse an
     _body.write('<w:tblW w:w="5000" w:type="pct"/>');
-    _body.write(
-        '<w:tblBorders>'
+    // Sichtbare Borders oben, unten und zwischen Zeilen; seitlich "nil"
+    _body.write('<w:tblBorders>'
         '<w:top w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
-        '<w:left w:val="none" w:sz="0" w:color="auto"/>'
-        '<w:right w:val="none" w:sz="0" w:color="auto"/>'
+        '<w:left w:val="nil"/>'
         '<w:bottom w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
+        '<w:right w:val="nil"/>'
         '<w:insideH w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
-        '<w:insideV w:val="none" w:sz="0" w:color="auto"/>'
+        '<w:insideV w:val="nil"/>'
         '</w:tblBorders>');
     _body.write('<w:tblCellMar>'
         '<w:top w:w="120" w:type="dxa"/>'
@@ -426,7 +429,7 @@ class _DocxBuilder {
         '</w:tblCellMar>');
     _body.write('</w:tblPr>');
 
-    // PFLICHT in OOXML: tblGrid mit Spalten-Definitionen
+    // Pflicht in OOXML: tblGrid mit Spalten-Definitionen (in twips)
     _body.write('<w:tblGrid>');
     for (int i = 0; i < spalten; i++) {
       _body.write('<w:gridCol w:w="$spaltenBreite"/>');
@@ -442,6 +445,7 @@ class _DocxBuilder {
         final value = cell.$2;
         final colorHex = cell.$3;
         final bold = cell.$4;
+        // Prozent-basierte Zellbreite (5000 pct = 100%, gleichmaessig verteilt)
         _body.write('<w:tc><w:tcPr><w:tcW w:w="${5000 ~/ row.length}" w:type="pct"/>');
         if (isHeader || isKpi) {
           _body.write('<w:shd w:val="clear" w:fill="${DocxReportService._tableHeaderHex}"/>');
@@ -475,10 +479,9 @@ class _DocxBuilder {
 
   Uint8List build() {
     final document = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <w:body>
-${_body.toString()}
-<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
+${_body.toString()}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
 </w:body>
 </w:document>''';
 
