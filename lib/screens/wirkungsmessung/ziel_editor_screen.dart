@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/b_e_ni.dart';
+import '../../models/bei_bw.dart';
 import '../../models/bei_nrw.dart';
 import '../../models/bundesland.dart';
+import '../../models/generisch_icf.dart';
+import '../../models/hmbv.dart';
+import '../../models/itp.dart';
 import '../../models/teilhabeziel.dart';
 import '../../models/client.dart';
 import '../../providers/app_provider.dart';
@@ -268,55 +273,68 @@ class _ZielEditorScreenState extends State<ZielEditorScreen> {
     final effektiv = widget.client.effektivesBundesland(orgBundesland);
     final profil = BundeslandProfile.forLand(effektiv);
 
-    // NRW-spezifisch: BEI_NRW-Lebensbereiche als Dropdown
     if (profil.beiNrwVerfuegbar) {
-      BEINRWLebensbereich? selected;
-      for (final b in BEINRWLebensbereich.values) {
-        if (_icfBereich.text.startsWith(b.icfCode)) {
-          selected = b;
-          break;
-        }
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DropdownButtonFormField<BEINRWLebensbereich>(
-            initialValue: selected,
-            decoration: const InputDecoration(
-              labelText: 'BEI_NRW-Lebensbereich (optional)',
-              hintText: 'Auswaehlen...',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.category),
-            ),
-            items: BEINRWLebensbereich.values
-                .map((b) => DropdownMenuItem(
-                      value: b,
-                      child: Text('${b.icfCode} - ${b.displayName}'),
-                    ))
-                .toList(),
-            onChanged: (b) {
-              setState(() {
-                _icfBereich.text = b != null
-                    ? '${b.icfCode} ${b.displayName}'
-                    : '';
-              });
-            },
-          ),
-          if (selected != null) ...[
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: Text(
-                selected.kurzBeschreibung,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-              ),
-            ),
-          ],
-        ],
+      return _buildDropdownAuswahl<BEINRWLebensbereich>(
+        label: 'BEI_NRW-Lebensbereich',
+        optionen: BEINRWLebensbereich.values,
+        labelFor: (b) => '${b.icfCode} - ${b.displayName}',
+        codeFor: (b) => b.icfCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.icfCode} ${b.displayName}',
+      );
+    }
+    if (profil.beiBwVerfuegbar) {
+      return _buildDropdownAuswahl<BEIBWLebensbereich>(
+        label: 'BEI_BW-Lebensbereich',
+        optionen: BEIBWLebensbereich.values,
+        labelFor: (b) => '${b.icfCode} - ${b.displayName}',
+        codeFor: (b) => b.icfCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.icfCode} ${b.displayName}',
+      );
+    }
+    if (profil.itpVerfuegbar) {
+      return _buildDropdownAuswahl<ITPLebensbereich>(
+        label: 'ITP-Lebensbereich',
+        optionen: ITPLebensbereich.values,
+        labelFor: (b) => '${b.icfCode} - ${b.displayName}',
+        codeFor: (b) => b.icfCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.icfCode} ${b.displayName}',
+      );
+    }
+    if (profil.bEniVerfuegbar) {
+      return _buildDropdownAuswahl<BENiLebensbereich>(
+        label: 'B.E.Ni-Lebensbereich',
+        optionen: BENiLebensbereich.values,
+        labelFor: (b) => '${b.icfCode} - ${b.displayName}',
+        codeFor: (b) => b.icfCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.icfCode} ${b.displayName}',
+      );
+    }
+    if (profil.hmbvVerfuegbar) {
+      return _buildDropdownAuswahl<HMBVBereich>(
+        label: 'HMBV-Bereich',
+        optionen: HMBVBereich.values,
+        labelFor: (b) => '${b.kurzCode} - ${b.displayName}',
+        codeFor: (b) => b.kurzCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.kurzCode} ${b.displayName}',
+      );
+    }
+    if (profil.generischIcfVerfuegbar) {
+      return _buildDropdownAuswahl<GenerischIcfLebensbereich>(
+        label: 'ICF-Lebensbereich',
+        optionen: GenerischIcfLebensbereich.values,
+        labelFor: (b) => '${b.icfCode} - ${b.displayName}',
+        codeFor: (b) => b.icfCode,
+        descFor: (b) => b.kurzBeschreibung,
+        anzeigeVon: (b) => '${b.icfCode} ${b.displayName}',
       );
     }
 
-    // Berlin und andere: generisches ICF-Textfeld
+    // Berlin und Fallback: generisches ICF-Textfeld
     return TextFormField(
       controller: _icfBereich,
       decoration: InputDecoration(
@@ -327,6 +345,55 @@ class _ZielEditorScreenState extends State<ZielEditorScreen> {
         border: const OutlineInputBorder(),
         prefixIcon: const Icon(Icons.category),
       ),
+    );
+  }
+
+  Widget _buildDropdownAuswahl<T extends Enum>({
+    required String label,
+    required List<T> optionen,
+    required String Function(T) labelFor,
+    required String Function(T) codeFor,
+    required String Function(T) descFor,
+    required String Function(T) anzeigeVon,
+  }) {
+    T? selected;
+    for (final b in optionen) {
+      if (_icfBereich.text.startsWith(codeFor(b))) {
+        selected = b;
+        break;
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<T>(
+          initialValue: selected,
+          decoration: InputDecoration(
+            labelText: '$label (optional)',
+            hintText: 'Auswaehlen...',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.category),
+          ),
+          items: optionen
+              .map((b) => DropdownMenuItem(value: b, child: Text(labelFor(b))))
+              .toList(),
+          onChanged: (b) {
+            setState(() {
+              _icfBereich.text = b != null ? anzeigeVon(b) : '';
+            });
+          },
+        ),
+        if (selected != null) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Text(
+              descFor(selected),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

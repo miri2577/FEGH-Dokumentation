@@ -63,7 +63,12 @@ class BundeslandProfil {
   final String rahmenvertragName;
   final bool informationsberichtBerlin101; // Formular 101 (BE-spezifisch)
   final bool tibBereicheVerfuegbar; // TIB-Bereich-Auswahl beim Klient
-  final bool beiNrwVerfuegbar; // BEI_NRW-Domaenen beim Klient
+  final bool beiNrwVerfuegbar; // BEI_NRW-Domaenen beim Klient (NRW)
+  final bool beiBwVerfuegbar; // BEI_BW-Domaenen (Baden-Wuerttemberg)
+  final bool itpVerfuegbar; // ITP-Familie (HE, BB, MV, SN, ST, TH)
+  final bool hmbvVerfuegbar; // HMBV (Hamburg, Bremen)
+  final bool bEniVerfuegbar; // B.E.Ni (Niedersachsen)
+  final bool generischIcfVerfuegbar; // Generische 9 ICF-Bereiche (restliche Laender)
   final bool implementiert; // false = experimentell, nicht produktionsreif
   final List<String> besonderheiten;
 
@@ -76,6 +81,11 @@ class BundeslandProfil {
     this.informationsberichtBerlin101 = false,
     this.tibBereicheVerfuegbar = false,
     this.beiNrwVerfuegbar = false,
+    this.beiBwVerfuegbar = false,
+    this.itpVerfuegbar = false,
+    this.hmbvVerfuegbar = false,
+    this.bEniVerfuegbar = false,
+    this.generischIcfVerfuegbar = false,
     this.implementiert = false,
     this.besonderheiten = const [],
   });
@@ -118,21 +128,27 @@ class BundeslandProfile {
       bundesland: Bundesland.bayern,
       anzeigeName: 'Bayern',
       bedarfsinstrument: Bedarfsinstrument.bayerischGesamtplan,
-      instrumentName: 'Bayerischer Gesamtplan',
-      rahmenvertragName: 'LRV Bayern 2019 (bezirks-gepraegt)',
+      instrumentName: 'Bayerischer Gesamtplan (ANLEI seit 03/2026)',
+      rahmenvertragName: 'LRV Bayern 2019, bezirksgepraegt, ANLEI-Migration 2026',
+      generischIcfVerfuegbar: true,
+      implementiert: true,
       besonderheiten: [
         '7 Bezirke als Traeger',
-        'LWV-Einfluss stark',
+        'ANLEI-Fachverfahren seit 03/2026',
+        'Erfassung ueber ANLEI-Traegerportal',
       ],
     ),
     Bundesland.badenWuerttemberg: BundeslandProfil(
       bundesland: Bundesland.badenWuerttemberg,
       anzeigeName: 'Baden-Wuerttemberg',
       bedarfsinstrument: Bedarfsinstrument.beiBw,
-      instrumentName: 'BEI_BW',
+      instrumentName: 'BEI_BW (Bedarfsermittlungsinstrument BW)',
       rahmenvertragName: 'LRV BW (Neuverhandlung 2025-2026)',
+      beiBwVerfuegbar: true,
+      implementiert: true,
       besonderheiten: [
-        'ICF-basiert',
+        'ICF-basiert mit 9 Lebensbereichen',
+        'KVJS als zentrale Stelle',
         'Wirksamkeit zentrales Thema der Neuverhandlung',
       ],
     ),
@@ -141,9 +157,12 @@ class BundeslandProfile {
       anzeigeName: 'Hessen',
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP Hessen (Integrierter Teilhabeplan)',
-      rahmenvertragName: 'LWV Hessen - Kompetenzzentrum Teilhabeberatung',
+      rahmenvertragName: 'LWV Hessen, neue PiT-Version ab 02/2026',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: [
         'ITP-Familie (bundesweit einflussreich)',
+        'PerSEH als Traegerportal',
       ],
     ),
     Bundesland.brandenburg: BundeslandProfil(
@@ -152,6 +171,8 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP Brandenburg',
       rahmenvertragName: 'LRV Brandenburg (Neuverhandlung 2026)',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: ['ITP-Familie, enge Anlehnung an MV/Sachsen'],
     ),
     Bundesland.mecklenburgVorpommern: BundeslandProfil(
@@ -160,6 +181,8 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP MV',
       rahmenvertragName: 'LRV MV 2021',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: ['ITP-Familie'],
     ),
     Bundesland.sachsen: BundeslandProfil(
@@ -168,6 +191,8 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP Sachsen',
       rahmenvertragName: 'LRV Sachsen 2019, Fortschreibung 2026',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: ['KSV Sachsen als zentraler Traeger', 'ITP-Familie'],
     ),
     Bundesland.sachsenAnhalt: BundeslandProfil(
@@ -176,6 +201,8 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP Sachsen-Anhalt',
       rahmenvertragName: 'LRV Sachsen-Anhalt mit Wirksamkeitsanhang',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: ['ITP-Familie'],
     ),
     Bundesland.thueringen: BundeslandProfil(
@@ -184,6 +211,8 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.itp,
       instrumentName: 'ITP Thueringen',
       rahmenvertragName: 'LRV Thueringen 2021',
+      itpVerfuegbar: true,
+      implementiert: true,
       besonderheiten: ['ITP-Familie'],
     ),
     Bundesland.hamburg: BundeslandProfil(
@@ -192,15 +221,22 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.hmbv,
       instrumentName: 'HMBV (Hamburger Manual)',
       rahmenvertragName: 'LRV Hamburg 2020/21',
-      besonderheiten: ['HMBV ist Hamburger Eigenentwicklung'],
+      hmbvVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: [
+        'HMBV ist Hamburger Eigenentwicklung',
+        '5 Kernbereiche mit Unterstuetzungsintensitaet 0-4',
+      ],
     ),
     Bundesland.bremen: BundeslandProfil(
       bundesland: Bundesland.bremen,
       anzeigeName: 'Bremen',
       bedarfsinstrument: Bedarfsinstrument.hmbv,
-      instrumentName: 'HMBV (landesadaptiert)',
+      instrumentName: 'HMBV (Bremen, landesadaptiert)',
       rahmenvertragName: 'Bremer Rahmenvertrag 2022',
-      besonderheiten: ['Kleinstmarkt'],
+      hmbvVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: ['Kleinstmarkt', 'HMBV-Struktur uebernommen'],
     ),
     Bundesland.niedersachsen: BundeslandProfil(
       bundesland: Bundesland.niedersachsen,
@@ -208,7 +244,13 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.bEni,
       instrumentName: 'B.E.Ni (Bedarfsermittlung Niedersachsen)',
       rahmenvertragName: 'LRV Niedersachsen 2024/25 mit Wirksamkeitsklausel',
-      besonderheiten: ['GAS-Orientierung in Diskussion'],
+      bEniVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: [
+        'GAS-Orientierung in Diskussion',
+        '9 ICF-orientierte Lebensbereiche',
+        'LS-EH-Portal Dataport',
+      ],
     ),
     Bundesland.rheinlandPfalz: BundeslandProfil(
       bundesland: Bundesland.rheinlandPfalz,
@@ -216,7 +258,9 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.teilhabeRlp,
       instrumentName: 'Teilhabeinstrument RLP',
       rahmenvertragName: 'LRV RLP 2022',
-      besonderheiten: ['PerSEH-Naehe'],
+      generischIcfVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: ['PerSEH-Naehe', 'LSJV eFalldaten-Portal im Aufbau'],
     ),
     Bundesland.saarland: BundeslandProfil(
       bundesland: Bundesland.saarland,
@@ -224,7 +268,9 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.sbi,
       instrumentName: 'SBI (Saarlaendisches Bedarfsermittlungsinstrument)',
       rahmenvertragName: 'LRV Saarland 2020',
-      besonderheiten: ['Sehr kleiner Markt'],
+      generischIcfVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: ['Sehr kleiner Markt', 'SBI nutzt ICF-Lebensbereiche'],
     ),
     Bundesland.schleswigHolstein: BundeslandProfil(
       bundesland: Bundesland.schleswigHolstein,
@@ -232,7 +278,13 @@ class BundeslandProfile {
       bedarfsinstrument: Bedarfsinstrument.beiSh,
       instrumentName: 'PerSEH-SH / BEI-SH',
       rahmenvertragName: 'LRV SH 2023 mit expliziter §128-Regelung',
-      besonderheiten: ['PerSEH-nahe Auspraegung'],
+      generischIcfVerfuegbar: true,
+      implementiert: true,
+      besonderheiten: [
+        'PerSEH-nahe Auspraegung',
+        'ITP.SH als Plantool',
+        'Dataport-Sozialportal',
+      ],
     ),
   };
 
