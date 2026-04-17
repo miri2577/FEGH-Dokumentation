@@ -14,7 +14,7 @@ import '../models/arbeitszeit.dart';
 import '../models/appointment.dart';
 import '../models/client.dart';
 import '../providers/app_provider.dart';
-import 'pdf_generator_service.dart';
+import 'pdf_report_service.dart';
 import 'package:intl/intl.dart';
 
 class ExportService {
@@ -260,13 +260,15 @@ class ExportService {
     DateTime? endDate,
     String? exportType,
   ) async {
-    // Verwende die neue erweiterte PDF-Generierung
+    // Neuer Hybrid-Report-Service (einheitliches Design-System)
     if (exportType == 'arbeitszeiten' && arbeitszeiten != null && startDate != null && endDate != null) {
-      return await PdfGeneratorService.generateArbeitszeitenPDF(content, arbeitszeiten, startDate, endDate);
+      return await PdfReportService.generateArbeitszeitenReport(
+        arbeitszeiten: arbeitszeiten, startDate: startDate, endDate: endDate);
     } else if (exportType == 'fachleistungsstunden' && appointments != null && startDate != null && endDate != null) {
-      return await PdfGeneratorService.generateFachleistungsstundenPDF(content, appointments, startDate, endDate);
+      return await PdfReportService.generateFachleistungsstundenReport(
+        appointments: appointments, startDate: startDate, endDate: endDate);
     } else if (exportType == 'klienten' && clients != null) {
-      return await PdfGeneratorService.generateKlientenPDF(content, clients);
+      return await PdfReportService.generateKlientenReport(clients: clients);
     } else {
       // Fallback für einfache PDF-Generierung
       final pdf = pw.Document();

@@ -144,6 +144,8 @@ flutter:
     - assets/informationsbericht_101.pdf
     - assets/formulare/nrw/
     - assets/formulare/hessen/
+    - assets/fonts/Roboto-Regular.ttf
+    - assets/fonts/Roboto-Bold.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
