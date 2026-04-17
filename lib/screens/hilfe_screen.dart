@@ -44,6 +44,8 @@ class HilfeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildTerminSection(context),
               const SizedBox(height: 24),
+              _buildWirkungsmessungSection(context),
+              const SizedBox(height: 24),
               _buildTimeTrackingSection(context),
               const SizedBox(height: 24),
               _buildChatSection(context),
@@ -141,7 +143,7 @@ class HilfeScreen extends StatelessWidget {
   Widget _buildClientSection(BuildContext context) {
     return _buildSection(context, 'Klienten-Verwaltung', [
       _buildFeatureItem(context, Icons.person_add, 'Klient anlegen',
-        'Stammdaten, Kostenuebernahme, Fachleistungsstunden, TIB-Ziele, ICF-Bereiche'),
+        'Stammdaten, Kostenuebernahme, Fachleistungsstunden, ICF-Bereiche. Teilhabeziele werden nach dem Speichern separat verwaltet'),
       _buildFeatureItem(context, Icons.calculate, 'FLS-Kalkulation',
         'Automatische Berechnung: Bewilligte vs. verbrauchte Stunden, Kalkulationsfaktor (1,33), Stundensatz (40 EUR)'),
       _buildFeatureItem(context, Icons.color_lens, 'Farbkodierung',
@@ -156,12 +158,35 @@ class HilfeScreen extends StatelessWidget {
     return _buildSection(context, 'Termine & Dokumentation', [
       _buildFeatureItem(context, Icons.event, 'Terminarten',
         '8 Typen: Kliententermin, Buero, Dokumentation, Supervision, Teamsitzung, Fortbildung, Fahrtzeit, Sonstige'),
-      _buildFeatureItem(context, Icons.track_changes, 'TIB-Zielverknuepfung',
-        'Termine mit Teilhabezielen verknuepfen und Zeitverteilung pro Ziel dokumentieren'),
+      _buildFeatureItem(context, Icons.track_changes, 'Teilhabeziel-Verknuepfung',
+        'Termine mit aktiven Teilhabezielen des Klienten verknuepfen und Zeitverteilung pro Ziel dokumentieren'),
       _buildFeatureItem(context, Icons.directions_car, 'Fahrwege',
         'Hin- und Rueckfahrt mit Start/Ziel und Kilometern. Distanz-Cache und optionale Online-Berechnung'),
       _buildFeatureItem(context, Icons.picture_as_pdf, 'Informationsbericht',
         'Berliner Formular 101 (137 Felder) mit 3 PDF-Export-Varianten. Entwuerfe speicherbar'),
+    ]);
+  }
+
+  Widget _buildWirkungsmessungSection(BuildContext context) {
+    return _buildSection(context, 'Wirkungsmessung (§128 SGB IX)', [
+      _buildFeatureItem(context, Icons.flag, 'Teilhabeziele (SMART)',
+        'Ziele nach SMART-Kriterien anlegen: Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert. Mit ICF-Verknuepfung, Kategorie (Leit-/Teil-/Handlungsziel) und Prioritaet'),
+      _buildFeatureItem(context, Icons.sentiment_satisfied, 'GAS-Messungen',
+        'Goal Attainment Scaling: 5-Punkte-Skala von -2 (deutlich schlechter) bis +2 (deutlich besser). Baseline, Zwischenmessungen, Endmessung'),
+      _buildFeatureItem(context, Icons.assessment, 'POS-Fragebogen',
+        'Personal Outcomes Scale: 8 Lebensqualitaets-Domaenen (Selbstbestimmung, Teilhabe, Beziehungen, Rechte, Wohlbefinden...), 48 Items, max 144 Punkte'),
+      _buildFeatureItem(context, Icons.insights, 'Wirkungs-Dashboard',
+        'KPIs, GAS-Verlaufsdiagramm pro Ziel, POS-Netzdiagramm mit Baseline-vs-Aktuell-Vergleich'),
+      _buildFeatureItem(context, Icons.picture_as_pdf, 'Wirksamkeitsbericht-PDF',
+        'Automatischer Bericht mit allen Zielen, Messungen und POS-Entwicklung. Geeignet als Anlage fuer Kostentraeger und Hilfeplan-Konferenzen'),
+      _buildFeatureItem(context, Icons.cloud_sync, 'Cloud-Sync (verschluesselt)',
+        'Upload/Download aller Wirkungsdaten als verschluesselte Blobs. Funktioniert mit HiDrive, Nextcloud und anderen Providern'),
+      _buildInfoBox(context, Icons.upgrade, Colors.amber,
+        'Migration: Alte TIB-Ziele aus dem Klienten-Profil werden beim Oeffnen von "Teilhabeziele" zur Uebernahme angeboten. '
+        'Einmal uebernommen, werden sie strukturiert nach SMART-Kriterien weitergepflegt.'),
+      _buildInfoBox(context, Icons.gavel, Colors.blue,
+        '§128 SGB IX (BTHG): Die Wirksamkeit der Eingliederungshilfe muss belegt werden. '
+        'In Berlin ab 01.01.2027 durch den neuen Rahmenvertrag verbindlich geregelt.'),
     ]);
   }
 
