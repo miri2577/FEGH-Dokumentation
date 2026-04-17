@@ -58,6 +58,10 @@ Client _$ClientFromJson(Map<String, dynamic> json) => Client(
   einwilligungUnterschriftVon: json['einwilligungUnterschriftVon'] as String?,
   einwilligungWiderruflichBis: json['einwilligungWiderruflichBis'] as String?,
   einwilligungBemerkung: json['einwilligungBemerkung'] as String?,
+  bundeslandOverride: $enumDecodeNullable(
+    _$BundeslandEnumMap,
+    json['bundeslandOverride'],
+  ),
 );
 
 Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
@@ -93,6 +97,7 @@ Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
   'einwilligungUnterschriftVon': instance.einwilligungUnterschriftVon,
   'einwilligungWiderruflichBis': instance.einwilligungWiderruflichBis,
   'einwilligungBemerkung': instance.einwilligungBemerkung,
+  'bundeslandOverride': _$BundeslandEnumMap[instance.bundeslandOverride],
 };
 
 const _$FachleistungsIntervallEnumMap = {
@@ -104,4 +109,23 @@ const _$FachleistungsIntervallEnumMap = {
 const _$HilfeTypEnumMap = {
   HilfeTyp.familienhilfe: 'familienhilfe',
   HilfeTyp.eingliederungshilfe: 'eingliederungshilfe',
+};
+
+const _$BundeslandEnumMap = {
+  Bundesland.badenWuerttemberg: 'baden-wuerttemberg',
+  Bundesland.bayern: 'bayern',
+  Bundesland.berlin: 'berlin',
+  Bundesland.brandenburg: 'brandenburg',
+  Bundesland.bremen: 'bremen',
+  Bundesland.hamburg: 'hamburg',
+  Bundesland.hessen: 'hessen',
+  Bundesland.mecklenburgVorpommern: 'mecklenburg-vorpommern',
+  Bundesland.niedersachsen: 'niedersachsen',
+  Bundesland.nordrheinWestfalen: 'nordrhein-westfalen',
+  Bundesland.rheinlandPfalz: 'rheinland-pfalz',
+  Bundesland.saarland: 'saarland',
+  Bundesland.sachsen: 'sachsen',
+  Bundesland.sachsenAnhalt: 'sachsen-anhalt',
+  Bundesland.schleswigHolstein: 'schleswig-holstein',
+  Bundesland.thueringen: 'thueringen',
 };

@@ -45,6 +45,9 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   bueroStandortId: json['bueroStandortId'] as String?,
   openRouteServiceApiKey: json['openRouteServiceApiKey'] as String? ?? '',
   totpSecret: json['totpSecret'] as String? ?? '',
+  bundesland:
+      $enumDecodeNullable(_$BundeslandEnumMap, json['bundesland']) ??
+      Bundesland.berlin,
   uiCustomization: json['uiCustomization'] == null
       ? const UICustomization()
       : _uiCustomizationFromJson(
@@ -82,6 +85,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'bueroStandortId': instance.bueroStandortId,
       'openRouteServiceApiKey': instance.openRouteServiceApiKey,
       'totpSecret': instance.totpSecret,
+      'bundesland': _$BundeslandEnumMap[instance.bundesland]!,
       'uiCustomization': _uiCustomizationToJson(instance.uiCustomization),
     };
 
@@ -91,4 +95,23 @@ const _$UserRoleEnumMap = {
   UserRole.teamLead: 'team_lead',
   UserRole.teamMember: 'team_member',
   UserRole.orgAuditor: 'org_auditor',
+};
+
+const _$BundeslandEnumMap = {
+  Bundesland.badenWuerttemberg: 'baden-wuerttemberg',
+  Bundesland.bayern: 'bayern',
+  Bundesland.berlin: 'berlin',
+  Bundesland.brandenburg: 'brandenburg',
+  Bundesland.bremen: 'bremen',
+  Bundesland.hamburg: 'hamburg',
+  Bundesland.hessen: 'hessen',
+  Bundesland.mecklenburgVorpommern: 'mecklenburg-vorpommern',
+  Bundesland.niedersachsen: 'niedersachsen',
+  Bundesland.nordrheinWestfalen: 'nordrhein-westfalen',
+  Bundesland.rheinlandPfalz: 'rheinland-pfalz',
+  Bundesland.saarland: 'saarland',
+  Bundesland.sachsen: 'sachsen',
+  Bundesland.sachsenAnhalt: 'sachsen-anhalt',
+  Bundesland.schleswigHolstein: 'schleswig-holstein',
+  Bundesland.thueringen: 'thueringen',
 };

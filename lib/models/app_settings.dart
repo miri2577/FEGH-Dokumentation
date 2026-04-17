@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'bundesland.dart';
 import 'ui_customization.dart';
 
 part 'app_settings.g.dart';
@@ -46,6 +47,7 @@ class AppSettings {
   final String? bueroStandortId; // Standard-Startort des Mitarbeiters
   final String openRouteServiceApiKey; // API-Key fuer Online-Distanzberechnung
   final String totpSecret; // TOTP-Secret (Base32) fuer 2FA, leer = kein TOTP
+  final Bundesland bundesland; // Bundesland der Organisation (Default: Berlin)
   @JsonKey(fromJson: _uiCustomizationFromJson, toJson: _uiCustomizationToJson)
   final UICustomization uiCustomization;
 
@@ -78,6 +80,7 @@ class AppSettings {
     this.bueroStandortId,
     this.openRouteServiceApiKey = '',
     this.totpSecret = '',
+    this.bundesland = Bundesland.berlin,
     this.uiCustomization = const UICustomization(),
   });
 
@@ -135,6 +138,7 @@ class AppSettings {
         bueroStandortId = null,
         openRouteServiceApiKey = '',
         totpSecret = '',
+        bundesland = Bundesland.berlin,
         uiCustomization = const UICustomization();
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -176,6 +180,7 @@ class AppSettings {
     String? bueroStandortId,
     String? openRouteServiceApiKey,
     String? totpSecret,
+    Bundesland? bundesland,
     UICustomization? uiCustomization,
   }) {
     return AppSettings(
@@ -209,6 +214,7 @@ class AppSettings {
       bueroStandortId: bueroStandortId ?? this.bueroStandortId,
       openRouteServiceApiKey: openRouteServiceApiKey ?? this.openRouteServiceApiKey,
       totpSecret: totpSecret ?? this.totpSecret,
+      bundesland: bundesland ?? this.bundesland,
       uiCustomization: uiCustomization ?? this.uiCustomization,
     );
   }

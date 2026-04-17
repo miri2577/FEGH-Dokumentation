@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/app_settings.dart';
+import '../models/bundesland.dart';
 import '../models/mitarbeiter.dart';
 import '../services/admin_service.dart';
 import '../services/hidrive_webdav_client.dart';
@@ -36,6 +37,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   final _nachnameController = TextEditingController();
   String? _selectedBerufsgruppe;
   final _arbeitszeitController = TextEditingController(text: '40');
+  Bundesland _selectedBundesland = Bundesland.berlin;
   final _profilFormKey = GlobalKey<FormState>();
 
   // Seite 3: Speichermodus
@@ -130,6 +132,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     final wochenstunden = double.tryParse(_arbeitszeitController.text) ?? 40.0;
     await appProvider.updateSettings(appProvider.settings.copyWith(
       wochenarbeitszeit: wochenstunden,
+      bundesland: _selectedBundesland,
     ));
   }
 
@@ -668,9 +671,116 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
             ),
+            const SizedBox(height: 24),
+            _buildBundeslandAuswahl(theme),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBundeslandAuswahl(ThemeData theme) {
+    final profil = BundeslandProfile.forLand(_selectedBundesland);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Bundesland der Organisation',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(
+          'Legt fest, welches Bedarfserhebungsinstrument, welche Formulare und '
+          'welches Wirksamkeitsverfahren genutzt werden.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<Bundesland>(
+          initialValue: _selectedBundesland,
+          decoration: const InputDecoration(
+            labelText: 'Bundesland',
+            prefixIcon: Icon(Icons.map_outlined),
+          ),
+          items: BundeslandProfile.alle()
+              .map((p) => DropdownMenuItem(
+                    value: p.bundesland,
+                    child: Row(
+                      children: [
+                        Text(p.anzeigeName),
+                        if (!p.implementiert) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('experimentell',
+                                style: TextStyle(fontSize: 10, color: Colors.amber)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ))
+              .toList(),
+          onChanged: (v) => v != null ? setState(() => _selectedBundesland = v) : null,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: profil.implementiert
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+                : Colors.amber.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    profil.implementiert ? Icons.check_circle : Icons.warning_amber,
+                    size: 20,
+                    color: profil.implementiert ? Colors.green : Colors.amber,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      profil.instrumentName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(profil.rahmenvertragName, style: theme.textTheme.bodySmall),
+              if (profil.besonderheiten.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                ...profil.besonderheiten.map((b) => Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(b, style: theme.textTheme.bodySmall)),
+                    ],
+                  ),
+                )),
+              ],
+              if (!profil.implementiert) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Dieses Bundesland ist experimentell. Landesspezifische Formulare und '
+                  'Bedarfserhebungsinstrumente werden in einem kommenden Update ergaenzt. '
+                  'Aktuell koennen die generischen Wirkungsmessungs-Funktionen (GAS, POS) genutzt werden.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 

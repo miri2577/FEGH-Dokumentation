@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'bundesland.dart';
 
 part 'client.g.dart';
 
@@ -58,6 +59,10 @@ class Client {
   final String? einwilligungWiderruflichBis; // Datum oder leer
   final String? einwilligungBemerkung;
 
+  // Bundesland-Override (optional): fuer Grenzfaelle, wenn Klient in
+  // anderem Bundesland betreut wird als der Traeger sitzt.
+  final Bundesland? bundeslandOverride;
+
   Client({
     required this.id,
     this.klientenId,
@@ -90,6 +95,7 @@ class Client {
     this.einwilligungUnterschriftVon,
     this.einwilligungWiderruflichBis,
     this.einwilligungBemerkung,
+    this.bundeslandOverride,
   });
 
   Client.create({
@@ -122,6 +128,7 @@ class Client {
     this.einwilligungUnterschriftVon,
     this.einwilligungWiderruflichBis,
     this.einwilligungBemerkung,
+    this.bundeslandOverride,
   }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
        createdAt = DateTime.now();
 
@@ -158,6 +165,7 @@ class Client {
     String? einwilligungUnterschriftVon,
     String? einwilligungWiderruflichBis,
     String? einwilligungBemerkung,
+    Bundesland? bundeslandOverride,
   }) {
     return Client(
       id: id,
@@ -191,6 +199,7 @@ class Client {
       einwilligungUnterschriftVon: einwilligungUnterschriftVon ?? this.einwilligungUnterschriftVon,
       einwilligungWiderruflichBis: einwilligungWiderruflichBis ?? this.einwilligungWiderruflichBis,
       einwilligungBemerkung: einwilligungBemerkung ?? this.einwilligungBemerkung,
+      bundeslandOverride: bundeslandOverride ?? this.bundeslandOverride,
     );
   }
 
@@ -210,6 +219,12 @@ class Client {
       return '$vorname $nachname';
     }
     return name;
+  }
+
+  /// Gibt das effektive Bundesland fuer diesen Klienten zurueck:
+  /// [bundeslandOverride] falls gesetzt, sonst [orgBundesland] (meist aus AppSettings).
+  Bundesland effektivesBundesland(Bundesland orgBundesland) {
+    return bundeslandOverride ?? orgBundesland;
   }
 
   @override
