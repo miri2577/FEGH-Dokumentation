@@ -8,8 +8,11 @@ import '../models/familienhilfe_kategorien.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/platform_utils.dart';
 import '../models/fahrweg.dart';
+import '../models/teilhabeziel.dart';
+import '../services/wirkungsmessung_service.dart';
 import '../widgets/fahrweg_input_widget.dart';
 import 'create_client_screen.dart';
+import 'wirkungsmessung/ziel_liste_screen.dart';
 
 class CreateAppointmentScreen extends StatefulWidget {
   final Client? preSelectedClient;
@@ -44,6 +47,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   List<String> _selectedTIBBereiche = [];
   List<String> _selectedIndividuelleTIBZiele = [];
   Map<String, int> _tibZielMinuten = {};
+  final WirkungsmessungService _wmService = WirkungsmessungService();
+  List<Teilhabeziel> _teilhabeziele = [];
   FahrwegData? _fahrwegHin;
   FahrwegData? _fahrwegRueck;
 
@@ -68,6 +73,20 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     if (widget.initialEndTime != null) {
       _endTime = widget.initialEndTime!;
     }
+
+    _loadTeilhabezieleFuerClient();
+  }
+
+  Future<void> _loadTeilhabezieleFuerClient() async {
+    final c = _selectedClient;
+    if (c == null) {
+      if (mounted) setState(() => _teilhabeziele = []);
+      return;
+    }
+    final alle = await _wmService.zieleFuerClient(c.id);
+    // Nur aktive Ziele anzeigen - erreichte/abgebrochene sind nicht relevant fuer neue Termine
+    final aktiv = alle.where((z) => z.status == TeilhabezielStatus.aktiv).toList();
+    if (mounted) setState(() => _teilhabeziele = aktiv);
   }
 
   @override
@@ -273,7 +292,10 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
             onChanged: (client) {
               setState(() {
                 _selectedClient = client;
+                _selectedIndividuelleTIBZiele = [];
+                _tibZielMinuten = {};
               });
+              _loadTeilhabezieleFuerClient();
             },
             validator: (value) {
               if (value == null && !isIndirect) {
@@ -1006,70 +1028,141 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     }
   }
 
-  // Individuelle TIB-Ziele Sektion
+  // Teilhabeziele-Sektion (aus Wirkungsmessung)
   Widget _buildIndividuelleTIBZieleSection() {
-    if (_selectedClient == null ||
-        _selectedClient!.individuelleTibZiele == null ||
-        _selectedClient!.individuelleTibZiele!.isEmpty) {
-      return const SizedBox.shrink();
+    if (_selectedClient == null) return const SizedBox.shrink();
+
+    // Nachtrag: Falls altes Klient-Profil noch individuelleTibZiele hat,
+    // Banner zur Migration zeigen
+    final legacyVorhanden = (_selectedClient!.individuelleTibZiele ?? []).isNotEmpty;
+
+    if (_teilhabeziele.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Teilhabeziele', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.flag_outlined, color: Colors.amber),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    legacyVorhanden
+                        ? 'Klient hat alte TIB-Ziele im Profil. Bitte zuerst als Teilhabeziele uebernehmen.'
+                        : 'Noch keine aktiven Teilhabeziele fuer diesen Klienten angelegt.',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    final appProvider = context.read<AppProvider>();
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ZielListeScreen(
+                          client: _selectedClient!,
+                          bewertetVon: appProvider.settings.userName,
+                        ),
+                      ),
+                    );
+                    await _loadTeilhabezieleFuerClient();
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: const Text('Anlegen'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'TIB-Ziele der Teilhabeplanung',
-          style: Theme.of(context).textTheme.titleMedium,
+        Row(
+          children: [
+            Expanded(
+              child: Text('Teilhabeziele', style: Theme.of(context).textTheme.titleMedium),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                final appProvider = context.read<AppProvider>();
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ZielListeScreen(
+                      client: _selectedClient!,
+                      bewertetVon: appProvider.settings.userName,
+                    ),
+                  ),
+                );
+                await _loadTeilhabezieleFuerClient();
+              },
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Verwalten'),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Text(
-          'Wählen Sie die TIB-Ziele aus, an denen in diesem Termin gearbeitet wurde, und geben Sie die jeweilige Arbeitszeit an:',
+          'An welchen Teilhabezielen wurde in diesem Termin gearbeitet, und wie lange?',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.outline,
           ),
         ),
         const SizedBox(height: 16),
 
-        // TIB-Ziele mit Zeiterfassung
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
-            children: _selectedClient!.individuelleTibZiele!.map((ziel) {
-              final isSelected = _selectedIndividuelleTIBZiele.contains(ziel);
-              final minuten = _tibZielMinuten[ziel] ?? 0;
+            children: _teilhabeziele.map((tz) {
+              // Als Storage-Schluessel wird weiterhin der Titel genutzt
+              // (backward-compatible zu bestehenden Appointment-Datensaetzen).
+              final key = tz.titel;
+              final isSelected = _selectedIndividuelleTIBZiele.contains(key);
+              final minuten = _tibZielMinuten[key] ?? 0;
 
               return ExpansionTile(
-                key: ValueKey(ziel),
+                key: ValueKey(tz.id),
                 leading: Checkbox(
                   value: isSelected,
                   onChanged: (bool? value) {
                     setState(() {
                       if (value == true) {
-                        _selectedIndividuelleTIBZiele.add(ziel);
-                        if (!_tibZielMinuten.containsKey(ziel)) {
-                          _tibZielMinuten[ziel] = 30; // Standard: 30 Minuten
-                        }
+                        _selectedIndividuelleTIBZiele.add(key);
+                        _tibZielMinuten[key] ??= 30;
                       } else {
-                        _selectedIndividuelleTIBZiele.remove(ziel);
-                        _tibZielMinuten.remove(ziel);
+                        _selectedIndividuelleTIBZiele.remove(key);
+                        _tibZielMinuten.remove(key);
                       }
                     });
                   },
                 ),
                 title: Text(
-                  ziel,
+                  tz.titel,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected ? Theme.of(context).primaryColor : null,
                   ),
                 ),
-                subtitle: isSelected
-                  ? Text('Arbeitszeit: ${minuten} Minuten',
-                      style: TextStyle(color: Theme.of(context).primaryColor))
-                  : null,
+                subtitle: Text(
+                  isSelected
+                      ? 'Arbeitszeit: $minuten Minuten${tz.icfBereich != null ? " • ICF: ${tz.icfBereich}" : ""}'
+                      : '${tz.kategorieDisplayName} • Prio ${tz.prioritaet}/5${tz.icfBereich != null ? " • ${tz.icfBereich}" : ""}',
+                  style: TextStyle(color: isSelected ? Theme.of(context).primaryColor : null),
+                ),
                 initiallyExpanded: isSelected,
                 children: [
                   if (isSelected)
@@ -1085,10 +1178,10 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                               min: 5,
                               max: 180,
                               divisions: 35,
-                              label: '${minuten} Min',
+                              label: '$minuten Min',
                               onChanged: (double value) {
                                 setState(() {
-                                  _tibZielMinuten[ziel] = value.round();
+                                  _tibZielMinuten[key] = value.round();
                                 });
                               },
                             ),
@@ -1107,7 +1200,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                                 final parsedValue = int.tryParse(value);
                                 if (parsedValue != null && parsedValue > 0 && parsedValue <= 480) {
                                   setState(() {
-                                    _tibZielMinuten[ziel] = parsedValue;
+                                    _tibZielMinuten[key] = parsedValue;
                                   });
                                 }
                               },

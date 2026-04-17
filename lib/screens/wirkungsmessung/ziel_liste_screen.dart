@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/client.dart';
 import '../../models/teilhabeziel.dart';
 import '../../models/zielmessung.dart';
+import '../../providers/app_provider.dart';
 import '../../services/wirkungsmessung_service.dart';
 import '../../widgets/wirkungsmessung/gas_rating_widget.dart';
 import '../../widgets/wirkungsmessung/zielmessung_dialog.dart';
@@ -92,6 +94,51 @@ class _ZielListeScreenState extends State<ZielListeScreen> {
     }
   }
 
+  Future<void> _migriereLegacyZiele() async {
+    final legacy = widget.client.individuelleTibZiele ?? const [];
+    if (legacy.isEmpty) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Alte Ziele uebernehmen?'),
+        content: Text(
+          '${legacy.length} individuelle TIB-Ziele aus dem Klienten-Profil '
+          'werden als neue Teilhabeziele angelegt. Sie koennen sie anschliessend '
+          'mit SMART-Kriterien und GAS-Messungen anreichern.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Uebernehmen')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    for (final ziel in legacy) {
+      await _service.addZiel(Teilhabeziel.create(
+        clientId: widget.client.id,
+        titel: ziel,
+        beschreibung: 'Uebernommen aus Klienten-Profil (TIB-Ziel)',
+        kategorie: TeilhabezielKategorie.teilziel,
+      ));
+    }
+
+    if (!mounted) return;
+    // Klient aktualisieren: individuelleTibZiele leeren
+    final provider = context.read<AppProvider>();
+    final updated = widget.client.copyWith(individuelleTibZiele: const []);
+    await provider.updateClient(updated);
+
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${legacy.length} Ziele uebernommen'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   Future<void> _loeschen(Teilhabeziel ziel) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -153,20 +200,83 @@ class _ZielListeScreenState extends State<ZielListeScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _ziele.isEmpty
-              ? _buildEmpty(theme)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _ziele.length,
-                    itemBuilder: (_, i) => _buildZielCard(_ziele[i]),
-                  ),
+          : Column(
+              children: [
+                _buildLegacyBanner(theme),
+                Expanded(
+                  child: _ziele.isEmpty
+                      ? _buildEmpty(theme)
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: _ziele.length,
+                            itemBuilder: (_, i) => _buildZielCard(_ziele[i]),
+                          ),
+                        ),
                 ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _neuesZiel,
         icon: const Icon(Icons.add),
         label: const Text('Neues Ziel'),
+      ),
+    );
+  }
+
+  Widget _buildLegacyBanner(ThemeData theme) {
+    final legacy = widget.client.individuelleTibZiele ?? const [];
+    if (legacy.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.15),
+        border: Border.all(color: Colors.amber),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, color: Colors.amber, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${legacy.length} alte TIB-Ziele im Klient-Profil gefunden',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Diese Freitext-Ziele wurden noch nicht als strukturierte '
+                  'Teilhabeziele erfasst. Bitte uebernehmen fuer Wirkungsmessung.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: legacy.map((t) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(t, style: const TextStyle(fontSize: 11)),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Colors.amber.shade800),
+            onPressed: _migriereLegacyZiele,
+            icon: const Icon(Icons.upgrade, size: 16),
+            label: const Text('Uebernehmen'),
+          ),
+        ],
       ),
     );
   }

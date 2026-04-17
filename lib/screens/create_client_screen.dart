@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/client.dart';
 import '../models/mitarbeiter.dart';
-import '../models/tib_ziel.dart';
 import '../models/kostentraeger.dart';
 import '../models/icf_bereiche.dart';
 import '../utils/responsive_utils.dart';
+import 'wirkungsmessung/ziel_liste_screen.dart';
 
 class CreateClientScreen extends StatefulWidget {
   final Client? client;
@@ -699,108 +699,118 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   }
 
   Widget _buildTibZieleCard() {
+    final isEditingExisting = widget.client != null;
+    final legacyVorhanden = _individuelleTibZieleControllers.isNotEmpty;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Individuelle TIB-Ziele der Teilhabeplanung',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: _addIndividuelleTibZiel,
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Neues TIB-Ziel hinzufügen',
-                ),
-              ],
+            Text(
+              'Teilhabeziele',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tragen Sie hier die individuellen TIB-Ziele für diesen Klienten ein. Diese können später in der Dokumentation ausgewählt und mit Betreuungszeiten versehen werden.',
+              'Teilhabeziele werden strukturiert nach SMART-Kriterien erfasst und mit GAS-Messungen (Goal Attainment Scaling) dokumentiert.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
-            if (_individuelleTibZieleControllers.isEmpty)
+
+            if (!isEditingExisting)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    const Icon(Icons.info_outline),
                     const SizedBox(width: 8),
-                    Expanded(
+                    const Expanded(
                       child: Text(
-                        'Noch keine individuellen TIB-Ziele angelegt. Klicken Sie auf das Plus-Symbol, um ein Ziel hinzuzufügen.',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        'Klient zuerst speichern. Danach koennen Teilhabeziele '
+                        'ueber die Aktion "Teilhabeziele & Wirkung" im Klienten-Menue '
+                        'angelegt werden.',
+                        style: TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
                 ),
               )
             else
+              OutlinedButton.icon(
+                onPressed: () async {
+                  if (widget.client == null) return;
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ZielListeScreen(
+                        client: widget.client!,
+                        bewertetVon: context.read<AppProvider>().settings.userName,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.track_changes),
+                label: const Text('Teilhabeziele verwalten'),
+              ),
+
+            if (legacyVorhanden) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              Text(
+                'Alte TIB-Ziele (Freitext) - bitte uebernehmen',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Diese Freitext-Ziele stammen aus der alten Struktur. Sie werden '
+                'beim naechsten Oeffnen von "Teilhabeziele" zur Uebernahme angeboten.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
               ..._individuelleTibZieleControllers.asMap().entries.map((entry) {
                 final index = entry.key;
                 final controller = entry.value;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           controller: controller,
                           decoration: InputDecoration(
-                            labelText: 'TIB-Ziel ${index + 1}',
+                            labelText: 'Altes TIB-Ziel ${index + 1}',
                             border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.flag),
-                            hintText: 'z.B. Verbesserung der Kommunikationsfähigkeiten',
+                            prefixIcon: const Icon(Icons.history),
                           ),
                           maxLines: 2,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Bitte geben Sie ein TIB-Ziel ein';
-                            }
-                            return null;
-                          },
                         ),
                       ),
-                      const SizedBox(width: 8),
                       IconButton(
                         onPressed: () => _removeIndividuelleTibZiel(index),
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'TIB-Ziel entfernen',
                       ),
                     ],
                   ),
                 );
-              }).toList(),
+              }),
+            ],
           ],
         ),
       ),
     );
-  }
-
-  void _addIndividuelleTibZiel() {
-    setState(() {
-      _individuelleTibZieleControllers.add(TextEditingController());
-    });
   }
 
   void _removeIndividuelleTibZiel(int index) {
