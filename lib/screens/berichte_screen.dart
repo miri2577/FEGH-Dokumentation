@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../services/file_storage_service.dart';
 import '../utils/responsive_utils.dart';
 import 'informationsbericht_screen.dart';
+import 'rechnungen/amtliche_formulare_screen.dart';
 import 'rechnungen/rechnungen_screen.dart';
 
 class BerichteScreen extends StatefulWidget {
@@ -61,6 +62,8 @@ class _BerichteScreenState extends State<BerichteScreen> {
               _buildInformationsberichtSektion(context),
               const SizedBox(height: 16),
               _buildRechnungenKarte(context),
+              const SizedBox(height: 16),
+              _buildFormulareKarte(context),
               const SizedBox(height: 32),
 
               // Entwuerfe-Liste
@@ -152,6 +155,52 @@ class _BerichteScreenState extends State<BerichteScreen> {
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildFormulareKarte(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AmtlicheFormulareScreen()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.folder_special, color: Colors.orange, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Amtliche Formulare (alle Bundeslaender)',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Uebersicht der Bedarfserhebungsinstrumente und Portale: '
+                      'BEI_NRW, PiT Hessen, HMBV Hamburg, B.E.Ni Niedersachsen u.a. '
+                      'Blanko-PDFs, Links zu Traegerportalen.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildRechnungenKarte(BuildContext context) {
