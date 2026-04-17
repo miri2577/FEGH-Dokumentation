@@ -1,0 +1,358 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:intl/intl.dart';
+import '../models/rechnung.dart';
+import '../models/rechnung_empfaenger.dart';
+import '../models/mitarbeiter.dart';
+
+/// Erzeugt XRechnung-konformes UBL 2.1 XML.
+///
+/// Spezifikation: XRechnung 3.0 (KoSIT), basierend auf EN 16931 / UBL 2.1.
+/// CustomizationID: urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_3.0
+/// ProfileID: urn:fdc:peppol.eu:2017:poacc:billing:01:1.0
+class XRechnungService {
+  static const String _customizationId =
+      'urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_3.0';
+  static const String _profileId =
+      'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
+  static const String _invoiceTypeCode = '380'; // Handelsrechnung
+
+  /// Rechnungssteller-Daten (unsere Organisation).
+  /// Muss aus den Einstellungen / Mitarbeiter-Profil kommen.
+  final RechnungsstellerDaten rechnungssteller;
+
+  XRechnungService({required this.rechnungssteller});
+
+  /// Erzeugt XRechnung-XML als String.
+  String buildXml({
+    required Rechnung rechnung,
+    required RechnungEmpfaenger empfaenger,
+  }) {
+    final b = StringBuffer();
+    final df = DateFormat('yyyy-MM-dd');
+
+    b.writeln('<?xml version="1.0" encoding="UTF-8"?>');
+    b.writeln(
+        '<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" '
+        'xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" '
+        'xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">');
+
+    // Header
+    b.writeln('  <cbc:CustomizationID>$_customizationId</cbc:CustomizationID>');
+    b.writeln('  <cbc:ProfileID>$_profileId</cbc:ProfileID>');
+    b.writeln('  <cbc:ID>${_esc(rechnung.rechnungsnummer)}</cbc:ID>');
+    b.writeln('  <cbc:IssueDate>${df.format(rechnung.rechnungsdatum)}</cbc:IssueDate>');
+    b.writeln('  <cbc:DueDate>${df.format(rechnung.faelligkeit)}</cbc:DueDate>');
+    b.writeln('  <cbc:InvoiceTypeCode>$_invoiceTypeCode</cbc:InvoiceTypeCode>');
+    if (rechnung.bemerkung != null && rechnung.bemerkung!.isNotEmpty) {
+      b.writeln('  <cbc:Note>${_esc(rechnung.bemerkung!)}</cbc:Note>');
+    }
+    b.writeln('  <cbc:DocumentCurrencyCode>${rechnung.waehrung}</cbc:DocumentCurrencyCode>');
+
+    // BT-10 Leitweg-ID (Buyer Reference) - PFLICHT fuer XRechnung
+    b.writeln('  <cbc:BuyerReference>${_esc(empfaenger.leitwegId)}</cbc:BuyerReference>');
+
+    // BT-13 Purchase Order Reference
+    if (rechnung.bestellnummer != null && rechnung.bestellnummer!.isNotEmpty) {
+      b.writeln('  <cac:OrderReference>');
+      b.writeln('    <cbc:ID>${_esc(rechnung.bestellnummer!)}</cbc:ID>');
+      b.writeln('  </cac:OrderReference>');
+    }
+
+    // BT-12 Contract Reference
+    if (rechnung.vertragsnummer != null && rechnung.vertragsnummer!.isNotEmpty) {
+      b.writeln('  <cac:ContractDocumentReference>');
+      b.writeln('    <cbc:ID>${_esc(rechnung.vertragsnummer!)}</cbc:ID>');
+      b.writeln('  </cac:ContractDocumentReference>');
+    }
+
+    // BT-11 Project Reference
+    if (rechnung.projektnummer != null && rechnung.projektnummer!.isNotEmpty) {
+      b.writeln('  <cac:ProjectReference>');
+      b.writeln('    <cbc:ID>${_esc(rechnung.projektnummer!)}</cbc:ID>');
+      b.writeln('  </cac:ProjectReference>');
+    }
+
+    // BG-4 Seller (Rechnungssteller)
+    _writeSeller(b);
+
+    // BG-7 Buyer (Rechnungsempfaenger)
+    _writeBuyer(b, empfaenger);
+
+    // BT-73/74 Invoice Period (aus den Positionen ermittelt)
+    if (rechnung.leistungsVon != null && rechnung.leistungsBis != null) {
+      b.writeln('  <cac:InvoicePeriod>');
+      b.writeln('    <cbc:StartDate>${df.format(rechnung.leistungsVon!)}</cbc:StartDate>');
+      b.writeln('    <cbc:EndDate>${df.format(rechnung.leistungsBis!)}</cbc:EndDate>');
+      b.writeln('  </cac:InvoicePeriod>');
+    }
+
+    // Payment Means
+    _writePayment(b, rechnung);
+
+    // Tax Total
+    _writeTaxTotal(b, rechnung);
+
+    // Legal Monetary Total
+    _writeMonetaryTotal(b, rechnung);
+
+    // Invoice Lines
+    for (int i = 0; i < rechnung.positionen.length; i++) {
+      _writeInvoiceLine(b, rechnung.positionen[i], i + 1, rechnung.waehrung);
+    }
+
+    b.writeln('</Invoice>');
+    return b.toString();
+  }
+
+  /// Erzeugt die XRechnung-XML als UTF-8-Bytes.
+  Uint8List buildBytes({
+    required Rechnung rechnung,
+    required RechnungEmpfaenger empfaenger,
+  }) {
+    final xml = buildXml(rechnung: rechnung, empfaenger: empfaenger);
+    return Uint8List.fromList(utf8.encode(xml));
+  }
+
+  // ── Seller / Buyer ─────────────────────────────────────────────────
+
+  void _writeSeller(StringBuffer b) {
+    final s = rechnungssteller;
+    b.writeln('  <cac:AccountingSupplierParty>');
+    b.writeln('    <cac:Party>');
+    if (s.elektronischeAdresse != null && s.elektronischeAdresse!.isNotEmpty) {
+      b.writeln('      <cbc:EndpointID schemeID="EM">${_esc(s.elektronischeAdresse!)}</cbc:EndpointID>');
+    }
+    b.writeln('      <cac:PartyName><cbc:Name>${_esc(s.name)}</cbc:Name></cac:PartyName>');
+    b.writeln('      <cac:PostalAddress>');
+    b.writeln('        <cbc:StreetName>${_esc(s.strasse)}</cbc:StreetName>');
+    b.writeln('        <cbc:CityName>${_esc(s.ort)}</cbc:CityName>');
+    b.writeln('        <cbc:PostalZone>${_esc(s.plz)}</cbc:PostalZone>');
+    b.writeln('        <cac:Country><cbc:IdentificationCode>${s.land}</cbc:IdentificationCode></cac:Country>');
+    b.writeln('      </cac:PostalAddress>');
+
+    // USt-ID oder Steuernummer (Pflicht wenn umsatzsteuerpflichtig)
+    if (s.umsatzsteuerId != null && s.umsatzsteuerId!.isNotEmpty) {
+      b.writeln('      <cac:PartyTaxScheme>');
+      b.writeln('        <cbc:CompanyID>${_esc(s.umsatzsteuerId!)}</cbc:CompanyID>');
+      b.writeln('        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>');
+      b.writeln('      </cac:PartyTaxScheme>');
+    } else if (s.steuernummer != null && s.steuernummer!.isNotEmpty) {
+      b.writeln('      <cac:PartyTaxScheme>');
+      b.writeln('        <cbc:CompanyID>${_esc(s.steuernummer!)}</cbc:CompanyID>');
+      b.writeln('        <cac:TaxScheme><cbc:ID>FC</cbc:ID></cac:TaxScheme>');
+      b.writeln('      </cac:PartyTaxScheme>');
+    }
+
+    b.writeln('      <cac:PartyLegalEntity>');
+    b.writeln('        <cbc:RegistrationName>${_esc(s.name)}</cbc:RegistrationName>');
+    b.writeln('      </cac:PartyLegalEntity>');
+
+    if (s.ansprechpartner != null && s.ansprechpartner!.isNotEmpty) {
+      b.writeln('      <cac:Contact>');
+      b.writeln('        <cbc:Name>${_esc(s.ansprechpartner!)}</cbc:Name>');
+      if (s.telefon != null) b.writeln('        <cbc:Telephone>${_esc(s.telefon!)}</cbc:Telephone>');
+      if (s.email != null) b.writeln('        <cbc:ElectronicMail>${_esc(s.email!)}</cbc:ElectronicMail>');
+      b.writeln('      </cac:Contact>');
+    }
+    b.writeln('    </cac:Party>');
+    b.writeln('  </cac:AccountingSupplierParty>');
+  }
+
+  void _writeBuyer(StringBuffer b, RechnungEmpfaenger e) {
+    b.writeln('  <cac:AccountingCustomerParty>');
+    b.writeln('    <cac:Party>');
+    b.writeln('      <cbc:EndpointID schemeID="0204">${_esc(e.leitwegId)}</cbc:EndpointID>');
+    b.writeln('      <cac:PartyName><cbc:Name>${_esc(e.name)}</cbc:Name></cac:PartyName>');
+    b.writeln('      <cac:PostalAddress>');
+    b.writeln('        <cbc:StreetName>${_esc(e.strasse)}</cbc:StreetName>');
+    b.writeln('        <cbc:CityName>${_esc(e.ort)}</cbc:CityName>');
+    b.writeln('        <cbc:PostalZone>${_esc(e.plz)}</cbc:PostalZone>');
+    b.writeln('        <cac:Country><cbc:IdentificationCode>${e.land}</cbc:IdentificationCode></cac:Country>');
+    b.writeln('      </cac:PostalAddress>');
+    b.writeln('      <cac:PartyLegalEntity>');
+    b.writeln('        <cbc:RegistrationName>${_esc(e.name)}</cbc:RegistrationName>');
+    b.writeln('      </cac:PartyLegalEntity>');
+    if (e.ansprechpartner != null && e.ansprechpartner!.isNotEmpty) {
+      b.writeln('      <cac:Contact>');
+      b.writeln('        <cbc:Name>${_esc(e.ansprechpartner!)}</cbc:Name>');
+      if (e.telefon != null) b.writeln('        <cbc:Telephone>${_esc(e.telefon!)}</cbc:Telephone>');
+      if (e.email != null) b.writeln('        <cbc:ElectronicMail>${_esc(e.email!)}</cbc:ElectronicMail>');
+      b.writeln('      </cac:Contact>');
+    }
+    b.writeln('    </cac:Party>');
+    b.writeln('  </cac:AccountingCustomerParty>');
+  }
+
+  void _writePayment(StringBuffer b, Rechnung r) {
+    final s = rechnungssteller;
+    // BT-81 Payment Means Code: 58 = SEPA Credit Transfer
+    b.writeln('  <cac:PaymentMeans>');
+    b.writeln('    <cbc:PaymentMeansCode>58</cbc:PaymentMeansCode>');
+    b.writeln('    <cbc:PaymentID>${_esc(r.rechnungsnummer)}</cbc:PaymentID>');
+    if (s.iban != null && s.iban!.isNotEmpty) {
+      b.writeln('    <cac:PayeeFinancialAccount>');
+      b.writeln('      <cbc:ID>${_esc(s.iban!)}</cbc:ID>');
+      if (s.kontoinhaber != null) {
+        b.writeln('      <cbc:Name>${_esc(s.kontoinhaber!)}</cbc:Name>');
+      }
+      if (s.bic != null && s.bic!.isNotEmpty) {
+        b.writeln('      <cac:FinancialInstitutionBranch>');
+        b.writeln('        <cbc:ID>${_esc(s.bic!)}</cbc:ID>');
+        b.writeln('      </cac:FinancialInstitutionBranch>');
+      }
+      b.writeln('    </cac:PayeeFinancialAccount>');
+    }
+    b.writeln('  </cac:PaymentMeans>');
+
+    // Zahlungsbedingungen
+    b.writeln('  <cac:PaymentTerms>');
+    b.writeln('    <cbc:Note>Zahlbar innerhalb ${r.zahlungszielTage} Tagen</cbc:Note>');
+    b.writeln('  </cac:PaymentTerms>');
+  }
+
+  void _writeTaxTotal(StringBuffer b, Rechnung r) {
+    // Gruppiere Steuersaetze
+    final taxGruppen = <double, double>{}; // prozent -> steuerbetrag
+    final nettoGruppen = <double, double>{}; // prozent -> nettobetrag
+    for (final p in r.positionen) {
+      taxGruppen[p.steuerprozent] = (taxGruppen[p.steuerprozent] ?? 0) + p.steuerBetrag;
+      nettoGruppen[p.steuerprozent] = (nettoGruppen[p.steuerprozent] ?? 0) + p.nettoBetrag;
+    }
+
+    b.writeln('  <cac:TaxTotal>');
+    b.writeln('    <cbc:TaxAmount currencyID="${r.waehrung}">${_amt(r.gesamtSteuer)}</cbc:TaxAmount>');
+    taxGruppen.forEach((prozent, steuer) {
+      final netto = nettoGruppen[prozent] ?? 0;
+      b.writeln('    <cac:TaxSubtotal>');
+      b.writeln('      <cbc:TaxableAmount currencyID="${r.waehrung}">${_amt(netto)}</cbc:TaxableAmount>');
+      b.writeln('      <cbc:TaxAmount currencyID="${r.waehrung}">${_amt(steuer)}</cbc:TaxAmount>');
+      b.writeln('      <cac:TaxCategory>');
+      // Kategorie: Z = Zero rated (0%), S = Standard (19%), E = Exempt
+      final cat = prozent == 0 ? 'Z' : 'S';
+      b.writeln('        <cbc:ID>$cat</cbc:ID>');
+      b.writeln('        <cbc:Percent>${_amt(prozent)}</cbc:Percent>');
+      if (prozent == 0) {
+        b.writeln('        <cbc:TaxExemptionReasonCode>VATEX-EU-132-1H</cbc:TaxExemptionReasonCode>');
+        b.writeln('        <cbc:TaxExemptionReason>Leistung nach §4 Nr. 25 UStG (Jugendhilfe) bzw. §4 Nr. 16 UStG</cbc:TaxExemptionReason>');
+      }
+      b.writeln('        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>');
+      b.writeln('      </cac:TaxCategory>');
+      b.writeln('    </cac:TaxSubtotal>');
+    });
+    b.writeln('  </cac:TaxTotal>');
+  }
+
+  void _writeMonetaryTotal(StringBuffer b, Rechnung r) {
+    b.writeln('  <cac:LegalMonetaryTotal>');
+    b.writeln('    <cbc:LineExtensionAmount currencyID="${r.waehrung}">${_amt(r.gesamtNetto)}</cbc:LineExtensionAmount>');
+    b.writeln('    <cbc:TaxExclusiveAmount currencyID="${r.waehrung}">${_amt(r.gesamtNetto)}</cbc:TaxExclusiveAmount>');
+    b.writeln('    <cbc:TaxInclusiveAmount currencyID="${r.waehrung}">${_amt(r.gesamtBrutto)}</cbc:TaxInclusiveAmount>');
+    b.writeln('    <cbc:PayableAmount currencyID="${r.waehrung}">${_amt(r.gesamtBrutto)}</cbc:PayableAmount>');
+    b.writeln('  </cac:LegalMonetaryTotal>');
+  }
+
+  void _writeInvoiceLine(StringBuffer b, RechnungsPosition p, int nr, String waehrung) {
+    b.writeln('  <cac:InvoiceLine>');
+    b.writeln('    <cbc:ID>$nr</cbc:ID>');
+    b.writeln('    <cbc:InvoicedQuantity unitCode="${_unitCode(p.einheit)}">${_amt(p.menge)}</cbc:InvoicedQuantity>');
+    b.writeln('    <cbc:LineExtensionAmount currencyID="$waehrung">${_amt(p.nettoBetrag)}</cbc:LineExtensionAmount>');
+    if (p.leistungszeitraumVon != null && p.leistungszeitraumBis != null) {
+      b.writeln('    <cac:InvoicePeriod>');
+      b.writeln('      <cbc:StartDate>${p.leistungszeitraumVon}</cbc:StartDate>');
+      b.writeln('      <cbc:EndDate>${p.leistungszeitraumBis}</cbc:EndDate>');
+      b.writeln('    </cac:InvoicePeriod>');
+    }
+    b.writeln('    <cac:Item>');
+    b.writeln('      <cbc:Name>${_esc(p.bezeichnung)}</cbc:Name>');
+    if (p.hinweis != null && p.hinweis!.isNotEmpty) {
+      b.writeln('      <cbc:Description>${_esc(p.hinweis!)}</cbc:Description>');
+    }
+    final cat = p.steuerprozent == 0 ? 'Z' : 'S';
+    b.writeln('      <cac:ClassifiedTaxCategory>');
+    b.writeln('        <cbc:ID>$cat</cbc:ID>');
+    b.writeln('        <cbc:Percent>${_amt(p.steuerprozent)}</cbc:Percent>');
+    b.writeln('        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>');
+    b.writeln('      </cac:ClassifiedTaxCategory>');
+    b.writeln('    </cac:Item>');
+    b.writeln('    <cac:Price>');
+    b.writeln('      <cbc:PriceAmount currencyID="$waehrung">${_amt(p.einzelpreis)}</cbc:PriceAmount>');
+    b.writeln('    </cac:Price>');
+    b.writeln('  </cac:InvoiceLine>');
+  }
+
+  // ── Hilfsmethoden ──────────────────────────────────────────────────
+
+  /// UN/ECE Rec 20 Unit Codes.
+  String _unitCode(String einheit) {
+    final e = einheit.toLowerCase();
+    if (e.startsWith('stund') || e == 'h' || e.startsWith('hour')) return 'HUR';
+    if (e.startsWith('stueck') || e.startsWith('stück') || e == 'c62') return 'H87';
+    if (e.startsWith('min')) return 'MIN';
+    if (e.startsWith('tag') || e == 'day') return 'DAY';
+    if (e.startsWith('pauschal')) return 'LS';
+    return 'C62'; // default: unit of measure
+  }
+
+  String _amt(double v) => v.toStringAsFixed(2);
+
+  String _esc(String s) {
+    return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+}
+
+/// Stammdaten des Rechnungsstellers (unsere Organisation).
+/// Kommt aus den App-Einstellungen und dem Admin-Profil.
+class RechnungsstellerDaten {
+  final String name;
+  final String strasse;
+  final String plz;
+  final String ort;
+  final String land;
+  final String? umsatzsteuerId; // DE123456789 - wenn vorhanden
+  final String? steuernummer;   // wenn keine USt-ID
+  final String? iban;
+  final String? bic;
+  final String? kontoinhaber;
+  final String? email;
+  final String? telefon;
+  final String? ansprechpartner;
+  final String? elektronischeAdresse; // E-Mail fuer XRechnung EndpointID
+
+  const RechnungsstellerDaten({
+    required this.name,
+    required this.strasse,
+    required this.plz,
+    required this.ort,
+    this.land = 'DE',
+    this.umsatzsteuerId,
+    this.steuernummer,
+    this.iban,
+    this.bic,
+    this.kontoinhaber,
+    this.email,
+    this.telefon,
+    this.ansprechpartner,
+    this.elektronischeAdresse,
+  });
+
+  factory RechnungsstellerDaten.fromMitarbeiter(Mitarbeiter m, {
+    required String organisationsName,
+  }) {
+    return RechnungsstellerDaten(
+      name: organisationsName,
+      strasse: '',
+      plz: '',
+      ort: '',
+      ansprechpartner: '${m.vorname} ${m.name}'.trim(),
+      email: m.email.isNotEmpty ? m.email : null,
+      telefon: m.telefon.isNotEmpty ? m.telefon : null,
+      elektronischeAdresse: m.email.isNotEmpty ? m.email : null,
+    );
+  }
+}

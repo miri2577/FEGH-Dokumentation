@@ -1,0 +1,332 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../models/appointment.dart';
+import '../../models/client.dart';
+import '../../models/rechnung.dart';
+import '../../models/rechnung_empfaenger.dart';
+import '../../providers/app_provider.dart';
+import '../../services/rechnung_service.dart';
+import 'empfaenger_editor_screen.dart';
+
+/// Erstellt eine neue Rechnung aus Terminen im ausgewaehlten Zeitraum.
+/// Gruppiert pro Klient und erzeugt Fachleistungsstunden-Positionen.
+class RechnungErstellenScreen extends StatefulWidget {
+  const RechnungErstellenScreen({super.key});
+
+  @override
+  State<RechnungErstellenScreen> createState() => _RechnungErstellenScreenState();
+}
+
+class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
+  final _service = RechnungService();
+  DateTime _von = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _bis = DateTime.now();
+  RechnungEmpfaenger? _empfaenger;
+  List<RechnungEmpfaenger> _alleEmpfaenger = [];
+  final _bestellnummer = TextEditingController();
+  final _bemerkung = TextEditingController();
+  final bool _nurAktiveKlienten = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmpfaenger();
+  }
+
+  @override
+  void dispose() {
+    _bestellnummer.dispose();
+    _bemerkung.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadEmpfaenger() async {
+    final liste = await _service.loadEmpfaenger();
+    if (!mounted) return;
+    setState(() => _alleEmpfaenger = liste);
+  }
+
+  Future<void> _neuerEmpfaenger() async {
+    final result = await Navigator.push<RechnungEmpfaenger>(
+      context,
+      MaterialPageRoute(builder: (_) => const EmpfaengerEditorScreen()),
+    );
+    if (result != null) {
+      await _loadEmpfaenger();
+      if (mounted) setState(() => _empfaenger = result);
+    }
+  }
+
+  Future<void> _pickDatum(bool von) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: von ? _von : _bis,
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        if (von) {
+          _von = picked;
+        } else {
+          _bis = picked;
+        }
+      });
+    }
+  }
+
+  /// Ermittelt die Positionen aus Terminen im Zeitraum.
+  List<_AggregatedPosition> _berechnePositionen(AppProvider app) {
+    final appointments = app.appointments.where((a) {
+      final d = DateTime(a.date.year, a.date.month, a.date.day);
+      final vonD = DateTime(_von.year, _von.month, _von.day);
+      final bisD = DateTime(_bis.year, _bis.month, _bis.day);
+      return !d.isBefore(vonD) && !d.isAfter(bisD);
+    }).toList();
+
+    // Gruppiere nach clientId
+    final gruppen = <String, List<Appointment>>{};
+    for (final a in appointments) {
+      gruppen.putIfAbsent(a.clientId, () => []).add(a);
+    }
+
+    final result = <_AggregatedPosition>[];
+    final settings = app.settings;
+    for (final entry in gruppen.entries) {
+      final clientId = entry.key;
+      final termine = entry.value;
+      final client = app.clients.where((c) => c.id == clientId).firstOrNull;
+      if (client == null) continue;
+      if (_nurAktiveKlienten && client.fachleistungsstunden == null) continue;
+
+      final gesamtMinuten = termine.fold<int>(0, (s, a) => s + a.duration.inMinutes);
+      final stunden = gesamtMinuten / 60.0;
+      if (stunden <= 0) continue;
+
+      final satz = client.stundensatzOverride ?? settings.stundensatz;
+      final minDatum = termine.map((t) => t.date).reduce((a, b) => a.isBefore(b) ? a : b);
+      final maxDatum = termine.map((t) => t.date).reduce((a, b) => a.isAfter(b) ? a : b);
+
+      result.add(_AggregatedPosition(
+        client: client,
+        stunden: stunden,
+        einzelpreis: satz,
+        anzahlTermine: termine.length,
+        vonDatum: minDatum,
+        bisDatum: maxDatum,
+      ));
+    }
+    result.sort((a, b) => a.client.vollstaendigerName.compareTo(b.client.vollstaendigerName));
+    return result;
+  }
+
+  Future<void> _rechnungAnlegen(AppProvider app) async {
+    if (_empfaenger == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte Empfaenger waehlen')),
+      );
+      return;
+    }
+    final positionen = _berechnePositionen(app);
+    if (positionen.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine abrechenbaren Termine im Zeitraum')),
+      );
+      return;
+    }
+
+    final df = DateFormat('yyyy-MM-dd');
+    final nummer = await _service.naechsteRechnungsnummer();
+    final rPositionen = positionen.map((p) => RechnungsPosition.create(
+          bezeichnung: 'Fachleistungsstunden Eingliederungshilfe - ${p.client.vollstaendigerName}',
+          menge: p.stunden,
+          einheit: 'Stunde',
+          einzelpreis: p.einzelpreis,
+          steuerprozent: 0.0,
+          leistungszeitraumVon: df.format(p.vonDatum),
+          leistungszeitraumBis: df.format(p.bisDatum),
+          clientId: p.client.id,
+          clientName: p.client.vollstaendigerName,
+          hinweis: '${p.anzahlTermine} Termine',
+        )).toList();
+
+    final rechnung = Rechnung.create(
+      rechnungsnummer: nummer,
+      rechnungsdatum: DateTime.now(),
+      leistungsVon: _von,
+      leistungsBis: _bis,
+      empfaengerId: _empfaenger!.id,
+      positionen: rPositionen,
+      bestellnummer: _bestellnummer.text.trim().isEmpty ? null : _bestellnummer.text.trim(),
+      bemerkung: _bemerkung.text.trim().isEmpty ? null : _bemerkung.text.trim(),
+    );
+    await _service.addRechnung(rechnung);
+    if (!mounted) return;
+    Navigator.pop(context, rechnung);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final df = DateFormat('dd.MM.yyyy');
+    return Scaffold(
+      appBar: AppBar(title: const Text('Neue Rechnung')),
+      body: Consumer<AppProvider>(
+        builder: (context, app, _) {
+          final positionen = _berechnePositionen(app);
+          final gesamt = positionen.fold<double>(0, (s, p) => s + p.stunden * p.einzelpreis);
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text('Leistungszeitraum',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickDatum(true),
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: Text('Von: ${df.format(_von)}'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickDatum(false),
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: Text('Bis: ${df.format(_bis)}'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text('Empfaenger (Kostentraeger)',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<RechnungEmpfaenger>(
+                      initialValue: _empfaenger,
+                      decoration: const InputDecoration(
+                        labelText: 'Empfaenger',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.business),
+                      ),
+                      items: _alleEmpfaenger
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text('${e.name} (${e.leitwegId})'),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _empfaenger = v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Neuer Empfaenger',
+                    onPressed: _neuerEmpfaenger,
+                    icon: const Icon(Icons.add_circle),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _bestellnummer,
+                decoration: const InputDecoration(
+                  labelText: 'Bestellnummer/Aktenzeichen (optional)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.tag),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _bemerkung,
+                decoration: const InputDecoration(
+                  labelText: 'Bemerkung (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const Divider(height: 32),
+              Row(
+                children: [
+                  Text('Positionen',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  Text('Netto: ${gesamt.toStringAsFixed(2)} EUR',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (positionen.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('Keine Termine im ausgewaehlten Zeitraum.')),
+                    ],
+                  ),
+                )
+              else
+                ...positionen.map((p) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: const Icon(Icons.person),
+                        ),
+                        title: Text(p.client.vollstaendigerName,
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${p.stunden.toStringAsFixed(2)} h × ${p.einzelpreis.toStringAsFixed(2)} EUR '
+                            '• ${p.anzahlTermine} Termine'),
+                        trailing: Text(
+                          '${(p.stunden * p.einzelpreis).toStringAsFixed(2)} EUR',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    )),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: positionen.isEmpty || _empfaenger == null
+                      ? null
+                      : () => _rechnungAnlegen(app),
+                  icon: const Icon(Icons.receipt_long),
+                  label: const Text('Rechnung erstellen'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AggregatedPosition {
+  final Client client;
+  final double stunden;
+  final double einzelpreis;
+  final int anzahlTermine;
+  final DateTime vonDatum;
+  final DateTime bisDatum;
+  _AggregatedPosition({
+    required this.client,
+    required this.stunden,
+    required this.einzelpreis,
+    required this.anzahlTermine,
+    required this.vonDatum,
+    required this.bisDatum,
+  });
+}

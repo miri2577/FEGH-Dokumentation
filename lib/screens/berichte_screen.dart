@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../services/file_storage_service.dart';
 import '../utils/responsive_utils.dart';
 import 'informationsbericht_screen.dart';
+import 'rechnungen/rechnungen_screen.dart';
 
 class BerichteScreen extends StatefulWidget {
   const BerichteScreen({super.key});
@@ -58,6 +59,8 @@ class _BerichteScreenState extends State<BerichteScreen> {
               ),
               const SizedBox(height: 16),
               _buildInformationsberichtSektion(context),
+              const SizedBox(height: 16),
+              _buildRechnungenKarte(context),
               const SizedBox(height: 32),
 
               // Entwuerfe-Liste
@@ -149,6 +152,51 @@ class _BerichteScreenState extends State<BerichteScreen> {
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildRechnungenKarte(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RechnungenScreen()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.receipt_long, color: Colors.teal, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Rechnungen (XRechnung)',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Fachleistungsstunden als XRechnung-XML. Bundesweit standardisiert, '
+                      'EN 16931 / UBL 2.1. Pflicht im B2G-Bereich.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildInformationsberichtSektion(BuildContext context) {
