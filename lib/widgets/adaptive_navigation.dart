@@ -227,7 +227,7 @@ class _AdaptiveNavigationState extends State<AdaptiveNavigation> {
     return Scaffold(
       body: Row(
         children: [
-          // Navigation Rail
+          // Navigation Rail (scrollbar bei geringer Fensterhoehe)
           Container(
             decoration: BoxDecoration(
               border: Border(
@@ -237,34 +237,43 @@ class _AdaptiveNavigationState extends State<AdaptiveNavigation> {
                 ),
               ),
             ),
-            child: NavigationRail(
-              selectedIndex: widget.selectedIndex,
-              onDestinationSelected: widget.onDestinationSelected,
-              labelType: NavigationRailLabelType.all,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              elevation: 1.0,
-              leading: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                    ),
-                    child: Icon(
-                      Icons.accessibility_new,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 28,
+            child: LayoutBuilder(
+              builder: (ctx, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: NavigationRail(
+                      selectedIndex: widget.selectedIndex,
+                      onDestinationSelected: widget.onDestinationSelected,
+                      labelType: NavigationRailLabelType.all,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      elevation: 1.0,
+                      leading: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                            ),
+                            child: Icon(
+                              Icons.accessibility_new,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildFullScreenButton(),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                      destinations: _buildRailDestinations(context),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  _buildFullScreenButton(),
-                  const SizedBox(height: 12),
-                ],
+                ),
               ),
-              destinations: _buildRailDestinations(context),
             ),
           ),
           // Main Content
