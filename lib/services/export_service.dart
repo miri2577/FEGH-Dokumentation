@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +12,8 @@ import '../models/export_format.dart';
 import '../models/arbeitszeit.dart';
 import '../models/appointment.dart';
 import '../models/client.dart';
-import '../providers/app_provider.dart';
+import 'dart:convert' show utf8;
+import 'docx_report_service.dart';
 import 'pdf_report_service.dart';
 import 'package:intl/intl.dart';
 
@@ -50,12 +50,8 @@ class ExportService {
         return Icons.picture_as_pdf;
       case ExportFormat.word:
         return Icons.description;
-      case ExportFormat.markdown:
-        return Icons.code;
       case ExportFormat.csv:
         return Icons.table_chart;
-      case ExportFormat.txt:
-        return Icons.text_snippet;
     }
   }
 
@@ -105,24 +101,19 @@ class ExportService {
           );
           break;
         case ExportFormat.word:
-          bytes = _generateWord(content);
-          break;
-        case ExportFormat.markdown:
-          bytes = _generateMarkdown(content);
+          bytes = await _generateDocx(
+            arbeitszeiten,
+            appointments,
+            clients,
+            startDate,
+            endDate,
+            exportType,
+          );
           break;
         case ExportFormat.csv:
-          // Wenn der Aufrufer bereits CSV-Content vorbereitet hat, direkt verwenden
-          // (Semikolon-separiert, Excel-DE-kompatibel). Sonst Fallback-Generator.
-          if (content.contains(';') || content.contains(',')) {
-            // Excel erkennt UTF-8-BOM und versteht dann Umlaute korrekt
-            final bom = [0xEF, 0xBB, 0xBF];
-            bytes = Uint8List.fromList([...bom, ...content.codeUnits]);
-          } else {
-            bytes = _generateCSV(arbeitszeiten, appointments, clients);
-          }
-          break;
-        case ExportFormat.txt:
-          bytes = Uint8List.fromList(content.codeUnits);
+          // Aufrufer liefert bereits Semikolon-CSV; mit UTF-8-BOM verpacken
+          final bom = [0xEF, 0xBB, 0xBF];
+          bytes = Uint8List.fromList([...bom, ...utf8.encode(content)]);
           break;
       }
 
@@ -304,79 +295,26 @@ class ExportService {
     }
   }
 
-  static Uint8List _generateWord(String content) {
-    // Vereinfachte Word-Generierung (als RTF)
-    String rtfContent = '''
-{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}
-\\f0\\fs24
-Eingliederungshilfe Export\\par
-\\par
-Erstellt: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}\\par
-\\par
-${content.replaceAll('\n', '\\par\n')}
-}''';
-    return Uint8List.fromList(rtfContent.codeUnits);
+  /// Echtes DOCX (OpenXML) via DocxReportService im Hybrid-Design.
+  static Future<Uint8List> _generateDocx(
+    List<Arbeitszeit>? arbeitszeiten,
+    List<Appointment>? appointments,
+    List<Client>? clients,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? exportType,
+  ) async {
+    if (exportType == 'arbeitszeiten' && arbeitszeiten != null && startDate != null && endDate != null) {
+      return await DocxReportService.generateArbeitszeitenDocx(
+        arbeitszeiten: arbeitszeiten, startDate: startDate, endDate: endDate);
+    } else if (exportType == 'fachleistungsstunden' && appointments != null && startDate != null && endDate != null) {
+      return await DocxReportService.generateFachleistungsstundenDocx(
+        appointments: appointments, startDate: startDate, endDate: endDate);
+    } else if (exportType == 'klienten' && clients != null) {
+      return await DocxReportService.generateKlientenDocx(clients: clients);
+    }
+    // Fallback: leeres Dokument mit Hinweis
+    return await DocxReportService.generateKlientenDocx(clients: []);
   }
 
-  static Uint8List _generateMarkdown(String content) {
-    String markdownContent = '''
-# Eingliederungshilfe Export
-
-**Erstellt:** ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}
-
----
-
-$content
-''';
-    return Uint8List.fromList(markdownContent.codeUnits);
-  }
-
-  static Uint8List _generateCSV(List<Arbeitszeit>? arbeitszeiten, List<Appointment>? appointments, List<Client>? clients) {
-    List<String> csvLines = [];
-
-    if (arbeitszeiten != null && arbeitszeiten.isNotEmpty) {
-      csvLines.add('=== ARBEITSZEITEN ===');
-      csvLines.add('Datum,Startzeit,Endzeit,Tätigkeit,Dauer (Stunden),Notizen');
-      for (var az in arbeitszeiten) {
-        csvLines.add('"${DateFormat('dd.MM.yyyy').format(az.datum)}",'
-            '"${az.formatierteStartzeit}",'
-            '"${az.formatierteEndzeit}",'
-            '"${az.taetigkeit.replaceAll('"', '""')}",'
-            '"${(az.arbeitszeit.inMinutes / 60.0).toStringAsFixed(2)}",'
-            '"${az.notizen.replaceAll('"', '""')}"');
-      }
-      csvLines.add('');
-    }
-
-    if (appointments != null && appointments.isNotEmpty) {
-      csvLines.add('=== TERMINE ===');
-      csvLines.add('Datum,Startzeit,Endzeit,Klient,Berufsgruppe,Fachleistungsstunden,Notizen');
-      for (var apt in appointments) {
-        csvLines.add('"${DateFormat('dd.MM.yyyy').format(apt.date)}",'
-            '"${DateFormat('HH:mm').format(apt.startTime)}",'
-            '"${DateFormat('HH:mm').format(apt.endTime)}",'
-            '"${apt.clientName.replaceAll('"', '""')}",'
-            '"${apt.berufsgruppe.replaceAll('"', '""')}",'
-            '"${apt.fachleistungsstunden}",'
-            '"${apt.notes.replaceAll('"', '""')}"');
-      }
-      csvLines.add('');
-    }
-
-    if (clients != null && clients.isNotEmpty) {
-      csvLines.add('=== KLIENTEN ===');
-      csvLines.add('Name,Berufsgruppe,Eingliederung,Kostenübernahme,Betreuung seit,Fachleistungsstunden,Verbrauchte Stunden');
-      for (var client in clients) {
-        csvLines.add('"${client.vollstaendigerName.replaceAll('"', '""')}",'
-            '"${(client.berufsgruppe ?? '').replaceAll('"', '""')}",'
-            '"${(client.eingliederung ?? '').replaceAll('"', '""')}",'
-            '"${(client.kostenuebernahme ?? '').replaceAll('"', '""')}",'
-            '"${client.betreuungSeit != null ? DateFormat('dd.MM.yyyy').format(client.betreuungSeit!) : ''}",'
-            '"${client.fachleistungsstunden ?? 0}",'
-            '"${client.verbrauchteStunden}"');
-      }
-    }
-
-    return Uint8List.fromList(csvLines.join('\n').codeUnits);
-  }
 }

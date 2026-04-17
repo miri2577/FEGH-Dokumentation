@@ -114,6 +114,9 @@ dependencies:
   # URL Launcher (externer Browser, E-Mail etc.)
   url_launcher: ^6.3.1
 
+  # ZIP-Archive fuer DOCX-Generierung
+  archive: ^3.6.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
