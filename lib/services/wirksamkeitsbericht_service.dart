@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,15 @@ class WirksamkeitsberichtService {
 
   final _service = WirkungsmessungService();
 
+  static pw.Font? _regular;
+  static pw.Font? _bold;
+
+  static Future<pw.ThemeData> _theme() async {
+    _regular ??= pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Regular.ttf'));
+    _bold ??= pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
+    return pw.ThemeData.withFont(base: _regular!, bold: _bold!);
+  }
+
   /// Erstellt einen Wirksamkeitsbericht fuer einen einzelnen Klienten.
   Future<Uint8List> generateClientReport({
     required Client client,
@@ -27,7 +37,8 @@ class WirksamkeitsberichtService {
     DateTime? bis,
     String? autor,
   }) async {
-    final pdf = pw.Document();
+    final theme = await _theme();
+    final pdf = pw.Document(theme: theme);
     final df = DateFormat('dd.MM.yyyy');
     final zeitraumText = (von != null && bis != null)
         ? '${df.format(von)} - ${df.format(bis)}'
