@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../models/bundesland.dart';
 import '../models/client.dart';
 import '../models/appointment.dart';
 import '../models/arbeitszeit.dart';
@@ -518,6 +519,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildBundeslandTile(AppProvider appProvider) {
+    final profil = BundeslandProfile.forLand(appProvider.settings.bundesland);
+    return ListTile(
+      leading: Icon(
+        Icons.map_outlined,
+        color: profil.implementiert ? null : Colors.amber,
+      ),
+      title: const Text('Bundesland'),
+      subtitle: Text(
+        '${profil.anzeigeName}${profil.implementiert ? "" : " (experimentell)"}\n${profil.instrumentName}',
+      ),
+      isThreeLine: true,
+      trailing: TextButton(
+        onPressed: () => _bundeslandAendern(appProvider),
+        child: const Text('Aendern'),
+      ),
+    );
+  }
+
+  Future<void> _bundeslandAendern(AppProvider appProvider) async {
+    Bundesland selected = appProvider.settings.bundesland;
+    final saved = await showDialog<Bundesland>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bundesland aendern'),
+        content: StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            final profil = BundeslandProfile.forLand(selected);
+            return SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<Bundesland>(
+                    initialValue: selected,
+                    decoration: const InputDecoration(
+                      labelText: 'Bundesland der Organisation',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: BundeslandProfile.alle()
+                        .map((p) => DropdownMenuItem(
+                              value: p.bundesland,
+                              child: Text(p.anzeigeName +
+                                  (p.implementiert ? '' : ' (experimentell)')),
+                            ))
+                        .toList(),
+                    onChanged: (v) => v != null
+                        ? setStateDialog(() => selected = v)
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(profil.instrumentName,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(profil.rahmenvertragName,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  if (!profil.implementiert) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Dieses Bundesland ist experimentell. Landesspezifische '
+                        'Formulare und Bedarfserhebungsinstrumente folgen.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, selected),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    if (saved != null && saved != appProvider.settings.bundesland) {
+      await appProvider.updateSettings(
+        appProvider.settings.copyWith(bundesland: saved),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bundesland auf ${BundeslandProfile.forLand(saved).anzeigeName} geaendert'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   Widget _buildAccessStatusSection(AppProvider appProvider) {
     final s = appProvider.settings;
     final perms = PermissionService(s.userRole);
@@ -536,6 +637,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('Team'),
           subtitle: Text(s.teamId.isNotEmpty ? s.teamId : 'Admin‑Modus (kein Team)'),
         ),
+        _buildBundeslandTile(appProvider),
         ListTile(
           leading: Icon(s.isAdmin ? Icons.verified_user : Icons.person),
           title: const Text('Rolle'),

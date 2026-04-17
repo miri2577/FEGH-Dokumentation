@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/bundesland.dart';
 import '../models/informationsbericht.dart';
 import '../providers/app_provider.dart';
 import '../services/file_storage_service.dart';
@@ -56,14 +57,7 @@ class _BerichteScreenState extends State<BerichteScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildBerichtKarte(
-                context,
-                titel: 'Informationsbericht',
-                untertitel: 'Informationsbericht fuer Leistungen der Eingliederungshilfe (v1.01)',
-                icon: Icons.description,
-                farbe: Theme.of(context).colorScheme.primary,
-                onNeuErstellen: () => _neuerInformationsbericht(context),
-              ),
+              _buildInformationsberichtSektion(context),
               const SizedBox(height: 32),
 
               // Entwuerfe-Liste
@@ -155,6 +149,56 @@ class _BerichteScreenState extends State<BerichteScreen> {
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildInformationsberichtSektion(BuildContext context) {
+    final settings = context.watch<AppProvider>().settings;
+    final profil = BundeslandProfile.forLand(settings.bundesland);
+
+    if (profil.informationsberichtBerlin101) {
+      return _buildBerichtKarte(
+        context,
+        titel: 'Informationsbericht (Formular 101)',
+        untertitel: 'Berliner Formular 101 fuer Leistungen der Eingliederungshilfe (v1.01)',
+        icon: Icons.description,
+        farbe: Theme.of(context).colorScheme.primary,
+        onNeuErstellen: () => _neuerInformationsbericht(context),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline,
+                size: 40, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Informationsbericht nicht verfuegbar',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Das Berliner Formular 101 ist nur bei Bundesland = Berlin verfuegbar. '
+                    'Aktuell konfiguriert: ${profil.anzeigeName}. '
+                    'Fuer "${profil.anzeigeName}" ist der Bericht noch nicht implementiert '
+                    '(${profil.instrumentName}).',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildBerichtKarte(

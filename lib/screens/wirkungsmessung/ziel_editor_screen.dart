@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/bei_nrw.dart';
+import '../../models/bundesland.dart';
 import '../../models/teilhabeziel.dart';
 import '../../models/client.dart';
+import '../../providers/app_provider.dart';
 
 /// Editor fuer ein einzelnes Teilhabeziel mit SMART-Kriterien.
 class ZielEditorScreen extends StatefulWidget {
@@ -192,15 +196,7 @@ class _ZielEditorScreenState extends State<ZielEditorScreen> {
             const Divider(),
 
             // ICF-Verknuepfung
-            TextFormField(
-              controller: _icfBereich,
-              decoration: const InputDecoration(
-                labelText: 'ICF-Bereich (optional)',
-                hintText: 'z.B. d170 Schreiben',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
-            ),
+            _buildIcfAuswahl(),
 
             const SizedBox(height: 16),
 
@@ -263,6 +259,73 @@ class _ZielEditorScreenState extends State<ZielEditorScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIcfAuswahl() {
+    final orgBundesland = context.read<AppProvider>().settings.bundesland;
+    final effektiv = widget.client.effektivesBundesland(orgBundesland);
+    final profil = BundeslandProfile.forLand(effektiv);
+
+    // NRW-spezifisch: BEI_NRW-Lebensbereiche als Dropdown
+    if (profil.beiNrwVerfuegbar) {
+      BEINRWLebensbereich? selected;
+      for (final b in BEINRWLebensbereich.values) {
+        if (_icfBereich.text.startsWith(b.icfCode)) {
+          selected = b;
+          break;
+        }
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DropdownButtonFormField<BEINRWLebensbereich>(
+            initialValue: selected,
+            decoration: const InputDecoration(
+              labelText: 'BEI_NRW-Lebensbereich (optional)',
+              hintText: 'Auswaehlen...',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.category),
+            ),
+            items: BEINRWLebensbereich.values
+                .map((b) => DropdownMenuItem(
+                      value: b,
+                      child: Text('${b.icfCode} - ${b.displayName}'),
+                    ))
+                .toList(),
+            onChanged: (b) {
+              setState(() {
+                _icfBereich.text = b != null
+                    ? '${b.icfCode} ${b.displayName}'
+                    : '';
+              });
+            },
+          ),
+          if (selected != null) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                selected.kurzBeschreibung,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Berlin und andere: generisches ICF-Textfeld
+    return TextFormField(
+      controller: _icfBereich,
+      decoration: InputDecoration(
+        labelText: profil.bundesland == Bundesland.berlin
+            ? 'ICF-Bereich (optional)'
+            : 'ICF-/Bedarfsbereich (optional)',
+        hintText: 'z.B. d170 Schreiben',
+        border: const OutlineInputBorder(),
+        prefixIcon: const Icon(Icons.category),
       ),
     );
   }

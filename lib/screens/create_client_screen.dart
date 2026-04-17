@@ -207,9 +207,9 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
 
                   const SizedBox(height: 24),
 
-                  // TIB-Ziele Sektion
+                  // Teilhabeziele Sektion
                   Text(
-                    'TIB-Ziele (Teilhabeinstrument Berlin)',
+                    'Teilhabeziele & Wirkungsmessung',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

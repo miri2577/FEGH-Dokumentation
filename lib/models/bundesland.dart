@@ -62,6 +62,8 @@ class BundeslandProfil {
   final String instrumentName;
   final String rahmenvertragName;
   final bool informationsberichtBerlin101; // Formular 101 (BE-spezifisch)
+  final bool tibBereicheVerfuegbar; // TIB-Bereich-Auswahl beim Klient
+  final bool beiNrwVerfuegbar; // BEI_NRW-Domaenen beim Klient
   final bool implementiert; // false = experimentell, nicht produktionsreif
   final List<String> besonderheiten;
 
@@ -72,6 +74,8 @@ class BundeslandProfil {
     required this.instrumentName,
     required this.rahmenvertragName,
     this.informationsberichtBerlin101 = false,
+    this.tibBereicheVerfuegbar = false,
+    this.beiNrwVerfuegbar = false,
     this.implementiert = false,
     this.besonderheiten = const [],
   });
@@ -87,6 +91,7 @@ class BundeslandProfile {
       instrumentName: 'TIB (Teilhabe-Instrument Berlin)',
       rahmenvertragName: 'Berliner Rahmenvertrag (BRV) 2021, Neuverhandlung ab 2027',
       informationsberichtBerlin101: true,
+      tibBereicheVerfuegbar: true,
       implementiert: true,
       besonderheiten: [
         'Formular 101 (Informationsbericht) verbindlich',
@@ -98,11 +103,14 @@ class BundeslandProfile {
       bundesland: Bundesland.nordrheinWestfalen,
       anzeigeName: 'Nordrhein-Westfalen',
       bedarfsinstrument: Bedarfsinstrument.beiNrw,
-      instrumentName: 'BEI_NRW',
+      instrumentName: 'BEI_NRW (Bedarfsermittlungsinstrument)',
       rahmenvertragName: 'LRV NRW (LVR/LWL), Fortschreibung 2025-2027',
+      beiNrwVerfuegbar: true,
+      implementiert: true,
       besonderheiten: [
         'Groesster EGH-Markt (ca. 25%)',
         'LVR und LWL als zentrale Traeger',
+        'BEI_NRW: 9 ICF-Lebensbereiche (d1-d9)',
         'BEI_NRW-Bogen formgebunden',
       ],
     ),
