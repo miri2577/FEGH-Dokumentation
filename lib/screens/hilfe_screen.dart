@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/responsive_utils.dart';
 
 class HilfeScreen extends StatelessWidget {
   const HilfeScreen({super.key});
 
   static const String _wikiUrl = 'https://miri2577.github.io/FEGH-Dokumentation/';
+
+  Future<void> _openWiki(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri.parse(_wikiUrl);
+    bool ok = false;
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok) {
+      await Clipboard.setData(const ClipboardData(text: _wikiUrl));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Browser konnte nicht geoeffnet werden - URL wurde in die Zwischenablage kopiert'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,18 +34,6 @@ class HilfeScreen extends StatelessWidget {
         title: const Text('Hilfe & Dokumentation'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: _wikiUrl));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Wiki-URL kopiert: miri2577.github.io/FEGH-Dokumentation')),
-              );
-            },
-            icon: const Icon(Icons.open_in_new, size: 16),
-            label: const Text('Online-Wiki'),
-          ),
-        ],
       ),
       body: ResponsiveUtils.adaptiveScaffoldBody(
         context: context,
@@ -34,6 +42,8 @@ class HilfeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              _buildWikiCta(context),
+              const SizedBox(height: 16),
               _buildWelcomeSection(context),
               const SizedBox(height: 24),
               _buildQuickStartSection(context),
@@ -60,6 +70,85 @@ class HilfeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildVersionSection(context),
               const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWikiCta(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 2,
+      color: theme.colorScheme.primaryContainer,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openWiki(context),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.menu_book,
+                    color: theme.colorScheme.onPrimary, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vollstaendiges Online-Wiki',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Umfassende Anleitungen, technische Dokumentation, DSGVO, '
+                      'Sicherheitskonzept und mehr -- im Browser oeffnen.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _wikiUrl.replaceFirst('https://', ''),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: () => _openWiki(context),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Oeffnen'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'URL in Zwischenablage kopieren',
+                onPressed: () {
+                  Clipboard.setData(const ClipboardData(text: _wikiUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Wiki-URL in die Zwischenablage kopiert')),
+                  );
+                },
+                icon: Icon(Icons.copy, color: theme.colorScheme.onPrimaryContainer),
+              ),
             ],
           ),
         ),
