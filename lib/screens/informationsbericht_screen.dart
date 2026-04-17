@@ -996,51 +996,10 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
   }
 
   Future<void> _exportPdf() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'PDF-Export waehlen',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.file_copy, color: Colors.green),
-              title: const Text('Original-Layout (Template)'),
-              subtitle: const Text('Fuellt das offizielle Berliner PDF-Formular aus'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _generateAndExportPdf('syncfusion');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.description, color: Colors.blue),
-              title: const Text('Original-Layout (Nachbau)'),
-              subtitle: const Text('Nachbau des Amtsformulars mit eigenem Layout'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _generateAndExportPdf('original');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.deepPurple),
-              title: const Text('App-Layout'),
-              subtitle: const Text('Bisheriges App-Design mit blauen Balken'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _generateAndExportPdf('app');
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
+    // Nur noch Template-Fill: fuellt das offizielle Berliner PDF-Formular aus.
+    // Die frueheren "Nachbau"- und "App-Layout"-Varianten wurden entfernt,
+    // da sie nicht das offizielle Layout abbilden.
+    await _generateAndExportPdf('syncfusion');
   }
 
   Future<void> _generateAndExportPdf(String variant) async {
@@ -1055,21 +1014,8 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
       debugPrint('[PDF] allgemeineInformationen=${bericht.allgemeineInformationen?.substring(0, (bericht.allgemeineInformationen?.length ?? 0).clamp(0, 50))}');
       debugPrint('[PDF] zusammenfassung=${bericht.zusammenfassung?.substring(0, (bericht.zusammenfassung?.length ?? 0).clamp(0, 50))}');
 
-      final Uint8List pdfData;
-      final String suffix;
-      switch (variant) {
-        case 'syncfusion':
-          pdfData = await PdfGeneratorService.generateInformationsberichtSyncfusion(bericht);
-          suffix = 'Template';
-          break;
-        case 'original':
-          pdfData = await PdfGeneratorService.generateInformationsberichtOriginalLayout(bericht);
-          suffix = 'Original';
-          break;
-        default:
-          pdfData = await PdfGeneratorService.generateInformationsberichtPDF(bericht);
-          suffix = 'App';
-      }
+      final pdfData = await PdfGeneratorService.generateInformationsberichtSyncfusion(bericht);
+      const suffix = 'Formular101';
       debugPrint('[PDF] PDF generiert: ${pdfData.length} Bytes');
 
       final fileName = 'Informationsbericht_${suffix}_${widget.client.vollstaendigerName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
