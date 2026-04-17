@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:typed_data' show Uint8List;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -67,7 +67,7 @@ class PdfReportService {
         pw.SizedBox(height: 32),
         _kpiReihe([
           _KpiDaten('Gesamtarbeitszeit', '${gesamtH.toStringAsFixed(1)} h', primaer, hero: true),
-          _KpiDaten('Eintraege', '${arbeitszeiten.length}', text),
+          _KpiDaten('Einträge', '${arbeitszeiten.length}', text),
           _KpiDaten('Durchschnitt', '${durchschnittH.toStringAsFixed(1)} h/Tag', text),
           if (stats.ueberstunden.abs() > 0.01)
             _KpiDaten(
@@ -79,7 +79,7 @@ class PdfReportService {
         pw.SizedBox(height: 32),
 
         if (stats.verteilung.isNotEmpty) ...[
-          _sektion('I', 'Verteilung nach Taetigkeit'),
+          _sektion('I', 'Verteilung nach Tätigkeit'),
           pw.SizedBox(height: 14),
           _balken(stats.verteilung, gesamtH),
           pw.SizedBox(height: 28),
@@ -88,7 +88,7 @@ class PdfReportService {
         _sektion(stats.verteilung.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
         pw.SizedBox(height: 14),
         if (arbeitszeiten.isEmpty)
-          _keineDaten('Keine Arbeitszeiten im gewaehlten Zeitraum.')
+          _keineDaten('Keine Arbeitszeiten im gewählten Zeitraum.')
         else
           _arbeitszeitenTabelle(arbeitszeiten),
         pw.SizedBox(height: 40),
@@ -143,7 +143,7 @@ class PdfReportService {
         _sektion(stats.proKlient.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
         pw.SizedBox(height: 14),
         if (relevante.isEmpty)
-          _keineDaten('Keine Fachleistungsstunden im gewaehlten Zeitraum.')
+          _keineDaten('Keine Fachleistungsstunden im gewählten Zeitraum.')
         else
           _flsTabelle(relevante),
         pw.SizedBox(height: 40),
@@ -153,7 +153,7 @@ class PdfReportService {
     return pdf.save();
   }
 
-  /// Klienten-Uebersicht als Report.
+  /// Klienten-Übersicht als Report.
   static Future<Uint8List> generateKlientenReport({
     required List<Client> clients,
     String? autor,
@@ -179,11 +179,11 @@ class PdfReportService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(50, 40, 50, 50),
-      header: (ctx) => _header('Klienten-Uebersicht', aktenzeichen),
+      header: (ctx) => _header('Klienten-Übersicht', aktenzeichen),
       footer: _footer,
       build: (ctx) => [
         pw.SizedBox(height: 20),
-        _hero(titel: 'Klienten-Uebersicht',
+        _hero(titel: 'Klienten-Übersicht',
             untertitel: 'Stand ${DateFormat('dd.MM.yyyy').format(DateTime.now())}'),
         pw.SizedBox(height: 32),
         _kpiReihe([
@@ -461,8 +461,7 @@ class PdfReportService {
         borderRadius: pw.BorderRadius.circular(6),
       ),
       child: pw.Text(text,
-          style: pw.TextStyle(
-              fontSize: 11, fontStyle: pw.FontStyle.italic, color: muted)),
+          style: pw.TextStyle(fontSize: 11, color: muted)),
     );
   }
 
@@ -479,7 +478,7 @@ class PdfReportService {
         3: pw.FlexColumnWidth(1),
       },
       children: [
-        _tabelleKopf(['Datum', 'Zeit', 'Taetigkeit', 'Stunden'], [false, false, false, true]),
+        _tabelleKopf(['Datum', 'Zeit', 'Tätigkeit', 'Stunden'], [false, false, false, true]),
         ...sorted.map((a) {
           final stunden = (a.arbeitszeit.inMinutes / 60.0).toStringAsFixed(2);
           return _tabelleZeile([
@@ -518,32 +517,121 @@ class PdfReportService {
   }
 
   static pw.Widget _klientenTabelle(List<Client> list) {
-    return pw.Table(
-      columnWidths: const {
-        0: pw.FlexColumnWidth(2.5),
-        1: pw.FlexColumnWidth(1.2),
-        2: pw.FlexColumnWidth(1),
-        3: pw.FlexColumnWidth(1),
-        4: pw.FlexColumnWidth(0.8),
-      },
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: list.map(_klientKarte).toList(),
+    );
+  }
+
+  static pw.Widget _klientKarte(Client c) {
+    final hatFls = c.fachleistungsstunden != null;
+    final prozent = hatFls ? c.stundenverbrauchProzent : 0.0;
+    final einwilligungFarbe = c.einwilligungVorhanden ? accent : warn;
+
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: tableHeader,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: divider, width: 0.5),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Kopfzeile: Name + Einwilligungs-Badge
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.Expanded(
+                child: pw.Text(c.vollstaendigerName,
+                    style: pw.TextStyle(
+                        fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaer)),
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor(einwilligungFarbe.red, einwilligungFarbe.green,
+                      einwilligungFarbe.blue, 0.15),
+                  borderRadius: pw.BorderRadius.circular(10),
+                ),
+                child: pw.Text(
+                    c.einwilligungVorhanden ? 'Einwilligung: Ja' : 'Einwilligung: Nein',
+                    style: pw.TextStyle(
+                        fontSize: 8,
+                        color: einwilligungFarbe,
+                        fontWeight: pw.FontWeight.bold)),
+              ),
+            ],
+          ),
+          if (c.kostenuebernahme != null && c.kostenuebernahme!.isNotEmpty) ...[
+            pw.SizedBox(height: 3),
+            pw.Text(c.kostenuebernahme!,
+                style: pw.TextStyle(fontSize: 10, color: muted)),
+          ],
+          if (hatFls) ...[
+            pw.SizedBox(height: 10),
+            _klientFlsBalken(c, prozent),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _klientFlsBalken(Client c, double prozent) {
+    final bewilligt = c.fachleistungsstunden!;
+    final verbraucht = c.verbrauchteStunden;
+    // Farbe nach Auslastung: gruen < 75%, gelb 75-89%, rot >= 90%
+    final PdfColor balkenFarbe = prozent >= 90
+        ? warn
+        : (prozent >= 75 ? const PdfColor.fromInt(0xFFD97706) : accent);
+    final breiteGesamt = 320.0;
+    final breiteVerbraucht = (prozent.clamp(0, 100) / 100.0) * breiteGesamt;
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        _tabelleKopf(
-            ['Name', 'Kostentraeger', 'FLS bewilligt', 'Verbraucht', 'Einwill.'],
-            [false, false, true, true, false]),
-        ...list.map((c) {
-          final bew = c.fachleistungsstunden != null ? '${c.fachleistungsstunden} h' : '-';
-          final verb = c.fachleistungsstunden != null
-              ? '${c.verbrauchteStunden.toStringAsFixed(1)} h (${c.stundenverbrauchProzent.toStringAsFixed(0)} %)'
-              : '-';
-          return _tabelleZeile([
-            c.vollstaendigerName,
-            c.kostenuebernahme ?? '-',
-            bew,
-            verb,
-            c.einwilligungVorhanden ? 'ja' : 'nein',
-          ], [false, false, true, true, false],
-              warnIdx: c.einwilligungVorhanden ? null : 4);
-        }),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Fachleistungsstunden',
+                      style: pw.TextStyle(fontSize: 9, color: muted)),
+                  pw.Text(
+                      '${verbraucht.toStringAsFixed(1)} / $bewilligt h  (${prozent.toStringAsFixed(0)} %)',
+                      style: pw.TextStyle(
+                          fontSize: 9, fontWeight: pw.FontWeight.bold, color: text)),
+                ],
+              ),
+              pw.SizedBox(height: 4),
+              pw.Stack(
+                children: [
+                  pw.Container(
+                    height: 6,
+                    width: breiteGesamt,
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: pw.BorderRadius.circular(3),
+                      border: pw.Border.all(color: divider, width: 0.5),
+                    ),
+                  ),
+                  pw.Container(
+                    height: 6,
+                    width: breiteVerbraucht,
+                    decoration: pw.BoxDecoration(
+                      color: balkenFarbe,
+                      borderRadius: pw.BorderRadius.circular(3),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -632,7 +720,7 @@ class PdfReportService {
 
   static String _zeitraumLabel(DateTime start, DateTime end) {
     const monate = [
-      'Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni',
+      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
       'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
     ];
     if (start.year == end.year && start.month == end.month) {
