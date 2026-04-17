@@ -56,6 +56,8 @@ class HilfeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildWirkungsmessungSection(context),
               const SizedBox(height: 24),
+              _buildBundeslaenderSection(context),
+              const SizedBox(height: 24),
               _buildTimeTrackingSection(context),
               const SizedBox(height: 24),
               _buildChatSection(context),
@@ -276,6 +278,24 @@ class HilfeScreen extends StatelessWidget {
       _buildInfoBox(context, Icons.gavel, Colors.blue,
         '§128 SGB IX (BTHG): Die Wirksamkeit der Eingliederungshilfe muss belegt werden. '
         'In Berlin ab 01.01.2027 durch den neuen Rahmenvertrag verbindlich geregelt.'),
+    ]);
+  }
+
+  Widget _buildBundeslaenderSection(BuildContext context) {
+    return _buildSection(context, 'Bundeslaender und Bedarfsinstrumente', [
+      _buildFeatureItem(context, Icons.map_outlined, 'Alle 16 Bundeslaender',
+        'TIB (Berlin), BEI_NRW, BEI_BW, ITP (6 Laender), HMBV (HH+HB), B.E.Ni (NI), generisches ICF fuer BY/RLP/SL/SH'),
+      _buildFeatureItem(context, Icons.category, 'Automatische Instrument-Auswahl',
+        'Beim Anlegen von Teilhabezielen erscheinen die Lebensbereiche des richtigen Bundeslandes als Dropdown - mit ICF-Code (d1-d9) und Kurzbeschreibung'),
+      _buildFeatureItem(context, Icons.swap_horiz, 'Bundesland aenderbar',
+        'Einstellungen > Zugriffsstatus > Bundesland. Aenderung wirkt ab sofort, bereits erfasste Ziele bleiben erhalten'),
+      _buildFeatureItem(context, Icons.description, 'Formular 101 (Berlin)',
+        'Ausfuellen im offiziellen PDF mit 406 Feldern. Nur in Berlin verfuegbar - andere Laender haben keine ausfuellbaren Vordrucke'),
+      _buildFeatureItem(context, Icons.folder_special, 'Amtliche Formulare-Uebersicht',
+        'Unter Berichte > Amtliche Formulare: Blanko-PDFs (BEI_NRW, PiT Hessen) und Links zu Traegerportalen (PerSEH, ANLEI, LS-EH...)'),
+      _buildInfoBox(context, Icons.gavel, Colors.blue,
+        'Die laenderspezifischen Instrumente sind im Landesrahmenvertrag nach §131 SGB IX verbindlich. '
+        'Die Wirksamkeitsmessung nach §128 SGB IX (GAS + POS) ist bundesweit gleich.'),
     ]);
   }
 
