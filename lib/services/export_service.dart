@@ -111,7 +111,15 @@ class ExportService {
           bytes = _generateMarkdown(content);
           break;
         case ExportFormat.csv:
-          bytes = _generateCSV(arbeitszeiten, appointments, clients);
+          // Wenn der Aufrufer bereits CSV-Content vorbereitet hat, direkt verwenden
+          // (Semikolon-separiert, Excel-DE-kompatibel). Sonst Fallback-Generator.
+          if (content.contains(';') || content.contains(',')) {
+            // Excel erkennt UTF-8-BOM und versteht dann Umlaute korrekt
+            final bom = [0xEF, 0xBB, 0xBF];
+            bytes = Uint8List.fromList([...bom, ...content.codeUnits]);
+          } else {
+            bytes = _generateCSV(arbeitszeiten, appointments, clients);
+          }
           break;
         case ExportFormat.txt:
           bytes = Uint8List.fromList(content.codeUnits);
