@@ -402,17 +402,21 @@ class _DocxBuilder {
         '<w:p><w:pPr><w:spacing w:before="$twip" w:after="0"/></w:pPr></w:p>');
   }
 
-  /// Tabelle. Zelle: (text, _unused, colorHex, bold)
+  /// Tabelle. Zelle: (label, value, colorHex, bold)
   void table(List<List<(String, String, String, bool)>> rows, {bool kpiRow = false}) {
+    if (rows.isEmpty) return;
+    final spalten = rows.first.length;
+    final spaltenBreite = 9000 ~/ spalten; // Gesamt ca. 9000 twips (A4 - Margin)
     _body.write('<w:tbl><w:tblPr>');
     _body.write('<w:tblW w:w="5000" w:type="pct"/>');
     _body.write(
         '<w:tblBorders>'
         '<w:top w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
-        '<w:left w:val="none"/><w:right w:val="none"/>'
+        '<w:left w:val="none" w:sz="0" w:color="auto"/>'
+        '<w:right w:val="none" w:sz="0" w:color="auto"/>'
         '<w:bottom w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
         '<w:insideH w:val="single" w:sz="4" w:color="${DocxReportService._dividerHex}"/>'
-        '<w:insideV w:val="none"/>'
+        '<w:insideV w:val="none" w:sz="0" w:color="auto"/>'
         '</w:tblBorders>');
     _body.write('<w:tblCellMar>'
         '<w:top w:w="120" w:type="dxa"/>'
@@ -421,6 +425,13 @@ class _DocxBuilder {
         '<w:right w:w="120" w:type="dxa"/>'
         '</w:tblCellMar>');
     _body.write('</w:tblPr>');
+
+    // PFLICHT in OOXML: tblGrid mit Spalten-Definitionen
+    _body.write('<w:tblGrid>');
+    for (int i = 0; i < spalten; i++) {
+      _body.write('<w:gridCol w:w="$spaltenBreite"/>');
+    }
+    _body.write('</w:tblGrid>');
     for (int i = 0; i < rows.length; i++) {
       final row = rows[i];
       final isHeader = i == 0 && !kpiRow;
@@ -495,17 +506,19 @@ ${_body.toString()}
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
 </w:styles>''';
 
+    // UTF-8-Bytes erzeugen und korrekte Byte-Laenge verwenden
+    final contentTypesBytes = utf8.encode(contentTypes);
+    final relsBytes = utf8.encode(rels);
+    final docRelsBytes = utf8.encode(docRels);
+    final stylesBytes = utf8.encode(styles);
+    final documentBytes = utf8.encode(document);
+
     final archive = Archive()
-      ..addFile(ArchiveFile('[Content_Types].xml',
-          contentTypes.codeUnits.length, utf8.encode(contentTypes)))
-      ..addFile(ArchiveFile('_rels/.rels',
-          rels.codeUnits.length, utf8.encode(rels)))
-      ..addFile(ArchiveFile('word/_rels/document.xml.rels',
-          docRels.codeUnits.length, utf8.encode(docRels)))
-      ..addFile(ArchiveFile('word/styles.xml',
-          styles.codeUnits.length, utf8.encode(styles)))
-      ..addFile(ArchiveFile('word/document.xml',
-          document.codeUnits.length, utf8.encode(document)));
+      ..addFile(ArchiveFile('[Content_Types].xml', contentTypesBytes.length, contentTypesBytes))
+      ..addFile(ArchiveFile('_rels/.rels', relsBytes.length, relsBytes))
+      ..addFile(ArchiveFile('word/_rels/document.xml.rels', docRelsBytes.length, docRelsBytes))
+      ..addFile(ArchiveFile('word/styles.xml', stylesBytes.length, stylesBytes))
+      ..addFile(ArchiveFile('word/document.xml', documentBytes.length, documentBytes));
 
     final zipped = ZipEncoder().encode(archive);
     if (zipped == null) {

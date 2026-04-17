@@ -339,8 +339,9 @@ class _ExportScreenState extends State<ExportScreen> {
   // ── Export-Funktionen ────────────────────────────────────────────
 
   Future<void> _exportArbeitszeiten(AppProvider appProvider) async {
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final arbeitszeiten = appProvider.getArbeitszeitenByDateRange(_startDate, _endDate);
@@ -352,6 +353,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
         arbeitszeiten: arbeitszeiten,
         startDate: _startDate,
         endDate: _endDate,
@@ -366,8 +368,9 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _exportFachleistungsstunden(AppProvider appProvider) async {
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final appointments = appProvider.appointments.where((a) =>
@@ -381,6 +384,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
         appointments: appointments,
         startDate: _startDate,
         endDate: _endDate,
@@ -395,8 +399,9 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _exportFahrwege(AppProvider appProvider) async {
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final fahrwege = appProvider.getFahrwegeByDateRange(_startDate, _endDate);
@@ -407,6 +412,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
       );
       if (mounted) _feedback(ok, 'Fahrwege', format);
     } catch (e) {
@@ -417,8 +423,9 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _exportDokumentation(AppProvider appProvider) async {
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final appointments = appProvider.appointments.where((a) =>
@@ -432,6 +439,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
         appointments: appointments,
         startDate: _startDate,
         endDate: _endDate,
@@ -505,8 +513,9 @@ class _ExportScreenState extends State<ExportScreen> {
       if (!mounted) return;
     }
 
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final content = _generateKlientenCsv(appProvider.clients);
@@ -516,6 +525,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
         clients: appProvider.clients,
         exportType: 'klienten',
       );
@@ -528,8 +538,9 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _exportStatistics(AppProvider appProvider) async {
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final content = _generateStatisticsReport(appProvider);
@@ -539,6 +550,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
       );
       if (mounted) _feedback(ok, 'Statistiken', format);
     } catch (e) {
@@ -565,8 +577,9 @@ class _ExportScreenState extends State<ExportScreen> {
       _startDate = DateTime(now.year, now.month, 1);
       _endDate = DateTime(now.year, now.month + 1, 0);
     });
-    final format = await ExportService.showFormatSelectionDialog(context);
-    if (format == null || !mounted) return;
+    final options = await ExportService.showFormatAndDestinationDialog(context);
+    if (options == null || !mounted) return;
+    final format = options.format;
     setState(() => _isExporting = true);
     try {
       final arbeitszeiten = appProvider.getArbeitszeitenByDateRange(_startDate, _endDate);
@@ -580,6 +593,7 @@ class _ExportScreenState extends State<ExportScreen> {
         content: content,
         filename: filename,
         format: format,
+        ziel: options.ziel,
         arbeitszeiten: arbeitszeiten,
         appointments: appointments,
       );

@@ -10,16 +10,3 @@ enum ExportFormat {
   final String mimeType;
 }
 
-class ExportOptions {
-  final ExportFormat format;
-  final String? customPath;
-  final String filename;
-
-  const ExportOptions({
-    required this.format,
-    this.customPath,
-    required this.filename,
-  });
-
-  String get fullFilename => '$filename.${format.extension}';
-}
