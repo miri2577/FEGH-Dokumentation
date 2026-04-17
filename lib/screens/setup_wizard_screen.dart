@@ -814,10 +814,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           _buildStorageCard(
             theme: theme,
             icon: Icons.cloud_outlined,
-            title: 'HiDrive Cloud-Sync',
+            title: 'Cloud-Sync (WebDAV)',
             description:
-                'Verschluesselt mit STRATO HiDrive synchronisiert. Ideal fuer Teams und mehrere Geraete.',
-            badge: 'Erfordert HiDrive Business Zugangsdaten',
+                'Verschluesselt mit einem WebDAV-Server synchronisiert. '
+                'Kompatibel mit STRATO HiDrive, Nextcloud, ownCloud und anderen '
+                'WebDAV-kompatiblen Cloud-Anbietern. Ideal fuer Teams und mehrere Geraete.',
+            badge: 'Erfordert Zugangsdaten eines WebDAV-Dienstes',
             selected: _storageMode == StorageMode.hidrive,
             onTap: () => setState(() => _storageMode = StorageMode.hidrive),
           ),
@@ -967,19 +969,47 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('HiDrive Konfiguration', style: theme.textTheme.headlineSmall),
+          Text('Cloud-Zugangsdaten', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Geben Sie Ihre STRATO HiDrive Zugangsdaten ein.',
+            'Geben Sie Ihre Zugangsdaten des Cloud-Anbieters ein (WebDAV-kompatibel, z.B. STRATO HiDrive oder Nextcloud).',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 18),
+                    const SizedBox(width: 6),
+                    Text('Unterstuetzte Cloud-Anbieter',
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text('• STRATO HiDrive - getestet, Rechenzentrum Deutschland',
+                    style: TextStyle(fontSize: 12)),
+                const Text('• Nextcloud / ownCloud - WebDAV-kompatibel',
+                    style: TextStyle(fontSize: 12)),
+                const Text('• Andere WebDAV-Server - experimentell',
+                    style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           TextField(
             controller: _hidriveUsernameController,
             decoration: const InputDecoration(
-              labelText: 'HiDrive Benutzername',
+              labelText: 'Benutzername',
               prefixIcon: Icon(Icons.person_outline),
             ),
             onChanged: (_) => setState(() {}),
@@ -988,7 +1018,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           TextField(
             controller: _hidrivePasswordController,
             decoration: const InputDecoration(
-              labelText: 'HiDrive Passwort',
+              labelText: 'Passwort',
               prefixIcon: Icon(Icons.lock_outline),
             ),
             obscureText: true,
@@ -1104,7 +1134,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     final vorname = _vornameController.text.trim();
     final nachname = _nachnameController.text.trim();
     final modus = _storageMode == StorageMode.hidrive
-        ? 'HiDrive Cloud-Sync'
+        ? 'Cloud-Sync (WebDAV)'
         : 'Lokal (verschluesselt)';
 
     return Center(

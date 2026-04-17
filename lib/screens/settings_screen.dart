@@ -962,11 +962,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Icons.cloud,
             color: isConfigured ? Colors.green : Colors.orange,
           ),
-          title: const Text('HiDrive konfigurieren'),
+          title: const Text('Cloud-Sync konfigurieren'),
           subtitle: Text(
             isConfigured
-                ? 'Konfiguriert für: ${settings.hidriveUsername}'
-                : 'STRATO HiDrive Business mit E2E-Verschlüsselung'
+                ? 'Konfiguriert fuer: ${settings.hidriveUsername}'
+                : 'WebDAV-Cloud (HiDrive, Nextcloud u.a.) mit E2E-Verschluesselung'
           ),
           trailing: Icon(
             isConfigured ? Icons.check_circle : Icons.chevron_right,
@@ -1030,8 +1030,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('Verbindung testen'),
           subtitle: Text(
             isConfigured
-                ? 'HiDrive-Konnektivität prüfen'
-                : 'Zuerst HiDrive konfigurieren'
+                ? 'Cloud-Konnektivitaet pruefen'
+                : 'Zuerst Cloud-Sync konfigurieren'
           ),
           trailing: const Icon(Icons.network_check),
           enabled: isConfigured,
@@ -1952,7 +1952,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setStateSB) => AlertDialog(
         icon: const Icon(Icons.cloud_queue, size: 48, color: Colors.orange),
-        title: const Text('HiDrive Multi-Team Konfiguration'),
+        title: const Text('Cloud-Sync Multi-Team Konfiguration'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1960,8 +1960,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextField(
                 controller: usernameController,
                 decoration: const InputDecoration(
-                  labelText: 'HiDrive Benutzername',
-                  hintText: 'z.B. ihr-username@strato.de',
+                  labelText: 'Benutzername',
+                  hintText: 'z.B. ihr-username@strato.de oder Nextcloud-User',
                   prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
@@ -1971,8 +1971,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  labelText: 'HiDrive Passwort',
-                  hintText: 'Ihr HiDrive Business Passwort',
+                  labelText: 'Passwort',
+                  hintText: 'Passwort des Cloud-Anbieters (HiDrive/Nextcloud)',
                   prefixIcon: Icon(Icons.lock),
                   border: OutlineInputBorder(),
                 ),
@@ -2293,14 +2293,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (result.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('HiDrive-Verbindung erfolgreich!'),
+              content: Text('Cloud-Verbindung erfolgreich!'),
               backgroundColor: Colors.green,
             ),
           );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('HiDrive-Verbindung fehlgeschlagen: ${result.error}'),
+            content: Text('Cloud-Verbindung fehlgeschlagen: ${result.error}'),
             backgroundColor: Colors.red,
           ),
         );
