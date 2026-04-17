@@ -39,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
     if (!_authService.canUseBiometry && !_authService.canUseDeviceAuth) {
       _useAppPassword = true;
     }
-    await _webAuthService.loadCredentials();
+    await _webAuthService.initialize();
     notifyListeners();
   }
 

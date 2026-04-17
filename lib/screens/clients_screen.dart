@@ -13,6 +13,9 @@ import '../models/export_format.dart';
 import 'package:intl/intl.dart';
 import 'create_appointment_screen.dart';
 import 'create_client_screen.dart';
+import 'wirkungsmessung/ziel_liste_screen.dart';
+import 'wirkungsmessung/pos_uebersicht_screen.dart';
+import 'wirkungsmessung/wirkungs_dashboard_screen.dart';
 
 class ClientsScreen extends StatefulWidget {
   final bool showAddDialog;
@@ -344,6 +347,54 @@ class _ClientsScreenState extends State<ClientsScreen> {
             onTap: () {
               Navigator.pop(context);
               _navigateToNewAppointment(context, client);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.insights, color: Colors.deepPurple),
+            title: const Text('Wirkungs-Dashboard'),
+            subtitle: const Text('GAS-Verlauf + POS-Netz + KPIs'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => WirkungsDashboardScreen(
+                    client: client,
+                    bewertetVon: appProvider.settings.userName,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.track_changes, color: Colors.indigo),
+            title: const Text('Teilhabeziele & Wirkung'),
+            subtitle: const Text('GAS-Messung, SMART-Ziele, ICF'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ZielListeScreen(
+                    client: client,
+                    bewertetVon: appProvider.settings.userName,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.assessment, color: Colors.teal),
+            title: const Text('Lebensqualitaet (POS)'),
+            subtitle: const Text('Personal Outcomes Scale - 8 Domaenen'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PosUebersichtScreen(
+                    client: client,
+                    bewertetVon: appProvider.settings.userName,
+                  ),
+                ),
+              );
             },
           ),
           ListTile(
