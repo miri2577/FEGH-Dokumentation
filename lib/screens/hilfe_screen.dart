@@ -56,6 +56,8 @@ class HilfeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildWirkungsmessungSection(context),
               const SizedBox(height: 24),
+              _buildFlsAbrechnungSection(context),
+              const SizedBox(height: 24),
               _buildBundeslaenderSection(context),
               const SizedBox(height: 24),
               _buildTimeTrackingSection(context),
@@ -278,6 +280,30 @@ class HilfeScreen extends StatelessWidget {
       _buildInfoBox(context, Icons.gavel, Colors.blue,
         '§128 SGB IX (BTHG): Die Wirksamkeit der Eingliederungshilfe muss belegt werden. '
         'In Berlin ab 01.01.2027 durch den neuen Rahmenvertrag verbindlich geregelt.'),
+    ]);
+  }
+
+  Widget _buildFlsAbrechnungSection(BuildContext context) {
+    return _buildSection(context, 'Fachleistungsstunden und Abrechnung', [
+      _buildFeatureItem(context, Icons.schedule, 'FLS aus Terminen',
+        'Dauer in Minuten wird automatisch zu Fachleistungsstunden umgerechnet. Direkt + indirekte Termine (mit Klient-Verteilung) werden getrennt aggregiert'),
+      _buildFeatureItem(context, Icons.event_repeat, 'Intervall-Budget',
+        'FLS-Verbrauch pro Zeitraum (Woche/Monat/Jahr) - kein kumulativer Ueberlauf. Budget wird bei jedem Terminspeichern geprueft'),
+      _buildFeatureItem(context, Icons.warning_amber, 'Budget-Warnung',
+        'Warnung ab 90 % Kontingent, rote Warnung ab 100 %. Verhindert Ueberabrechnung und Regressrisiko'),
+      _buildFeatureItem(context, Icons.receipt_long, 'XRechnung-Export',
+        'UBL 2.1 / XRechnung 3.0 Format mit Leitweg-ID. Fuer OZG-RE oder PEPPOL. Steuerbefreiung §4 Nr. 16 h / 25 / 18 UStG waehlbar'),
+      _buildFeatureItem(context, Icons.task_alt, 'Plausi-Check',
+        'Vor Rechnungserstellung: Leitweg-ID, Aktenzeichen, Leistungstyp, Bewilligungsbescheid, Budget werden geprueft'),
+      _buildFeatureItem(context, Icons.undo, 'Storno-Rechnung',
+        'Stornorechnung mit negativen Betraegen, Verweis auf Original, automatischer Status-Wechsel'),
+      _buildInfoBox(context, Icons.error_outline, Colors.orange,
+        'Kalkulationsfaktor (z.B. 1,33) ist NUR INFORMATIV fuer die Personalplanung. '
+        'Er wird NICHT auf Rechnungen angewendet - der Faktor ist bereits im Stundensatz '
+        'aus der §125-Verguetungsvereinbarung eingepreist (Doppelberechnungs-Verbot).'),
+      _buildInfoBox(context, Icons.gavel, Colors.blue,
+        'E-Rechnungspflicht seit 01.01.2025 in Deutschland. B2G-Empfang zwingend '
+        'als XRechnung. In Berlin Einreichung ueber OZG-RE (xrechnung.bund.de).'),
     ]);
   }
 
