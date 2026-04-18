@@ -58,33 +58,49 @@ class AdminService {
       });
 
       // 3. Wenn HiDrive konfiguriert: zusaetzlich hochladen
+      bool cloudOk = false;
       if (hasHidrive) {
-        final teamSync = HiDriveBusinessSync.forTeam(
-          username: settings.hidriveUsername,
-          password: settings.hidrivePassword,
-          organizationId: settings.organizationId,
-          teamId: team.id,
-          rootSubdirectory: settings.rootSubdirectory.isNotEmpty
-              ? settings.rootSubdirectory
-              : null,
-        );
-        final setupResult = await teamSync.setupRemoteDirectory();
-        if (!setupResult.isSuccess) {
-          await FileLogger().log(
-              '⚠️ Team-Ordner HiDrive-Setup fehlgeschlagen: ${setupResult.error} - Team bleibt lokal');
-        } else {
-          await _uploadTeamKey(team.id, teamKey);
-          final encBytes = Uint8List.fromList(utf8.encode(jsonEncode(encryptedInfo)));
-          await adminSync.uploadOrgScopedRecord(
-            'teams/${team.id}',
-            'team-info',
-            encBytes,
+        try {
+          final teamSync = HiDriveBusinessSync.forTeam(
+            username: settings.hidriveUsername,
+            password: settings.hidrivePassword,
+            organizationId: settings.organizationId,
+            teamId: team.id,
+            rootSubdirectory: settings.rootSubdirectory.isNotEmpty
+                ? settings.rootSubdirectory
+                : null,
           );
+          final setupResult = await teamSync.setupRemoteDirectory();
+          if (!setupResult.isSuccess) {
+            await FileLogger().log(
+                '⚠️ HiDrive-Ordner-Setup fehlgeschlagen: ${setupResult.error}');
+          } else {
+            final keyOk = await _uploadTeamKey(team.id, teamKey);
+            final encBytes =
+                Uint8List.fromList(utf8.encode(jsonEncode(encryptedInfo)));
+            final infoResult = await adminSync.uploadOrgScopedRecord(
+              'teams/${team.id}',
+              'team-info',
+              encBytes,
+            );
+            cloudOk = keyOk && infoResult.isSuccess;
+            if (!keyOk) {
+              await FileLogger().log(
+                  '⚠️ Team-Key-Upload fehlgeschlagen fuer ${team.id}');
+            }
+            if (!infoResult.isSuccess) {
+              await FileLogger().log(
+                  '⚠️ Team-Info-Upload fehlgeschlagen: ${infoResult.error}');
+            }
+          }
+        } catch (e) {
+          await FileLogger().log('⚠️ HiDrive-Upload Exception: $e');
         }
       }
 
       await FileLogger().log(
-          '✅ Team erstellt: ${team.name} (${team.id}) ${hasHidrive ? "+ HiDrive" : "[lokal]"}');
+          '✅ Team erstellt: ${team.name} (${team.id}) '
+          '${cloudOk ? "+ HiDrive" : hasHidrive ? "[NUR LOKAL - HiDrive schlug fehl]" : "[lokal]"}');
       return true;
     } catch (e) {
       if (kDebugMode) debugPrint('[ADMIN] createTeam error: $e');
@@ -93,7 +109,53 @@ class AdminService {
     }
   }
 
-  /// Lädt alle Teams aus der Organisation.
+  /// Laedt nur lokal gespeicherte Teams (ohne HiDrive).
+  Future<List<Team>> listTeamsLocal() async {
+    final teams = <Team>[];
+    try {
+      final manifest = await crypto.loadManifest();
+      for (final entry in manifest.entries.where((e) => e.schema == 'team-info')) {
+        try {
+          final data = await crypto.loadJsonDecrypted(entry.uuid);
+          final rec = data['record'] as Map<String, dynamic>;
+          final clearBytes = await crypto.decryptRecord(rec);
+          teams.add(Team.fromJson(jsonDecode(utf8.decode(clearBytes))));
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return teams;
+  }
+
+  /// Laedt nur Teams aus HiDrive (ohne lokalen Store).
+  /// Liefert null wenn HiDrive nicht konfiguriert oder nicht erreichbar.
+  Future<List<Team>?> listTeamsCloud() async {
+    if (settings.hidriveUsername.isEmpty || settings.hidrivePassword.isEmpty) {
+      return null;
+    }
+    try {
+      final result = await adminSync.listOrgScopedDirectories('teams');
+      if (!result.isSuccess || result.data == null) return null;
+      final teams = <Team>[];
+      for (final teamDir in result.data!) {
+        try {
+          final infoResult = await adminSync.downloadOrgScopedRecord(
+            'teams/$teamDir',
+            'team-info',
+          );
+          if (infoResult.isSuccess && infoResult.data != null) {
+            final encJson = jsonDecode(utf8.decode(infoResult.data!));
+            final clearBytes = await crypto.decryptRecord(encJson);
+            teams.add(Team.fromJson(jsonDecode(utf8.decode(clearBytes))));
+          }
+        } catch (_) {}
+      }
+      return teams;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Lädt alle Teams aus der Organisation (lokal + Cloud, gemergt).
   Future<List<Team>> listTeams() async {
     final teamsById = <String, Team>{};
 

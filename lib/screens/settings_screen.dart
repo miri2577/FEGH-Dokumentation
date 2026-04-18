@@ -642,6 +642,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leading: Icon(s.isAdmin ? Icons.verified_user : Icons.person),
           title: const Text('Rolle'),
           subtitle: Text(perms.roleDisplayName),
+          trailing: s.isAdmin
+              ? null
+              : TextButton.icon(
+                  icon: const Icon(Icons.admin_panel_settings, size: 16),
+                  label: const Text('Admin werden'),
+                  onPressed: () => _makeAdmin(appProvider),
+                ),
         ),
         // TOTP 2FA Status
         ListTile(
@@ -674,6 +681,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
               .toList(),
         ),
       ],
+    );
+  }
+
+  Future<void> _makeAdmin(AppProvider appProvider) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.admin_panel_settings, size: 40, color: Colors.indigo),
+        title: const Text('Admin-Modus aktivieren?'),
+        content: const Text(
+          'Setzt deine Rolle auf Org-Admin. Du bekommst dann Zugriff auf den '
+          'Verwaltung-Tab und kannst Teams, Mitarbeiter und Rollen verwalten.\n\n'
+          'Diese Funktion ist fuer Solo-Admins kleiner Traeger gedacht. In '
+          'groesseren Organisationen sollte die Rolle ueber einen Provisioning-'
+          'QR von der Verwaltungs-App gesetzt werden.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Admin werden'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await appProvider.forceAdminRole();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Admin-Modus aktiv. Verwaltung-Tab ist jetzt sichtbar.'),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 
