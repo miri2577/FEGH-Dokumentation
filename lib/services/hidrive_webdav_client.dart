@@ -17,6 +17,7 @@ class HiDriveWebDAVClient {
   final List<String> certificatePins;
 
   late http.Client _httpClient;
+  late final cloud.HidriveAdapter _adapter;
 
   HiDriveWebDAVClient({
     required this.baseUrl,
@@ -25,6 +26,11 @@ class HiDriveWebDAVClient {
     required this.certificatePins,
   }) {
     _httpClient = _createSecureHttpClient();
+    _adapter = cloud.HidriveAdapter(
+      username: username,
+      password: password,
+      baseUrlOverride: baseUrl,
+    );
   }
 
   http.Client _createSecureHttpClient() {
@@ -42,277 +48,112 @@ class HiDriveWebDAVClient {
   };
 
   Future<WebDAVResult> put(String remotePath, Uint8List data) async {
-    try {
-      final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
-      final uri = Uri.parse('$baseUrl/$normalized');
-
-      final request = http.Request('PUT', uri);
-      request.headers.addAll(_headers);
-      request.bodyBytes = data;
-
-      final streamedResponse = await _httpClient.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        await FileLogger().log('📤 PUT $normalized -> ${response.statusCode}');
-        return WebDAVResult.success();
-      } else {
-        final err = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
-        await FileLogger().log('❌ PUT $normalized failed: $err');
-        return WebDAVResult.failure(err);
-      }
-    } catch (e) {
-      await FileLogger().log('❌ PUT $remotePath exception: $e');
-      return WebDAVResult.failure('Upload fehlgeschlagen: $e');
+    final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
+    final result = await _adapter.upload(normalized, data);
+    if (result.isSuccess) {
+      await FileLogger().log('📤 PUT $normalized -> OK');
+      return WebDAVResult.success();
     }
+    await FileLogger().log('❌ PUT $normalized failed: ${result.error}');
+    return WebDAVResult.failure(result.error ?? 'PUT fehlgeschlagen');
   }
 
   Future<WebDAVResult<Uint8List>> get(String remotePath) async {
-    try {
-      final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
-      final uri = Uri.parse('$baseUrl/$normalized');
-      final response = await _httpClient.get(uri, headers: _headers);
-
-      if (response.statusCode == 200) {
-        await FileLogger().log('📥 GET $normalized -> 200');
-        return WebDAVResult.success(data: response.bodyBytes);
-      } else if (response.statusCode == 404) {
-        await FileLogger().log('📥 GET $normalized -> 404');
-        return WebDAVResult.failure('Datei nicht gefunden');
-      } else {
-        final err = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
-        await FileLogger().log('❌ GET $normalized failed: $err');
-        return WebDAVResult.failure(err);
-      }
-    } catch (e) {
-      await FileLogger().log('❌ GET $remotePath exception: $e');
-      return WebDAVResult.failure('Download fehlgeschlagen: $e');
+    final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
+    final result = await _adapter.download(normalized);
+    if (result.isSuccess) {
+      await FileLogger().log('📥 GET $normalized -> OK');
+      return WebDAVResult.success(data: result.data);
     }
+    if (result.statusCode == 404) {
+      await FileLogger().log('📥 GET $normalized -> 404');
+      return WebDAVResult.failure('Datei nicht gefunden');
+    }
+    await FileLogger().log('❌ GET $normalized failed: ${result.error}');
+    return WebDAVResult.failure(result.error ?? 'Download fehlgeschlagen');
   }
 
   Future<WebDAVResult> delete(String remotePath) async {
-    try {
-      final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
-      final uri = Uri.parse('$baseUrl/$normalized');
-      final response = await _httpClient.delete(uri, headers: _headers);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return WebDAVResult.success();
-      } else if (response.statusCode == 404) {
-        await FileLogger().log('🗑️ DELETE $normalized -> 404 (ok)');
-        return WebDAVResult.success();
-      } else {
-        final err = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
-        await FileLogger().log('❌ DELETE $normalized failed: $err');
-        return WebDAVResult.failure(err);
-      }
-    } catch (e) {
-      await FileLogger().log('❌ DELETE $remotePath exception: $e');
-      return WebDAVResult.failure('Löschen fehlgeschlagen: $e');
-    }
+    final normalized = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
+    final result = await _adapter.delete(normalized);
+    if (result.isSuccess) return WebDAVResult.success();
+    await FileLogger().log('❌ DELETE $normalized failed: ${result.error}');
+    return WebDAVResult.failure(result.error ?? 'Löschen fehlgeschlagen');
   }
 
   Future<WebDAVResult<List<String>>> list(String remotePath) async {
-    try {
-      final normalizedPath = remotePath.isEmpty
-          ? ''
-          : (remotePath.endsWith('/') ? remotePath : '$remotePath/');
-      final uri = Uri.parse('$baseUrl/$normalizedPath');
-      final request = http.Request('PROPFIND', uri);
-      request.headers.addAll(_headers);
-      request.headers['Depth'] = '1';
-      // WebDAV PROPFIND expects an XML content type
-      request.headers['Content-Type'] = 'text/xml; charset=utf-8';
-      request.body = '''<?xml version="1.0" encoding="utf-8"?>
-<d:propfind xmlns:d="DAV:">
-  <d:prop>
-    <d:displayname/>
-    <d:getcontentlength/>
-    <d:getlastmodified/>
-  </d:prop>
-</d:propfind>''';
-
-      final streamedResponse = await _httpClient.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 207) {
-        final files = _parseWebDAVResponse(response.body)
-            .where((name) => name.isNotEmpty && !name.endsWith('/'))
-            .toList();
-        await FileLogger().log('📂 LIST $normalizedPath -> ${files.length} items');
-        return WebDAVResult.success(data: files);
-      } else {
-        final err = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
-        await FileLogger().log('❌ LIST $normalizedPath failed: $err');
-        return WebDAVResult.failure(err);
-      }
-    } catch (e) {
-      await FileLogger().log('❌ LIST $remotePath exception: $e');
-      return WebDAVResult.failure('Auflistung fehlgeschlagen: $e');
+    final result = await _adapter.list(remotePath);
+    if (result.isSuccess) {
+      final names = result.data!
+          .where((e) => !e.isDirectory)
+          .map((e) => e.name)
+          .toList();
+      await FileLogger().log('📂 LIST $remotePath -> ${names.length} items');
+      return WebDAVResult.success(data: names);
     }
+    await FileLogger().log('❌ LIST $remotePath failed: ${result.error}');
+    return WebDAVResult.failure(result.error ?? 'LIST fehlgeschlagen');
   }
 
-  List<String> _parseWebDAVResponse(String xmlResponse) {
-    final files = <String>[];
-
-    final responseRegex = RegExp(r'<d:displayname[^>]*>([^<]+)</d:displayname>');
-    final matches = responseRegex.allMatches(xmlResponse);
-
-    for (final match in matches) {
-      final filename = match.group(1);
-      if (filename != null && filename.isNotEmpty && !filename.endsWith('/')) {
-        files.add(filename);
-      }
-    }
-
-    return files;
-  }
-
-  // Detaillierte Auflistung (Dateien und Ordner)
+  // Detaillierte Auflistung (Dateien und Ordner) via fegh_cloud HidriveAdapter.
   Future<WebDAVResult<List<WebDavItem>>> listDetailed(String remotePath) async {
-    try {
-      final normalizedPath = remotePath.isEmpty
-          ? ''
-          : (remotePath.endsWith('/') ? remotePath : '$remotePath/');
-      final uri = Uri.parse('$baseUrl/$normalizedPath');
-      final request = http.Request('PROPFIND', uri);
-      request.headers.addAll(_headers);
-      request.headers['Depth'] = '1';
-      request.headers['Content-Type'] = 'text/xml; charset=utf-8';
-      request.body = '''<?xml version="1.0" encoding="utf-8"?>
-<d:propfind xmlns:d="DAV:">
-  <d:prop>
-    <d:displayname/>
-    <d:getcontentlength/>
-    <d:getlastmodified/>
-    <d:resourcetype/>
-  </d:prop>
-</d:propfind>''';
-
-      final streamedResponse = await _httpClient.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
-      if (response.statusCode != 207) {
-        final err = 'HTTP ${response.statusCode}: ${response.reasonPhrase}';
-        await FileLogger().log('❌ LIST DETAILED $normalizedPath failed: $err');
-        return WebDAVResult.failure(err);
-      }
-
-      final xml = response.body;
-      debugPrint('[WEBDAV] listDetailed RAW response (first 2000 chars): ${xml.substring(0, xml.length > 2000 ? 2000 : xml.length)}');
-      final items = <WebDavItem>[];
-
-      final blockRegex = RegExp(r'<[Dd]:response[\s\S]*?</[Dd]:response>', multiLine: true);
-      final nameRegex = RegExp(r'<[^>]*displayname[^>]*>([^<]+)</[^>]*displayname>', caseSensitive: false);
-      final hrefRegex = RegExp(r'<[Dd]:href>([^<]+)</[Dd]:href>');
-      final modRegex = RegExp(r'<[^>]*getlastmodified[^>]*>([^<]+)</[^>]*getlastmodified>', caseSensitive: false);
-      final lenRegex = RegExp(r'<[^>]*getcontentlength[^>]*>([^<]+)</[^>]*getcontentlength>', caseSensitive: false);
-
-      bool isFirst = true; // Erster Response-Block ist der Parent-Ordner selbst
-
-      for (final match in blockRegex.allMatches(xml)) {
-        // Ersten Eintrag ueberspringen (Parent-Ordner)
-        if (isFirst) { isFirst = false; continue; }
-
-        final block = match.group(0) ?? '';
-        final lower = block.toLowerCase();
-        final isDir = lower.contains('collection');
-
-        // Name aus displayname oder href extrahieren
-        final nameMatch = nameRegex.firstMatch(block);
-        String name = nameMatch?.group(1) ?? '';
-
-        // Fallback: Name aus href-Pfad extrahieren
-        if (name.isEmpty) {
-          final hrefMatch = hrefRegex.firstMatch(block);
-          if (hrefMatch != null) {
-            final href = hrefMatch.group(1) ?? '';
-            final segments = href.split('/').where((s) => s.isNotEmpty).toList();
-            if (segments.isNotEmpty) {
-              name = segments.last;
-            }
-          }
-        }
-
-        if (name.isEmpty) continue;
-
-        int? size;
-        final len = lenRegex.firstMatch(block)?.group(1);
-        if (len != null) {
-          final parsed = int.tryParse(len);
-          if (parsed != null) size = parsed;
-        }
-
-        DateTime? lastModified;
-        final lm = modRegex.firstMatch(block)?.group(1);
-        if (lm != null) {
-          try { lastModified = DateTime.parse(lm); } catch (_) {}
-        }
-
-        items.add(WebDavItem(
-          name: name,
-          isDirectory: isDir,
-          size: size,
-          lastModified: lastModified,
-        ));
-      }
-
-      await FileLogger().log('📂 LIST DETAILED $normalizedPath -> ${items.length} items');
+    final result = await _adapter.list(remotePath);
+    if (result.isSuccess) {
+      final items = result.data!
+          .map((e) => WebDavItem(
+                name: e.name,
+                isDirectory: e.isDirectory,
+                size: e.size,
+                lastModified: e.lastModified,
+              ))
+          .toList();
+      await FileLogger().log(
+          '📂 LIST DETAILED $remotePath -> ${items.length} items');
       return WebDAVResult.success(data: items);
-    } catch (e) {
-      await FileLogger().log('❌ LIST DETAILED $remotePath exception: $e');
-      return WebDAVResult.failure('Auflistung (detailliert) fehlgeschlagen: $e');
     }
+    await FileLogger().log(
+        '❌ LIST DETAILED $remotePath failed: ${result.error}');
+    return WebDAVResult.failure(
+      result.error ?? 'Auflistung (detailliert) fehlgeschlagen',
+    );
   }
 
   Future<WebDAVResult<List<String>>> listDirectories(String remotePath) async {
-    final res = await listDetailed(remotePath);
-    if (!res.isSuccess || res.data == null) return WebDAVResult.failure(res.error);
-    final dirs = res.data!
-        .where((i) => i.isDirectory)
-        .map((i) => i.name)
+    final result = await _adapter.listDirectories(remotePath);
+    if (!result.isSuccess) return WebDAVResult.failure(result.error);
+    final dirs = result.data!
+        .map((e) => e.name)
         .where((n) => n.isNotEmpty)
         .toList();
     return WebDAVResult.success(data: dirs);
   }
 
   Future<WebDAVResult> createDirectory(String remotePath) async {
-    // Delegiert an fegh_cloud HidriveAdapter (webdav_client-basiert).
-    // Ersetzt den frueheren Pinning-Bypass strukturell und behandelt
-    // STRATO-Quirks (MKCOL-Content-Type-Sensitivitaet) korrekt.
-    final adapter = cloud.HidriveAdapter(
-      username: username,
-      password: password,
-    );
-    try {
-      final result = await adapter.createDirectory(remotePath);
-      if (result.isSuccess) return WebDAVResult.success();
-      return WebDAVResult.failure(result.error ?? 'MKCOL fehlgeschlagen');
-    } finally {
-      adapter.dispose();
-    }
+    final result = await _adapter.createDirectory(remotePath);
+    if (result.isSuccess) return WebDAVResult.success();
+    return WebDAVResult.failure(result.error ?? 'MKCOL fehlgeschlagen');
   }
 
   Future<WebDAVResult> testConnection() async {
-    try {
-      final result = await list('');
-      if (result.isSuccess) {
-        await FileLogger().log('✅ TestConnection: LIST base OK');
-        return WebDAVResult.success();
-      }
-      // Tolerate 404 (Ordner existiert noch nicht). Auth ist i. d. R. OK.
-      if (result.error != null && result.error!.contains('404')) {
-        await FileLogger().log('ℹ️ TestConnection: base 404 (Ordner fehlt) – akzeptiert');
-        return WebDAVResult.success();
-      }
-      await FileLogger().log('❌ TestConnection failed: ${result.error}');
-      return WebDAVResult.failure('Verbindungstest fehlgeschlagen: ${result.error}');
-    } catch (e) {
-      return WebDAVResult.failure('Verbindungstest fehlgeschlagen: $e');
+    final result = await _adapter.testConnection();
+    if (result.isSuccess) {
+      await FileLogger().log('✅ TestConnection OK');
+      return WebDAVResult.success();
     }
+    // 404 = OK (Ordner existiert noch nicht, Auth aber korrekt)
+    if (result.error != null && result.error!.contains('404')) {
+      await FileLogger().log('ℹ️ TestConnection: 404 (akzeptiert)');
+      return WebDAVResult.success();
+    }
+    await FileLogger().log('❌ TestConnection failed: ${result.error}');
+    return WebDAVResult.failure(
+      'Verbindungstest fehlgeschlagen: ${result.error}',
+    );
   }
 
   void dispose() {
     _httpClient.close();
+    _adapter.dispose();
   }
 }
 
