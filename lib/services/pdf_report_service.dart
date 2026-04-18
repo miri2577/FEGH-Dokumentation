@@ -1,5 +1,5 @@
 import 'dart:typed_data' show Uint8List;
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:fegh_pdf_kit/fegh_pdf_kit.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
@@ -7,32 +7,24 @@ import '../models/arbeitszeit.dart';
 import '../models/appointment.dart';
 import '../models/client.dart';
 
-/// Einheitliches PDF-Design-System fuer alle App-Reports.
+/// App-Reports fuer die FEGH-Dokumentation.
 ///
-/// Hybrid-Stil: behoerdlicher Kopf + Unterschriften, moderne Typografie
-/// und Balken-Diagramme. Robotofont eingebettet fuer korrekte Umlaute.
+/// Design-System und Layout-Bausteine kommen aus
+/// `package:fegh_pdf_kit/fegh_pdf_kit.dart` (Header, Footer, Hero,
+/// KpiRow, SectionHeading, SignatureRow, StandardTable, BarList,
+/// EmptyState, PreviewScreen). Hier bleiben nur die App-spezifischen
+/// Reports (Arbeitszeit, FLS, Klienten) und deren Tabellen/Karten.
 class PdfReportService {
-  // ── Design-Tokens ────────────────────────────────────────────────
-  static const PdfColor primaer = PdfColor.fromInt(0xFF1E3A5F);
-  static const PdfColor text = PdfColor.fromInt(0xFF1F2937);
-  static const PdfColor muted = PdfColor.fromInt(0xFF6B7280);
-  static const PdfColor divider = PdfColor.fromInt(0xFFE5E7EB);
-  static const PdfColor accent = PdfColor.fromInt(0xFF0F766E);
-  static const PdfColor warn = PdfColor.fromInt(0xFFB91C1C);
-  static const PdfColor tableHeader = PdfColor.fromInt(0xFFF3F4F6);
+  static const _appName = 'FEGH-Dokumentation';
+  static const _appTagline = 'Eingliederungshilfe nach SGB IX';
 
-  // ── Font-Cache (einmalig geladen) ────────────────────────────────
-  static pw.Font? _regular;
-  static pw.Font? _bold;
-
-  static Future<pw.ThemeData> _theme() async {
-    _regular ??= pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Regular.ttf'));
-    _bold ??= pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
-    return pw.ThemeData.withFont(
-      base: _regular!,
-      bold: _bold!,
-    );
-  }
+  // App-interne Aliasse fuer Design-Tokens (Klient-Karten nutzen sie).
+  static const PdfColor primaer = PdfDesignTokens.primaer;
+  static const PdfColor text = PdfDesignTokens.text;
+  static const PdfColor muted = PdfDesignTokens.muted;
+  static const PdfColor divider = PdfDesignTokens.divider;
+  static const PdfColor accent = PdfDesignTokens.accent;
+  static const PdfColor warn = PdfDesignTokens.warn;
 
   // ═════════════════════════════════════════════════════════════════
   // OEFFENTLICHE REPORT-METHODEN
@@ -46,7 +38,7 @@ class PdfReportService {
     String? autor,
     String? aktenzeichen,
   }) async {
-    final theme = await _theme();
+    final theme = await PdfFontCache.theme();
     final pdf = pw.Document(theme: theme);
     final df = DateFormat('dd.MM.yyyy');
 
@@ -58,41 +50,47 @@ class PdfReportService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(50, 40, 50, 50),
-      header: (ctx) => _header('Arbeitszeit-Bericht', aktenzeichen),
-      footer: _footer,
+      header: (ctx) => buildHeader(
+        title: 'Arbeitszeit-Bericht',
+        appName: _appName,
+        appTagline: _appTagline,
+        aktenzeichen: aktenzeichen,
+      ),
+      footer: buildFooter(appName: _appName),
       build: (ctx) => [
         pw.SizedBox(height: 20),
-        _hero(titel: zeitraumLabel,
-            untertitel: '${df.format(startDate)} bis ${df.format(endDate)}'),
+        buildHero(
+          label: 'ZEITRAUM',
+          title: zeitraumLabel,
+          subtitle: '${df.format(startDate)} bis ${df.format(endDate)}',
+        ),
         pw.SizedBox(height: 32),
-        _kpiReihe([
-          _KpiDaten('Gesamtarbeitszeit', '${gesamtH.toStringAsFixed(1)} h', primaer, hero: true),
-          _KpiDaten('Einträge', '${arbeitszeiten.length}', text),
-          _KpiDaten('Durchschnitt', '${durchschnittH.toStringAsFixed(1)} h/Tag', text),
+        buildKpiRow([
+          PdfKpi(label: 'Gesamtarbeitszeit', value: '${gesamtH.toStringAsFixed(1)} h', color: primaer, hero: true),
+          PdfKpi(label: 'Eintraege', value: '${arbeitszeiten.length}', color: text),
+          PdfKpi(label: 'Durchschnitt', value: '${durchschnittH.toStringAsFixed(1)} h/Tag', color: text),
           if (stats.ueberstunden.abs() > 0.01)
-            _KpiDaten(
-              'Saldo',
-              '${stats.ueberstunden >= 0 ? "+" : ""}${stats.ueberstunden.toStringAsFixed(1)} h',
-              stats.ueberstunden >= 0 ? accent : warn,
+            PdfKpi(
+              label: 'Saldo',
+              value: '${stats.ueberstunden >= 0 ? "+" : ""}${stats.ueberstunden.toStringAsFixed(1)} h',
+              color: stats.ueberstunden >= 0 ? accent : warn,
             ),
         ]),
         pw.SizedBox(height: 32),
-
         if (stats.verteilung.isNotEmpty) ...[
-          _sektion('I', 'Verteilung nach Tätigkeit'),
+          buildSectionHeading('I', 'Verteilung nach Taetigkeit'),
           pw.SizedBox(height: 14),
-          _balken(stats.verteilung, gesamtH),
+          buildHorizontalBarList(stats.verteilung, total: gesamtH),
           pw.SizedBox(height: 28),
         ],
-
-        _sektion(stats.verteilung.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
+        buildSectionHeading(stats.verteilung.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
         pw.SizedBox(height: 14),
         if (arbeitszeiten.isEmpty)
-          _keineDaten('Keine Arbeitszeiten im gewählten Zeitraum.')
+          buildEmptyState('Keine Arbeitszeiten im gewaehlten Zeitraum.')
         else
           _arbeitszeitenTabelle(arbeitszeiten),
         pw.SizedBox(height: 40),
-        _unterschriften(autor),
+        buildSignatureRow(authorName: autor),
       ],
     ));
     return pdf.save();
@@ -106,7 +104,7 @@ class PdfReportService {
     String? autor,
     String? aktenzeichen,
   }) async {
-    final theme = await _theme();
+    final theme = await PdfFontCache.theme();
     final pdf = pw.Document(theme: theme);
     final df = DateFormat('dd.MM.yyyy');
 
@@ -117,49 +115,59 @@ class PdfReportService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(50, 40, 50, 50),
-      header: (ctx) => _header('Fachleistungsstunden', aktenzeichen),
-      footer: _footer,
+      header: (ctx) => buildHeader(
+        title: 'Fachleistungsstunden',
+        appName: _appName,
+        appTagline: _appTagline,
+        aktenzeichen: aktenzeichen,
+      ),
+      footer: buildFooter(appName: _appName),
       build: (ctx) => [
         pw.SizedBox(height: 20),
-        _hero(titel: zeitraumLabel,
-            untertitel: '${df.format(startDate)} bis ${df.format(endDate)}'),
+        buildHero(
+          label: 'ZEITRAUM',
+          title: zeitraumLabel,
+          subtitle: '${df.format(startDate)} bis ${df.format(endDate)}',
+        ),
         pw.SizedBox(height: 32),
-        _kpiReihe([
-          _KpiDaten('Gesamt-FLS', '${stats.gesamt.toStringAsFixed(2)} h', primaer, hero: true),
-          _KpiDaten('Termine', '${relevante.length}', text),
-          _KpiDaten('Klienten', '${stats.proKlient.length}', text),
+        buildKpiRow([
+          PdfKpi(label: 'Gesamt-FLS', value: '${stats.gesamt.toStringAsFixed(2)} h', color: primaer, hero: true),
+          PdfKpi(label: 'Termine', value: '${relevante.length}', color: text),
+          PdfKpi(label: 'Klienten', value: '${stats.proKlient.length}', color: text),
           if (stats.proKlient.isNotEmpty)
-            _KpiDaten('Top-Klient', '${stats.proKlient.values.first.toStringAsFixed(1)} h', accent),
+            PdfKpi(
+              label: 'Top-Klient',
+              value: '${stats.proKlient.values.first.toStringAsFixed(1)} h',
+              color: accent,
+            ),
         ]),
         pw.SizedBox(height: 32),
-
         if (stats.proKlient.isNotEmpty) ...[
-          _sektion('I', 'Verteilung pro Klient'),
+          buildSectionHeading('I', 'Verteilung pro Klient'),
           pw.SizedBox(height: 14),
-          _balken(stats.proKlient, stats.gesamt),
+          buildHorizontalBarList(stats.proKlient, total: stats.gesamt),
           pw.SizedBox(height: 28),
         ],
-
-        _sektion(stats.proKlient.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
+        buildSectionHeading(stats.proKlient.isNotEmpty ? 'II' : 'I', 'Einzelnachweis'),
         pw.SizedBox(height: 14),
         if (relevante.isEmpty)
-          _keineDaten('Keine Fachleistungsstunden im gewählten Zeitraum.')
+          buildEmptyState('Keine Fachleistungsstunden im gewaehlten Zeitraum.')
         else
           _flsTabelle(relevante),
         pw.SizedBox(height: 40),
-        _unterschriften(autor),
+        buildSignatureRow(authorName: autor),
       ],
     ));
     return pdf.save();
   }
 
-  /// Klienten-Übersicht als Report.
+  /// Klienten-Uebersicht als Report.
   static Future<Uint8List> generateKlientenReport({
     required List<Client> clients,
     String? autor,
     String? aktenzeichen,
   }) async {
-    final theme = await _theme();
+    final theme = await PdfFontCache.theme();
     final pdf = pw.Document(theme: theme);
 
     int mitEinwilligung = 0;
@@ -179,293 +187,58 @@ class PdfReportService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(50, 40, 50, 50),
-      header: (ctx) => _header('Klienten-Übersicht', aktenzeichen),
-      footer: _footer,
+      header: (ctx) => buildHeader(
+        title: 'Klienten-Uebersicht',
+        appName: _appName,
+        appTagline: _appTagline,
+        aktenzeichen: aktenzeichen,
+      ),
+      footer: buildFooter(appName: _appName),
       build: (ctx) => [
         pw.SizedBox(height: 20),
-        _hero(titel: 'Klienten-Übersicht',
-            untertitel: 'Stand ${DateFormat('dd.MM.yyyy').format(DateTime.now())}'),
+        buildHero(
+          label: 'ZEITRAUM',
+          title: 'Klienten-Uebersicht',
+          subtitle: 'Stand ${DateFormat('dd.MM.yyyy').format(DateTime.now())}',
+        ),
         pw.SizedBox(height: 32),
-        _kpiReihe([
-          _KpiDaten('Klienten gesamt', '${clients.length}', primaer, hero: true),
-          _KpiDaten('Mit Einwilligung', '$mitEinwilligung / ${clients.length}',
-              mitEinwilligung == clients.length ? accent : warn),
+        buildKpiRow([
+          PdfKpi(label: 'Klienten gesamt', value: '${clients.length}', color: primaer, hero: true),
+          PdfKpi(
+            label: 'Mit Einwilligung',
+            value: '$mitEinwilligung / ${clients.length}',
+            color: mitEinwilligung == clients.length ? accent : warn,
+          ),
           if (totalFlsBewilligt > 0)
-            _KpiDaten('FLS bewilligt', '${totalFlsBewilligt.toStringAsFixed(0)} h', text),
+            PdfKpi(
+              label: 'FLS bewilligt',
+              value: '${totalFlsBewilligt.toStringAsFixed(0)} h',
+              color: text,
+            ),
           if (totalFlsBewilligt > 0)
-            _KpiDaten('Auslastung', '${auslastung.toStringAsFixed(0)} %',
-                auslastung >= 90 ? warn : (auslastung >= 75 ? accent : text)),
+            PdfKpi(
+              label: 'Auslastung',
+              value: '${auslastung.toStringAsFixed(0)} %',
+              color: auslastung >= 90 ? warn : (auslastung >= 75 ? accent : text),
+            ),
         ]),
         pw.SizedBox(height: 32),
-
-        _sektion('I', 'Klienten-Liste'),
+        buildSectionHeading('I', 'Klienten-Liste'),
         pw.SizedBox(height: 14),
         if (clients.isEmpty)
-          _keineDaten('Keine Klienten erfasst.')
+          buildEmptyState('Keine Klienten erfasst.')
         else
           _klientenTabelle(clients),
         pw.SizedBox(height: 40),
-        _unterschriften(autor),
+        buildSignatureRow(authorName: autor),
       ],
     ));
     return pdf.save();
   }
 
   // ═════════════════════════════════════════════════════════════════
-  // GEMEINSAME BAUSTEINE (Design-System)
+  // APP-SPEZIFISCHE TABELLEN UND KARTEN
   // ═════════════════════════════════════════════════════════════════
-
-  static pw.Widget _header(String titel, String? aktenzeichen) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.only(bottom: 10),
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: primaer, width: 2)),
-      ),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
-        children: [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('FEGH-Dokumentation',
-                  style: pw.TextStyle(
-                      fontSize: 13, fontWeight: pw.FontWeight.bold, color: primaer)),
-              pw.SizedBox(height: 2),
-              pw.Text('Eingliederungshilfe nach SGB IX',
-                  style: pw.TextStyle(fontSize: 8, color: muted)),
-            ],
-          ),
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
-            children: [
-              pw.Text(titel.toUpperCase(),
-                  style: pw.TextStyle(
-                      fontSize: 9, color: muted, letterSpacing: 2)),
-              if (aktenzeichen != null && aktenzeichen.isNotEmpty) ...[
-                pw.SizedBox(height: 2),
-                pw.Text('AZ: $aktenzeichen',
-                    style: pw.TextStyle(fontSize: 8, color: muted)),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _footer(pw.Context ctx) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.only(top: 10),
-      decoration: pw.BoxDecoration(
-        border: pw.Border(top: pw.BorderSide(color: divider, width: 0.5)),
-      ),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-              'Erstellt ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}',
-              style: pw.TextStyle(fontSize: 8, color: muted)),
-          pw.Text('FEGH-Dokumentation',
-              style: pw.TextStyle(fontSize: 8, color: muted)),
-          pw.Text('Seite ${ctx.pageNumber} von ${ctx.pagesCount}',
-              style: pw.TextStyle(fontSize: 8, color: muted)),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _hero({required String titel, required String untertitel}) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text('ZEITRAUM',
-            style: pw.TextStyle(fontSize: 9, color: muted, letterSpacing: 2)),
-        pw.SizedBox(height: 4),
-        pw.Text(titel,
-            style: pw.TextStyle(
-                fontSize: 30, fontWeight: pw.FontWeight.bold, color: primaer)),
-        pw.SizedBox(height: 2),
-        pw.Text(untertitel,
-            style: pw.TextStyle(fontSize: 11, color: muted)),
-      ],
-    );
-  }
-
-  static pw.Widget _kpiReihe(List<_KpiDaten> kpis) {
-    final widgets = <pw.Widget>[];
-    for (int i = 0; i < kpis.length; i++) {
-      widgets.add(pw.Expanded(child: _kpi(kpis[i])));
-      if (i < kpis.length - 1) {
-        widgets.add(pw.Container(
-          width: 1,
-          height: 32,
-          color: divider,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 16),
-        ));
-      }
-    }
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: pw.BoxDecoration(
-        color: tableHeader,
-        borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: divider),
-      ),
-      child: pw.Row(children: widgets),
-    );
-  }
-
-  static pw.Widget _kpi(_KpiDaten k) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(k.label.toUpperCase(),
-            style: pw.TextStyle(fontSize: 8, color: muted, letterSpacing: 1)),
-        pw.SizedBox(height: 4),
-        pw.Text(k.value,
-            style: pw.TextStyle(
-                fontSize: k.hero ? 20 : 16,
-                fontWeight: pw.FontWeight.bold,
-                color: k.farbe)),
-      ],
-    );
-  }
-
-  static pw.Widget _sektion(String nummer, String titel) {
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.end,
-      children: [
-        pw.Container(
-          width: 28,
-          height: 28,
-          alignment: pw.Alignment.center,
-          decoration: pw.BoxDecoration(
-            color: primaer,
-            borderRadius: pw.BorderRadius.circular(14),
-          ),
-          child: pw.Text(nummer,
-              style: pw.TextStyle(
-                  fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
-        ),
-        pw.SizedBox(width: 10),
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 3),
-          child: pw.Text(titel,
-              style: pw.TextStyle(
-                  fontSize: 15, fontWeight: pw.FontWeight.bold, color: primaer)),
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _balken(Map<String, double> data, double total) {
-    if (data.isEmpty) return pw.SizedBox();
-    final sortiert = data.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final max = sortiert.first.value;
-    return pw.Column(
-      children: sortiert.map((e) {
-        final anteil = total > 0 ? e.value / total * 100 : 0;
-        final barWidth = max > 0 ? (e.value / max) * 240 : 0.0;
-        return pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 5),
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.SizedBox(
-                width: 140,
-                child: pw.Text(e.key,
-                    maxLines: 1,
-                    overflow: pw.TextOverflow.clip,
-                    style: pw.TextStyle(fontSize: 10, color: text)),
-              ),
-              pw.SizedBox(
-                width: 250,
-                child: pw.Stack(children: [
-                  pw.Container(
-                    height: 8, width: 240,
-                    decoration: pw.BoxDecoration(
-                      color: tableHeader,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                  ),
-                  pw.Container(
-                    height: 8, width: barWidth,
-                    decoration: pw.BoxDecoration(
-                      color: primaer,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                  ),
-                ]),
-              ),
-              pw.SizedBox(width: 12),
-              pw.SizedBox(
-                width: 60,
-                child: pw.Text('${e.value.toStringAsFixed(1)} h',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(
-                        fontSize: 10, fontWeight: pw.FontWeight.bold, color: text)),
-              ),
-              pw.SizedBox(width: 8),
-              pw.SizedBox(
-                width: 50,
-                child: pw.Text('${anteil.toStringAsFixed(0)} %',
-                    textAlign: pw.TextAlign.right,
-                    style: pw.TextStyle(fontSize: 10, color: muted)),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  static pw.Widget _unterschriften(String? autor) {
-    pw.Widget spalte(String label) {
-      return pw.Expanded(
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Container(
-                height: 36,
-                decoration: pw.BoxDecoration(
-                  border: pw.Border(bottom: pw.BorderSide(color: text, width: 0.6)),
-                )),
-            pw.SizedBox(height: 4),
-            pw.Text(label,
-                style: pw.TextStyle(fontSize: 8, color: muted, letterSpacing: 0.5)),
-          ],
-        ),
-      );
-    }
-
-    return pw.Row(
-      children: [
-        spalte('ORT, DATUM'),
-        pw.SizedBox(width: 24),
-        spalte(autor != null && autor.isNotEmpty
-            ? 'UNTERSCHRIFT ${autor.toUpperCase()}'
-            : 'UNTERSCHRIFT MITARBEITER:IN'),
-        pw.SizedBox(width: 24),
-        spalte('UNTERSCHRIFT TEAMLEITUNG'),
-      ],
-    );
-  }
-
-  static pw.Widget _keineDaten(String text) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(16),
-      decoration: pw.BoxDecoration(
-        color: tableHeader,
-        borderRadius: pw.BorderRadius.circular(6),
-      ),
-      child: pw.Text(text,
-          style: pw.TextStyle(fontSize: 11, color: muted)),
-    );
-  }
-
-  // ── Tabellen-Helper ──────────────────────────────────────────────
 
   static pw.Widget _arbeitszeitenTabelle(List<Arbeitszeit> list) {
     final sorted = List<Arbeitszeit>.from(list)
@@ -478,15 +251,21 @@ class PdfReportService {
         3: pw.FlexColumnWidth(1),
       },
       children: [
-        _tabelleKopf(['Datum', 'Zeit', 'Tätigkeit', 'Stunden'], [false, false, false, true]),
+        buildTableHeader(
+          ['Datum', 'Zeit', 'Taetigkeit', 'Stunden'],
+          alignRight: const [false, false, false, true],
+        ),
         ...sorted.map((a) {
           final stunden = (a.arbeitszeit.inMinutes / 60.0).toStringAsFixed(2);
-          return _tabelleZeile([
-            DateFormat('dd.MM.yyyy').format(a.datum),
-            '${a.formatierteStartzeit} - ${a.formatierteEndzeit}',
-            a.taetigkeit,
-            '$stunden h',
-          ], [false, false, false, true]);
+          return buildTableRow(
+            [
+              DateFormat('dd.MM.yyyy').format(a.datum),
+              '${a.formatierteStartzeit} - ${a.formatierteEndzeit}',
+              a.taetigkeit,
+              '$stunden h',
+            ],
+            alignRight: const [false, false, false, true],
+          );
         }),
       ],
     );
@@ -503,14 +282,20 @@ class PdfReportService {
         3: pw.FlexColumnWidth(1),
       },
       children: [
-        _tabelleKopf(['Datum', 'Zeit', 'Klient', 'FLS'], [false, false, false, true]),
+        buildTableHeader(
+          ['Datum', 'Zeit', 'Klient', 'FLS'],
+          alignRight: const [false, false, false, true],
+        ),
         ...sorted.map((a) {
-          return _tabelleZeile([
-            DateFormat('dd.MM.yyyy').format(a.date),
-            '${DateFormat('HH:mm').format(a.startTime)} - ${DateFormat('HH:mm').format(a.endTime)}',
-            a.clientName,
-            '${a.fachleistungsstunden.toStringAsFixed(2)} h',
-          ], [false, false, false, true]);
+          return buildTableRow(
+            [
+              DateFormat('dd.MM.yyyy').format(a.date),
+              '${DateFormat('HH:mm').format(a.startTime)} - ${DateFormat('HH:mm').format(a.endTime)}',
+              a.clientName,
+              '${a.fachleistungsstunden.toStringAsFixed(2)} h',
+            ],
+            alignRight: const [false, false, false, true],
+          );
         }),
       ],
     );
@@ -532,22 +317,26 @@ class PdfReportService {
       margin: const pw.EdgeInsets.only(bottom: 8),
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: tableHeader,
+        color: PdfDesignTokens.tableHeader,
         borderRadius: pw.BorderRadius.circular(6),
         border: pw.Border.all(color: divider, width: 0.5),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          // Kopfzeile: Name + Einwilligungs-Badge
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               pw.Expanded(
-                child: pw.Text(c.vollstaendigerName,
-                    style: pw.TextStyle(
-                        fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaer)),
+                child: pw.Text(
+                  c.vollstaendigerName,
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                    color: primaer,
+                  ),
+                ),
               ),
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -557,18 +346,22 @@ class PdfReportService {
                   borderRadius: pw.BorderRadius.circular(10),
                 ),
                 child: pw.Text(
-                    c.einwilligungVorhanden ? 'Einwilligung: Ja' : 'Einwilligung: Nein',
-                    style: pw.TextStyle(
-                        fontSize: 8,
-                        color: einwilligungFarbe,
-                        fontWeight: pw.FontWeight.bold)),
+                  c.einwilligungVorhanden ? 'Einwilligung: Ja' : 'Einwilligung: Nein',
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    color: einwilligungFarbe,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
           if (c.kostenuebernahme != null && c.kostenuebernahme!.isNotEmpty) ...[
             pw.SizedBox(height: 3),
-            pw.Text(c.kostenuebernahme!,
-                style: pw.TextStyle(fontSize: 10, color: muted)),
+            pw.Text(
+              c.kostenuebernahme!,
+              style: pw.TextStyle(fontSize: 10, color: muted),
+            ),
           ],
           if (hatFls) ...[
             pw.SizedBox(height: 10),
@@ -582,11 +375,10 @@ class PdfReportService {
   static pw.Widget _klientFlsBalken(Client c, double prozent) {
     final bewilligt = c.fachleistungsstunden!;
     final verbraucht = c.verbrauchteStunden;
-    // Farbe nach Auslastung: gruen < 75%, gelb 75-89%, rot >= 90%
     final PdfColor balkenFarbe = prozent >= 90
         ? warn
-        : (prozent >= 75 ? const PdfColor.fromInt(0xFFD97706) : accent);
-    final breiteGesamt = 320.0;
+        : (prozent >= 75 ? PdfDesignTokens.warnSoft : accent);
+    const breiteGesamt = 320.0;
     final breiteVerbraucht = (prozent.clamp(0, 100) / 100.0) * breiteGesamt;
 
     return pw.Row(
@@ -602,9 +394,13 @@ class PdfReportService {
                   pw.Text('Fachleistungsstunden',
                       style: pw.TextStyle(fontSize: 9, color: muted)),
                   pw.Text(
-                      '${verbraucht.toStringAsFixed(1)} / $bewilligt h  (${prozent.toStringAsFixed(0)} %)',
-                      style: pw.TextStyle(
-                          fontSize: 9, fontWeight: pw.FontWeight.bold, color: text)),
+                    '${verbraucht.toStringAsFixed(1)} / $bewilligt h  (${prozent.toStringAsFixed(0)} %)',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                      color: text,
+                    ),
+                  ),
                 ],
               ),
               pw.SizedBox(height: 4),
@@ -636,49 +432,7 @@ class PdfReportService {
     );
   }
 
-  static pw.TableRow _tabelleKopf(List<String> texte, List<bool> rechts) {
-    return pw.TableRow(
-      decoration: pw.BoxDecoration(color: tableHeader),
-      children: List.generate(texte.length, (i) {
-        return pw.Container(
-          padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-          alignment: rechts[i] ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
-          child: pw.Text(texte[i].toUpperCase(),
-              style: pw.TextStyle(
-                  fontSize: 9,
-                  fontWeight: pw.FontWeight.bold,
-                  color: primaer,
-                  letterSpacing: 1)),
-        );
-      }),
-    );
-  }
-
-  static pw.TableRow _tabelleZeile(List<String> texte, List<bool> rechts, {int? warnIdx}) {
-    return pw.TableRow(
-      decoration: pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: divider, width: 0.5)),
-      ),
-      children: List.generate(texte.length, (i) {
-        final farbe = (warnIdx != null && i == warnIdx) ? warn : text;
-        final bold = (warnIdx != null && i == warnIdx) ||
-            (rechts[i] && texte[i].contains('h'));
-        return pw.Container(
-          padding: const pw.EdgeInsets.symmetric(vertical: 7, horizontal: 10),
-          alignment: rechts[i] ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
-          child: pw.Text(texte[i],
-              maxLines: 2,
-              overflow: pw.TextOverflow.clip,
-              style: pw.TextStyle(
-                  fontSize: 10,
-                  color: farbe,
-                  fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-        );
-      }),
-    );
-  }
-
-  // ── Statistik-Helfer ─────────────────────────────────────────────
+  // ── Statistik-Helfer ────────────────────────────────────────────
 
   static _ArbeitszeitStats _arbeitszeitStats(List<Arbeitszeit> list) {
     double gesamt = 0;
@@ -720,7 +474,7 @@ class PdfReportService {
 
   static String _zeitraumLabel(DateTime start, DateTime end) {
     const monate = [
-      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+      'Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni',
       'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
     ];
     if (start.year == end.year && start.month == end.month) {
@@ -733,15 +487,7 @@ class PdfReportService {
   }
 }
 
-// ── Hilfsklassen ───────────────────────────────────────────────────
-
-class _KpiDaten {
-  final String label;
-  final String value;
-  final PdfColor farbe;
-  final bool hero;
-  _KpiDaten(this.label, this.value, this.farbe, {this.hero = false});
-}
+// ── Hilfsklassen ─────────────────────────────────────────────────────
 
 class _ArbeitszeitStats {
   final double gesamtStunden;
