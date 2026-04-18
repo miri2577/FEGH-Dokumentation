@@ -1209,13 +1209,65 @@ class AppProvider extends ChangeNotifier {
   double getStundensatz(Client c) =>
       c.stundensatzOverride ?? _settings.stundensatz;
 
-  double getGesamtarbeitsstunden(Client c) =>
+  /// INFORMATIV: hochgerechnete Gesamtarbeitszeit (Personalplanung).
+  /// NICHT fuer Rechnungsbetrag nutzen - der Faktor ist im Stundensatz
+  /// bereits eingepreist (Doppelberechnung vermeiden).
+  double getGesamtarbeitsstundenInformativ(Client c) =>
       c.verbrauchteStunden * getKalkulationsfaktor(c);
 
+  /// Backward-compat Alias. Deprecated: verwende [getGesamtarbeitsstundenInformativ].
+  @Deprecated('Wird nur als Anzeige/Planungsgroesse genutzt, nicht fuer Rechnungen. Verwende getGesamtarbeitsstundenInformativ.')
+  double getGesamtarbeitsstunden(Client c) =>
+      getGesamtarbeitsstundenInformativ(c);
+
+  /// Rechnungsbetrag: verbrauchte Stunden (geclampt auf Bewilligung) x Stundensatz.
+  /// Der Kalkulationsfaktor fliesst hier bewusst NICHT ein.
   double getAbrechnungsbetrag(Client c) {
     if (c.fachleistungsstunden == null) return 0.0;
     final abrechnbar = c.verbrauchteStunden.clamp(0.0, c.fachleistungsstunden!.toDouble());
     return abrechnbar * getStundensatz(c);
+  }
+
+  /// FLS-Verbrauch eines Klienten im AKTUELLEN Abrechnungszeitraum
+  /// (Woche/Monat/Jahr je nach [client.fachleistungsIntervall]).
+  /// Aggregiert aus tatsaechlichen Appointments im Zeitraum.
+  double getFlsVerbrauchImAktuellenZeitraum(Client c, {DateTime? bezugsDatum}) {
+    final intervall = c.fachleistungsIntervall;
+    if (intervall == null) {
+      // Kein Intervall definiert: nimm den kumulativen Verbrauch
+      return c.verbrauchteStunden;
+    }
+    final datum = bezugsDatum ?? DateTime.now();
+    final start = intervall.startDesAktuellenZeitraums(datum);
+    final ende = intervall.endeDesAktuellenZeitraums(datum);
+
+    double summe = 0;
+    for (final a in _appointments) {
+      if (a.date.isBefore(start) || !a.date.isBefore(ende)) continue;
+      if (a.isIndirect && a.clientAllocations != null) {
+        for (final alloc in a.clientAllocations!) {
+          if (alloc.clientId == c.id) summe += alloc.stunden;
+        }
+      } else if (a.clientId == c.id) {
+        summe += a.fachleistungsstunden;
+      }
+    }
+    return summe;
+  }
+
+  /// Restbudget im aktuellen Zeitraum. Null wenn kein Kontingent definiert.
+  /// Bewilligte [fachleistungsstunden] werden als Wert PRO Intervall interpretiert.
+  double? getFlsRestImAktuellenZeitraum(Client c, {DateTime? bezugsDatum}) {
+    if (c.fachleistungsstunden == null) return null;
+    final verbraucht = getFlsVerbrauchImAktuellenZeitraum(c, bezugsDatum: bezugsDatum);
+    return c.fachleistungsstunden! - verbraucht;
+  }
+
+  /// Auslastung im aktuellen Zeitraum in Prozent (0-100+).
+  double? getFlsAuslastungProzent(Client c, {DateTime? bezugsDatum}) {
+    if (c.fachleistungsstunden == null || c.fachleistungsstunden == 0) return null;
+    final verbraucht = getFlsVerbrauchImAktuellenZeitraum(c, bezugsDatum: bezugsDatum);
+    return verbraucht / c.fachleistungsstunden! * 100;
   }
 
   // Stundenverbrauch Tracking

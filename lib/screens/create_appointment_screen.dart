@@ -685,6 +685,100 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     });
   }
 
+  /// Prueft pro betroffenem Klienten, ob das FLS-Budget im aktuellen
+  /// Abrechnungszeitraum ueberschritten wuerde.
+  /// Gibt false zurueck wenn Nutzer abbricht.
+  Future<bool> _pruefeBudget(AppProvider app, bool isIndirect) async {
+    final betroffene = <(Client, double)>[]; // (Klient, geplante FLS aus diesem Termin)
+    if (isIndirect) {
+      for (final c in _selectedAllocClients) {
+        final min = int.tryParse(_allocMinutenControllers[c.id]?.text ?? '') ?? 0;
+        if (min > 0) betroffene.add((c, min / 60.0));
+      }
+    } else if (_selectedClient != null) {
+      final dauer = _calculateAppointmentDurationInMinutes();
+      betroffene.add((_selectedClient!, dauer / 60.0));
+    }
+
+    final warnungen = <String>[];
+    final blocker = <String>[];
+    for (final (client, geplantFls) in betroffene) {
+      if (client.fachleistungsstunden == null) continue;
+      final verbraucht = app.getFlsVerbrauchImAktuellenZeitraum(client, bezugsDatum: _selectedDate);
+      final budget = client.fachleistungsstunden!.toDouble();
+      final neuGesamt = verbraucht + geplantFls;
+      final prozent = (neuGesamt / budget * 100);
+      final intervallText = client.fachleistungsIntervall?.displayName ?? 'gesamt';
+
+      if (prozent >= 100) {
+        blocker.add('${client.vollstaendigerName}: ${neuGesamt.toStringAsFixed(1)} / '
+            '$budget h $intervallText (${prozent.toStringAsFixed(0)} %)');
+      } else if (prozent >= 90) {
+        warnungen.add('${client.vollstaendigerName}: ${neuGesamt.toStringAsFixed(1)} / '
+            '$budget h $intervallText (${prozent.toStringAsFixed(0)} %)');
+      }
+    }
+
+    if (blocker.isEmpty && warnungen.isEmpty) return true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(blocker.isNotEmpty ? Icons.error : Icons.warning_amber,
+            color: blocker.isNotEmpty ? Colors.red : Colors.orange, size: 40),
+        title: Text(blocker.isNotEmpty
+            ? 'Budget-Ueberschreitung'
+            : 'Budget-Warnung (>= 90 %)'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (blocker.isNotEmpty) ...[
+                const Text(
+                  'Bewilligtes FLS-Kontingent wird ueberschritten:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 4),
+                ...blocker.map((t) => Text('• $t', style: const TextStyle(fontSize: 13))),
+                const SizedBox(height: 12),
+                const Text(
+                  'Ohne Fortschreibung des Bewilligungsbescheids trägt das Risiko '
+                  'der Leistungserbringer. Der Kostenträger kürzt auf das '
+                  'bewilligte Maß.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+              if (warnungen.isNotEmpty) ...[
+                if (blocker.isNotEmpty) const SizedBox(height: 16),
+                const Text(
+                  'Nahe am Budget-Limit:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                ),
+                const SizedBox(height: 4),
+                ...warnungen.map((t) => Text('• $t', style: const TextStyle(fontSize: 13))),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: blocker.isNotEmpty ? Colors.red.shade700 : null,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(blocker.isNotEmpty ? 'Trotzdem speichern' : 'Speichern'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
   Future<void> _saveAppointment() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -714,6 +808,15 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
         return sum + (int.tryParse(controller?.text ?? '') ?? 0);
       });
       final terminDauer = _calculateAppointmentDurationInMinutes();
+      if (totalAllocMinuten > terminDauer) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(
+            'Verteilte Minuten ($totalAllocMinuten) ueberschreiten die Termindauer '
+            '($terminDauer Min) - Doppelabrechnungs-Risiko',
+          )),
+        );
+        return;
+      }
       if (totalAllocMinuten != terminDauer) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Verteilte Minuten ($totalAllocMinuten) stimmen nicht mit der Termindauer ($terminDauer Min) überein')),
@@ -723,6 +826,9 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     }
 
     final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+    // Budget-Check: bei Ueberschreitung des FLS-Kontingents warnen
+    if (!await _pruefeBudget(appProvider, isIndirect)) return;
 
     final startDateTime = _combineDateAndTime(_selectedDate, _startTime);
     final endDateTime = _combineDateAndTime(_selectedDate, _endTime);

@@ -42,7 +42,12 @@ class AppSettings {
   final String rootSubdirectory; // Optionaler Root-Unterordner (z. B. Gemeinsam/Eingliederungshilfe)
   final bool auditorCanViewDocs; // Auditor darf Dokumentation lesen
   final bool setupCompleted; // Ersteinrichtungs-Wizard abgeschlossen
-  final double kalkulationsfaktor; // KLE-Faktor: Gesamtarbeitszeit / abrechnungsfähige Zeit (Berlin-typisch: 1,25–1,33)
+  /// Kalkulationsfaktor NUR fuer interne Personalplanung - KEIN Rechnungsfaktor.
+  /// Verhaeltnis Gesamtarbeitszeit (inkl. Urlaub, Supervision, Ausfall) zu
+  /// abrechnungsfaehiger Kontaktzeit. Berlin-typisch 1,25-1,33.
+  /// WICHTIG: Der Faktor ist bereits im vereinbarten Stundensatz (§125 SGB IX)
+  /// eingepreist. Er darf NICHT zusaetzlich auf Rechnungen angewandt werden.
+  final double kalkulationsfaktor;
   final double stundensatz; // Vergütung pro Fachleistungsstunde in EUR
   final String? bueroStandortId; // Standard-Startort des Mitarbeiters
   final String openRouteServiceApiKey; // API-Key fuer Online-Distanzberechnung

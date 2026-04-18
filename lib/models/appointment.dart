@@ -38,6 +38,31 @@ extension TerminArtExtension on TerminArt {
 
   bool get isIndirect => this != TerminArt.kliententermin;
 
+  /// Ist die TerminArt nach Berliner BRV/NRW-LRV-Praxis als Fachleistungsstunde
+  /// gegenueber dem Kostentraeger abrechenbar?
+  ///
+  /// Standard-Annahme (kann ueberschrieben werden pro Leistungstyp/Bundesland):
+  /// - Kliententermin: immer abrechenbar (direkter Kontakt)
+  /// - Buero/Dokumentation: abrechenbar als indirekte Leistung mit Klient-Bezug
+  /// - Supervision/Teamsitzung/Fortbildung: NICHT abrechenbar (im Stundensatz
+  ///   als Gemeinkosten bereits eingepreist)
+  /// - Fahrtzeit: in Berlin i.d.R. nicht separat abrechenbar, bundeslandabhaengig
+  /// - Sonstige: NICHT abrechenbar (Standard)
+  bool get istAbrechenbar {
+    switch (this) {
+      case TerminArt.kliententermin:
+      case TerminArt.buero:
+      case TerminArt.dokumentation:
+        return true;
+      case TerminArt.supervision:
+      case TerminArt.teamsitzung:
+      case TerminArt.fortbildung:
+      case TerminArt.fahrtzeit:
+      case TerminArt.sonstige:
+        return false;
+    }
+  }
+
   String get icon {
     switch (this) {
       case TerminArt.kliententermin:

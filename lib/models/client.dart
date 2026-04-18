@@ -12,6 +12,43 @@ enum FachleistungsIntervall {
   jaehrlich
 }
 
+extension FachleistungsIntervallExtension on FachleistungsIntervall {
+  String get displayName {
+    switch (this) {
+      case FachleistungsIntervall.woechentlich: return 'pro Woche';
+      case FachleistungsIntervall.monatlich: return 'pro Monat';
+      case FachleistungsIntervall.jaehrlich: return 'pro Jahr';
+    }
+  }
+
+  /// Start des aktuellen Abrechnungszeitraums (basierend auf [bezugsDatum]).
+  /// Woechentlich = Montag 00:00, monatlich = 1. Tag des Monats, jaehrlich = 1.1.
+  DateTime startDesAktuellenZeitraums(DateTime bezugsDatum) {
+    switch (this) {
+      case FachleistungsIntervall.woechentlich:
+        final tag = DateTime(bezugsDatum.year, bezugsDatum.month, bezugsDatum.day);
+        return tag.subtract(Duration(days: tag.weekday - 1));
+      case FachleistungsIntervall.monatlich:
+        return DateTime(bezugsDatum.year, bezugsDatum.month, 1);
+      case FachleistungsIntervall.jaehrlich:
+        return DateTime(bezugsDatum.year, 1, 1);
+    }
+  }
+
+  /// Ende (exklusiv) des aktuellen Abrechnungszeitraums.
+  DateTime endeDesAktuellenZeitraums(DateTime bezugsDatum) {
+    final start = startDesAktuellenZeitraums(bezugsDatum);
+    switch (this) {
+      case FachleistungsIntervall.woechentlich:
+        return start.add(const Duration(days: 7));
+      case FachleistungsIntervall.monatlich:
+        return DateTime(start.year, start.month + 1, 1);
+      case FachleistungsIntervall.jaehrlich:
+        return DateTime(start.year + 1, 1, 1);
+    }
+  }
+}
+
 enum HilfeTyp {
   @JsonValue('familienhilfe')
   familienhilfe,

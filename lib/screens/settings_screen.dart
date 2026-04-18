@@ -1219,17 +1219,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         ListTile(
           leading: const Icon(Icons.calculate, color: Colors.blue),
-          title: const Text('Kalkulationsfaktor'),
+          title: const Text('Kalkulationsfaktor (nur informativ)'),
           subtitle: Text(
             'Aktuell: ${settings.kalkulationsfaktor.toStringAsFixed(2)}\n'
-            'Verhältnis Gesamtarbeitszeit zu abrechnungsfähiger Zeit',
+            'Fuer interne Personalplanung (Gesamt-/Kontaktzeit). '
+            'KEIN Rechnungsfaktor - im Stundensatz bereits eingepreist.',
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _showFLSEditDialog(
             appProvider,
             title: 'Kalkulationsfaktor',
             currentValue: settings.kalkulationsfaktor,
-            hint: 'Berlin-typisch: 1,25–1,33',
+            hint: 'Berlin-typisch: 1,25–1,33 (NICHT in Rechnung!)',
             onSave: (value) => appProvider.updateSettings(
               settings.copyWith(kalkulationsfaktor: value),
             ),

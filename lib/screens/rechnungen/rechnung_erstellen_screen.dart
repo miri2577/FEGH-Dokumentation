@@ -85,10 +85,26 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       return !d.isBefore(vonD) && !d.isAfter(bisD);
     }).toList();
 
-    // Gruppiere nach clientId
+    // Nur ABRECHENBARE TerminArten beruecksichtigen
+    // (Supervision/Fortbildung/Fahrtzeit etc. sind im Stundensatz eingepreist)
+    final abrechenbareTermine = appointments
+        .where((a) => a.effectiveTerminArt.istAbrechenbar)
+        .toList();
+
+    // Gruppiere nach clientId (bei indirekten Terminen: pro ClientAllocation)
     final gruppen = <String, List<Appointment>>{};
-    for (final a in appointments) {
-      gruppen.putIfAbsent(a.clientId, () => []).add(a);
+    final indirekteStunden = <String, double>{};
+    for (final a in abrechenbareTermine) {
+      if (a.isIndirect && a.clientAllocations != null) {
+        // Indirekte Termine: Stunden auf die zugeordneten Klienten aufteilen
+        for (final alloc in a.clientAllocations!) {
+          indirekteStunden[alloc.clientId] =
+              (indirekteStunden[alloc.clientId] ?? 0) + alloc.stunden;
+          gruppen.putIfAbsent(alloc.clientId, () => []).add(a);
+        }
+      } else {
+        gruppen.putIfAbsent(a.clientId, () => []).add(a);
+      }
     }
 
     final result = <_AggregatedPosition>[];
@@ -100,8 +116,16 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       if (client == null) continue;
       if (_nurAktiveKlienten && client.fachleistungsstunden == null) continue;
 
-      final gesamtMinuten = termine.fold<int>(0, (s, a) => s + a.duration.inMinutes);
-      final stunden = gesamtMinuten / 60.0;
+      // Stunden korrekt aus direkten Terminen + indirekten Allocations
+      double stunden = 0;
+      for (final a in termine) {
+        if (a.isIndirect) {
+          // Bereits in indirekteStunden gezaehlt (vermeidet Doppelung)
+        } else {
+          stunden += a.fachleistungsstunden;
+        }
+      }
+      stunden += indirekteStunden[clientId] ?? 0;
       if (stunden <= 0) continue;
 
       final satz = client.stundensatzOverride ?? settings.stundensatz;
