@@ -86,10 +86,6 @@ class TestDataGenerator {
 
     // 3. Termine (200, verteilt ueber 3 Monate)
     final clients = app.clients;
-    final terminArten = [
-      'Kliententermin', 'Buero', 'Dokumentation', 'Supervision',
-      'Teamsitzung', 'Fortbildung', 'Fahrtzeit',
-    ];
     for (int i = 0; i < 200; i++) {
       final client = clients[_rng.nextInt(clients.length)];
       final daysAgo = _rng.nextInt(90);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:material_color_utilities/material_color_utilities.dart';
 import '../models/ui_customization.dart';
 
 class ThemeConfig {
@@ -7,8 +6,6 @@ class ThemeConfig {
 
   // Erweiterte Farbpalette für bessere Zugänglichkeit
   static const Color _primaryBlue = Color(0xFF1976D2);
-  static const Color _secondaryIndigo = Color(0xFF3F51B5);
-  static const Color _tertiaryTeal = Color(0xFF009688);
   static const Color _errorRed = Color(0xFFD32F2F);
   static const Color _warningOrange = Color(0xFFFF9800);
   static const Color _successGreen = Color(0xFF4CAF50);

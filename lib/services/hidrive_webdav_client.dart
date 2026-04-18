@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eingliederungshilfe_flutter/models/sync_manifest.dart';
-import 'dart:math';
 import 'package:eingliederungshilfe_flutter/config/developer_mode.dart';
 import 'package:eingliederungshilfe_flutter/services/file_logger.dart';
 import 'app_logger.dart';
@@ -573,10 +572,8 @@ class HiDriveConfig {
 class HiDriveBusinessSync {
   final HiDriveWebDAVClient _client;
   final String _syncFolder;
-  final String _username;
   final String? _organizationId;
   final String? _teamId;
-  final String? _rootSubdirectory;
   late final SyncManifest _localManifest;
   late final HiDriveWebDAVClient _rootClient; // Client auf Benutzer-Root
 
@@ -600,10 +597,8 @@ class HiDriveBusinessSync {
           certificatePins: HiDriveConfig.certificatePins,
         ),
         _syncFolder = syncFolder,
-        _username = username,
         _organizationId = organizationId,
-        _teamId = teamId,
-        _rootSubdirectory = rootSubdirectory {
+        _teamId = teamId {
     _localManifest = SyncManifest.createNew();
   }
 

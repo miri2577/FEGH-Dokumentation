@@ -1,6 +1,5 @@
 // Speech service temporarily disabled for Android compatibility
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/material.dart';
 
 // Temporary LocaleName stub
 class LocaleName {

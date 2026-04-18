@@ -20,7 +20,6 @@ import '../services/hidrive_webdav_client.dart';
 import 'backup_screen.dart';
 import '../services/totp_service.dart';
 import '../services/permission_service.dart';
-import '../models/app_settings.dart';
 import '../models/ui_customization.dart';
 import '../services/document_storage_service.dart';
 import 'team_key_qr_scan_screen.dart';

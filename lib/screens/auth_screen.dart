@@ -26,7 +26,6 @@ class _AuthScreenState extends State<AuthScreen>
   final TextEditingController _totpController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isSettingPassword = false;
   bool _awaitingTotp = false;
   String? _totpError;
 

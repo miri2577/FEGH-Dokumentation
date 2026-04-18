@@ -648,7 +648,6 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   }
 
   Future<void> _initializeSpeech() async {
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
     // TODO: Initialize speech recognition
   }
 

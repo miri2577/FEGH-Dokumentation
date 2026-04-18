@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/client.dart';
-import '../models/icf_bereiche.dart';
-import '../models/kostentraeger.dart';
 import '../utils/responsive_utils.dart';
 import '../services/export_service.dart';
 import '../services/permission_service.dart';
@@ -483,37 +481,6 @@ class _ClientsScreenState extends State<ClientsScreen> {
         );
       }
     });
-    // Alter Dialog-Code entfernt, GdprDeleteDialog uebernimmt
-    return;
-    // Dead code below kept for reference during transition
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Klient löschen'),
-        content: Text('Möchten Sie "${client.vollstaendigerName}" wirklich löschen?\n\nAlle zugehörigen Termine werden ebenfalls gelöscht.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await appProvider.deleteClient(client.id);
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Klient gelöscht')),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Löschen'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _navigateToNewAppointment(BuildContext context, Client client) {

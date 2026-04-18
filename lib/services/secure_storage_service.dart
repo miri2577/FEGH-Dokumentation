@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -172,8 +171,6 @@ class SecureStorageService {
       AppLogger.info('Storage', 'DEBUG: ${appointmentsList.length} Termine in SharedPreferences gefunden');
     }
 
-    bool migrationSuccessful = true;
-
     try {
       await _migrateClients();
       await _migrateAppointments();
@@ -189,7 +186,6 @@ class SecureStorageService {
       await _cleanupLegacyData();
 
     } catch (e) {
-      migrationSuccessful = false;
       AppLogger.error('Storage', 'Migration fehlgeschlagen', e);
       AppLogger.warning('Storage', 'Legacy-Daten bleiben erhalten fuer erneuten Versuch');
     }
@@ -413,7 +409,7 @@ class SecureStorageService {
 
         // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          final uuidToDelete = targetUuid!;
+          final uuidToDelete = targetUuid;
           try { await _cloudSync!.deleteRemoteRecord(uuidToDelete); } catch (e) {
             AppLogger.warning('Storage', 'Cloud-Delete Client (async) fehlgeschlagen: $e');
           }

@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/client.dart';
-import '../../models/appointment.dart';
 import '../../providers/app_provider.dart';
-import '../../services/crypto_storage.dart';
 import '../../services/backup_service.dart';
 
 /// Performance-Test mit 3 Szenarien (50, 250, 500 Klienten).
@@ -277,9 +275,9 @@ class _PerformanceTestScreenState extends State<PerformanceTestScreen> {
     stopwatch.reset();
     stopwatch.start();
     for (int i = 0; i < 1000; i++) {
-      final _ = app.clientsInRedZone;
-      final __ = app.clientsInYellowZone;
-      final ___ = app.clientsInGreenZone;
+      app.clientsInRedZone;
+      app.clientsInYellowZone;
+      app.clientsInGreenZone;
     }
     stopwatch.stop();
     results['Statistiken (1000x)'] = stopwatch.elapsedMilliseconds;

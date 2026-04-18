@@ -7,8 +7,6 @@ class DemoDataService {
     // Prüfe ob bereits Klienten vorhanden (Demo-Daten nur einmal laden)
     if (appProvider.clients.isNotEmpty) return;
 
-    final now = DateTime.now();
-
     // 6 fiktive Klienten - Eingliederungshilfe psychisch Kranke, eigene Wohnung
     final demoClients = [
       Client.create(

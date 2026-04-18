@@ -266,7 +266,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
     try {
       // Element Call URL oeffnen (funktioniert mit Conduit + TURN)
-      final roomId = Uri.encodeComponent(widget.room.id);
       // Fuer vollstaendige WebRTC-Integration waere flutter_webrtc noetig.
       // Vorerst: Hinweis dass Calls ueber Element Web verfuegbar sind.
       if (mounted) {

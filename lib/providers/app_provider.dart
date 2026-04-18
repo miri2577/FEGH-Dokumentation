@@ -1115,8 +1115,8 @@ class AppProvider extends ChangeNotifier {
         apt.clientName.toLowerCase().contains(lowerQuery) ||
         apt.notes.toLowerCase().contains(lowerQuery) ||
         apt.recordedText.toLowerCase().contains(lowerQuery) ||
-        (apt.berufsgruppe?.toLowerCase().contains(lowerQuery) ?? false) ||
-        (apt.eingliederung?.toLowerCase().contains(lowerQuery) ?? false)
+        apt.berufsgruppe.toLowerCase().contains(lowerQuery) ||
+        apt.eingliederung.toLowerCase().contains(lowerQuery)
     ).toList();
   }
 
@@ -1385,7 +1385,6 @@ class AppProvider extends ChangeNotifier {
 
   double get overtimeHours {
     final today = DateTime.now();
-    final startOfMonth = DateTime(today.year, today.month, 1);
     final currentDay = today.day;
     
     // Calculate expected hours worked so far this month

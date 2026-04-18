@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:eingliederungshilfe_flutter/services/hidrive_webdav_client.dart';
 import 'package:eingliederungshilfe_flutter/services/crypto_storage.dart';
 
@@ -14,7 +13,6 @@ class TeamKeyService {
   /// Lädt und entschlüsselt den Team-Key. Gibt true zurück, wenn MEK gesetzt wurde.
   Future<bool> loadAndApplyTeamKey(String teamId) async {
     try {
-      final path = 'administration/teams/$teamId/team-key.bin';
       final res = await _sync.downloadOrgScopedRecord('administration/teams/$teamId', 'team-key');
       if (!res.isSuccess || res.data == null) {
         return false;

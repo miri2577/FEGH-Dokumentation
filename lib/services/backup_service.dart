@@ -475,9 +475,7 @@ class BackupService {
   }
 
   Future<Uint8List> _encryptData(String data, String password) async {
-    final key = encrypt.Key.fromSecureRandom(32);
     final iv = IV.fromSecureRandom(16);
-    final encrypter = Encrypter(AES(key));
 
     // Create password-derived key
     final passwordBytes = utf8.encode(password + _saltPrefix);
@@ -523,7 +521,7 @@ class BackupService {
         final dataString = String.fromCharCodes(data);
         final blob = html.Blob([dataString]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
+        html.AnchorElement(href: url)
           ..setAttribute('download', filename)
           ..click();
         html.Url.revokeObjectUrl(url);

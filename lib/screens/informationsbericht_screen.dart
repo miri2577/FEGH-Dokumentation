@@ -1,12 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import '../models/client.dart';
 import '../models/informationsbericht.dart';
 import '../models/teilhabeziel.dart' as wm;
 import '../models/zielmessung.dart' as zm;
 import '../services/wirkungsmessung_service.dart';
-import '../services/export_service.dart';
 import '../services/file_storage_service.dart';
 import '../services/pdf_generator_service.dart';
 import 'pdf_preview_screen.dart';

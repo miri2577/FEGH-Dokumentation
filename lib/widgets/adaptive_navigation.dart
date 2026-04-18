@@ -341,7 +341,6 @@ class _AdaptiveNavigationState extends State<AdaptiveNavigation> {
           ),
           const Divider(),
           ..._buildDestinations(context).map((destination) {
-            final index = _buildDestinations(context).indexOf(destination);
             return NavigationDrawerDestination(
               icon: destination.icon,
               selectedIcon: destination.selectedIcon,

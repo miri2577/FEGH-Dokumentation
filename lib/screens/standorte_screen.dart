@@ -156,7 +156,6 @@ class _StandortEditDialogState extends State<_StandortEditDialog> {
   String? _selectedClientId;
   double? _latitude;
   double? _longitude;
-  String? _selectedAddress;
 
   List<GeocodingResult> _searchResults = [];
   bool _isSearching = false;
@@ -211,7 +210,6 @@ class _StandortEditDialogState extends State<_StandortEditDialog> {
 
   void _selectSearchResult(GeocodingResult result) {
     setState(() {
-      _selectedAddress = '${result.addressLine}, ${result.plzOrt}';
       _latitude = result.lat;
       _longitude = result.lng;
       _searchResults = [];
@@ -227,7 +225,6 @@ class _StandortEditDialogState extends State<_StandortEditDialog> {
     setState(() {
       _latitude = null;
       _longitude = null;
-      _selectedAddress = null;
       _searchController.clear();
       _searchResults = [];
     });

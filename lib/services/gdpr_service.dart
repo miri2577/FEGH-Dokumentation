@@ -8,9 +8,6 @@ import 'package:uuid/uuid.dart';
 
 import 'crypto_storage.dart';
 import 'hidrive_webdav_client.dart';
-import '../models/client.dart';
-import '../models/appointment.dart';
-import '../models/arbeitszeit.dart';
 
 class GDPRService {
   final CryptoStorage _cryptoStorage;
@@ -219,11 +216,11 @@ class GDPRService {
   Future<void> _deleteCloudData(GDPRDeletionLog log) async {
     if (_cloudSync == null) return;
 
-    final remoteFiles = await _cloudSync!.listRemoteRecords();
+    final remoteFiles = await _cloudSync.listRemoteRecords();
     if (remoteFiles.isSuccess && remoteFiles.data != null) {
       for (final uuid in remoteFiles.data!) {
         try {
-          await _cloudSync!.deleteRemoteRecord(uuid);
+          await _cloudSync.deleteRemoteRecord(uuid);
           log.addDeletedRecord(uuid, 'unknown', 'cloud');
         } catch (e) {
           log.addFailedDeletion(uuid, 'unknown', 'cloud', e.toString());

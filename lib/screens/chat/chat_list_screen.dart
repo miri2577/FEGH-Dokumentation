@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:matrix/matrix.dart';
 import '../../services/matrix_chat_service.dart';
 import 'chat_room_screen.dart';
 

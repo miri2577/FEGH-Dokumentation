@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/team.dart';
-import '../../models/client.dart';
 import '../../providers/app_provider.dart';
 import '../../services/admin_service.dart';
 import '../../services/hidrive_webdav_client.dart';

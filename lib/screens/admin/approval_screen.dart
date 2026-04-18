@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/arbeitszeit.dart';
 import '../../models/freizeit_antrag.dart';
-import '../../models/mitarbeiter.dart';
 import '../../providers/app_provider.dart';
 import '../../services/audit_logger.dart';
 

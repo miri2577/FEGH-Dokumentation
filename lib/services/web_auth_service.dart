@@ -1,9 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
-import '../utils/platform_utils.dart';
 
 class WebAuthService {
   static final WebAuthService _instance = WebAuthService._internal();

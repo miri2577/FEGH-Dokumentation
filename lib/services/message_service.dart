@@ -128,9 +128,7 @@ class MessageService {
             final encJson = jsonDecode(utf8.decode(downloadResult.data!)) as Map<String, dynamic>;
             final pt = await _cryptoStorage.decryptRecord(encJson);
             final decryptedMessage = Message.fromJson(jsonDecode(utf8.decode(pt)) as Map<String, dynamic>);
-            if (decryptedMessage != null) {
-              newMessages.add(decryptedMessage);
-            }
+            newMessages.add(decryptedMessage);
           } catch (e) {
             if (DeveloperMode.allowSecurityDebugLogs) {
               AppLogger.error('Messages', 'DEV: Fehler beim Laden der Nachricht $file', e);

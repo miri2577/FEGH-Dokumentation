@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as hash;
 import 'package:cryptography/cryptography.dart' as aes;
 import 'package:flutter/foundation.dart';

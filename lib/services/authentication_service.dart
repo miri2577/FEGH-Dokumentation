@@ -1,5 +1,4 @@
 import 'package:local_auth/local_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/developer_mode.dart';
 
