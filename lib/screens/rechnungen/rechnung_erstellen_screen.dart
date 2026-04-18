@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fegh_billing/fegh_billing.dart';
 import '../../models/appointment.dart';
 import '../../models/client.dart';
-import '../../models/rechnung.dart';
-import '../../models/rechnung_empfaenger.dart';
 import '../../providers/app_provider.dart';
 import '../../services/audit_logger.dart';
 import '../../services/rechnung_service.dart';

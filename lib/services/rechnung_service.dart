@@ -1,8 +1,7 @@
 import 'dart:convert';
+import 'package:fegh_billing/fegh_billing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/rechnung.dart';
-import '../models/rechnung_empfaenger.dart';
 
 /// CRUD-Service fuer Rechnungen und Kostentraeger-Empfaenger.
 class RechnungService {

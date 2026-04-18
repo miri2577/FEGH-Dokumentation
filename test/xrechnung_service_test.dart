@@ -1,7 +1,5 @@
+import 'package:fegh_billing/fegh_billing.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:eingliederungshilfe_flutter/models/rechnung.dart';
-import 'package:eingliederungshilfe_flutter/models/rechnung_empfaenger.dart';
-import 'package:eingliederungshilfe_flutter/services/xrechnung_service.dart';
 
 void main() {
   group('XRechnungService - UBL XML Generator', () {

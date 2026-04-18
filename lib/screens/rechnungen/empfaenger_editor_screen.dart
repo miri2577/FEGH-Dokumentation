@@ -1,5 +1,5 @@
+import 'package:fegh_billing/fegh_billing.dart';
 import 'package:flutter/material.dart';
-import '../../models/rechnung_empfaenger.dart';
 import '../../services/rechnung_service.dart';
 
 /// Editor fuer einen Rechnungsempfaenger (Kostentraeger) mit Leitweg-ID.
