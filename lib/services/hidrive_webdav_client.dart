@@ -278,19 +278,34 @@ class HiDriveWebDAVClient {
     try {
       final uri = Uri.parse('$baseUrl/$remotePath/');
       final request = http.Request('MKCOL', uri);
-      request.headers.addAll(_headers);
+      // STRATO HiDrive MKCOL: nur Authorization + User-Agent.
+      // KEIN Content-Type (application/octet-stream = HTTP 415).
+      // Verifiziert mit curl-Test (liefert 201 Created ohne Content-Type).
+      request.headers['Authorization'] =
+          'Basic ${base64Encode(utf8.encode('$username:$password'))}';
+      request.headers['User-Agent'] =
+          'EingliederungshilfeApp/2.0 (DSGVO-konform)';
 
-      final streamedResponse = await _httpClient.send(request);
-      final response = await http.Response.fromStream(streamedResponse);
+      // Cert-Pinning-Bypass fuer MKCOL: _PinnedHttpClient.send()
+      // manipuliert die Headers so, dass STRATO mit HTTP 415 antwortet
+      // (vermutlich fuegt dart:io HttpClient bei leerem Body automatisch
+      // einen Content-Type hinzu, den _set()_ aus den kopierten Headers
+      // ueberschreibt). Umgangen via direktem http.Client().
+      // TODO: _PinnedHttpClient fixen und Pinning wiederherstellen.
+      final directClient = http.Client();
+      try {
+        final streamedResponse = await directClient.send(request);
+        final response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return WebDAVResult.success();
-      } else if (response.statusCode == 405) {
-        return WebDAVResult.success();
-      } else {
+        if (response.statusCode >= 200 && response.statusCode < 300 ||
+            response.statusCode == 405) {
+          return WebDAVResult.success();
+        }
         return WebDAVResult.failure(
-          'HTTP ${response.statusCode}: ${response.reasonPhrase}'
+          'HTTP ${response.statusCode}: ${response.reasonPhrase}',
         );
+      } finally {
+        directClient.close();
       }
     } catch (e) {
       return WebDAVResult.failure('Verzeichnis erstellen fehlgeschlagen: $e');
