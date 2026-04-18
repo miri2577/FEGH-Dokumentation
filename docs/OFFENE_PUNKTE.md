@@ -1,6 +1,6 @@
 # FEGH-Dokumentation - Offene Punkte
 
-Stand: 18.04.2026
+Stand: 18.04.2026 (aktualisiert nach Feinschliff-Runde)
 
 Dieses Dokument sammelt bewusst zurueckgestellte Vorhaben und kleinere
 Polituren, damit sie in einer naechsten Runde nicht vergessen werden.
@@ -23,21 +23,17 @@ Polituren, damit sie in einer naechsten Runde nicht vergessen werden.
 
 ## Kleinere Polituren
 
-### 3. RadioListTile-Deprecations
-- **Wo**: `lib/services/export_service.dart` (Format-Dialog)
-- **Warum**: Flutter 3.32+ bevorzugt RadioGroup-Ancestor
-- **Aufwand**: 10-15 Min
+### 3. ~~RadioListTile-Deprecations~~ (18.04.2026 erledigt)
+- `lib/services/export_service.dart` - auf `RadioGroup`-Ancestor umgestellt
 
-### 4. Pre-existing Warnings aufraeumen
-- `lib/screens/clients_screen.dart`: 2x unused imports, 1x dead code
-- `lib/screens/create_client_screen.dart`: weitere unused imports
-- `lib/screens/admin/*.dart`: vereinzelte Warnungen
-- **Aufwand**: 30-60 Min
+### 4. ~~Pre-existing Warnings aufraeumen~~ (18.04.2026 erledigt)
+- Codebase-weiter Lint-Cleanup: 312 -> 246 Issues, 63 -> 4 Warnings
+- 23 unused imports, 11 unused locals, 5 unused fields, Dead-Code entfernt
+- Verbleibend: 4 Warnings fuer unreferenced private Methoden (WIP-Scaffolding)
 
-### 5. Debug-Test-Dateien
-- `test/pdf_stil_beispiele.dart` (Stil A/B/C Beispiele) - kann in `docs/samples/` archiviert werden
-- `test/docx_minimal_test.dart` - einmaliger LibreOffice-Debug-Test, kann geloescht werden
-- **Aufwand**: 5 Min
+### 5. ~~Debug-Test-Dateien~~ (18.04.2026 erledigt)
+- `test/pdf_stil_beispiele.dart` -> `docs/samples/pdf_stil_beispiele.dart`
+- `test/docx_minimal_test.dart` geloescht
 
 ## Feature-Erweiterungen (Nice-to-Have)
 
@@ -64,10 +60,9 @@ Polituren, damit sie in einer naechsten Runde nicht vergessen werden.
 
 ## Release-Vorbereitung
 
-### 10. Version-Bump + Changelog
-- `pubspec.yaml`: 0.2.0-beta.1 -> 0.3.0 (oder 1.0.0-beta.1)
-- `CHANGELOG.md` pflegen
-- **Aufwand**: 20 Min
+### 10. ~~Version-Bump + Changelog~~ (18.04.2026 erledigt)
+- `pubspec.yaml`: 0.2.0-beta.1 -> 1.0.0-beta.1
+- `CHANGELOG.md` angelegt mit Eintraegen fuer 1.0.0-beta.1
 
 ### 11. Beta-Testing
 - 2-3 Traeger fuer Pilot-Tests anfragen
