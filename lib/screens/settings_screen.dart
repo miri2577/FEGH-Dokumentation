@@ -76,6 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // Fachleistungsstunden (Kalkulation)
                     _buildFLSSection(appProvider),
+                    _buildRechnungsstellerSection(appProvider),
 
                     const SizedBox(height: 32),
 
@@ -1208,6 +1209,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (score == 3) return 'mittel';
     if (score == 4) return 'stark';
     return 'sehr stark';
+  }
+
+  Widget _buildRechnungsstellerSection(AppProvider appProvider) {
+    final s = appProvider.settings;
+    final vollstaendig = s.organisationsName.isNotEmpty &&
+        s.organisationsStrasse.isNotEmpty &&
+        s.organisationsPlz.isNotEmpty &&
+        s.organisationsOrt.isNotEmpty &&
+        (s.organisationsUstId.isNotEmpty || s.organisationsSteuernr.isNotEmpty);
+    return _buildSection(
+      title: 'Rechnungssteller (fuer XRechnung)',
+      icon: Icons.business_center,
+      children: [
+        ListTile(
+          leading: Icon(
+            vollstaendig ? Icons.check_circle : Icons.warning_amber,
+            color: vollstaendig ? Colors.green : Colors.orange,
+          ),
+          title: Text(vollstaendig ? 'Stammdaten vollstaendig' : 'Stammdaten unvollstaendig'),
+          subtitle: Text(
+            vollstaendig
+                ? '${s.organisationsName}, ${s.organisationsOrt}'
+                : 'Bitte Pflichtfelder ergaenzen',
+            style: const TextStyle(fontSize: 12),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _bearbeiteRechnungssteller(appProvider),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _bearbeiteRechnungssteller(AppProvider app) async {
+    final s = app.settings;
+    final name = TextEditingController(text: s.organisationsName);
+    final strasse = TextEditingController(text: s.organisationsStrasse);
+    final plz = TextEditingController(text: s.organisationsPlz);
+    final ort = TextEditingController(text: s.organisationsOrt);
+    final ustId = TextEditingController(text: s.organisationsUstId);
+    final steuernr = TextEditingController(text: s.organisationsSteuernr);
+    final ik = TextEditingController(text: s.organisationsEinrichtungsIk);
+    final iban = TextEditingController(text: s.organisationsIban);
+    final bic = TextEditingController(text: s.organisationsBic);
+    final kontoinh = TextEditingController(text: s.organisationsKontoinhaber);
+    final email = TextEditingController(text: s.organisationsEmail);
+    final tel = TextEditingController(text: s.organisationsTelefon);
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rechnungssteller-Daten'),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _rsField(name, 'Firma / Traegername *', Icons.business),
+                _rsField(strasse, 'Strasse und Hausnummer *', Icons.location_on),
+                Row(children: [
+                  Expanded(flex: 1, child: _rsField(plz, 'PLZ *', Icons.markunread_mailbox)),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 3, child: _rsField(ort, 'Ort *', Icons.location_city)),
+                ]),
+                const Divider(height: 24),
+                _rsField(ustId, 'USt-ID (z.B. DE123456789)', Icons.tag),
+                _rsField(steuernr, 'Steuernummer (falls keine USt-ID)', Icons.tag),
+                _rsField(ik, 'Einrichtungs-IK (nur stationaer)', Icons.qr_code),
+                const Divider(height: 24),
+                _rsField(iban, 'IBAN', Icons.account_balance),
+                _rsField(bic, 'BIC', Icons.account_balance),
+                _rsField(kontoinh, 'Kontoinhaber', Icons.person),
+                const Divider(height: 24),
+                _rsField(email, 'E-Mail', Icons.email),
+                _rsField(tel, 'Telefon', Icons.phone),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Speichern')),
+        ],
+      ),
+    );
+    if (saved != true) return;
+    await app.updateSettings(s.copyWith(
+      organisationsName: name.text.trim(),
+      organisationsStrasse: strasse.text.trim(),
+      organisationsPlz: plz.text.trim(),
+      organisationsOrt: ort.text.trim(),
+      organisationsUstId: ustId.text.trim(),
+      organisationsSteuernr: steuernr.text.trim(),
+      organisationsEinrichtungsIk: ik.text.trim(),
+      organisationsIban: iban.text.trim(),
+      organisationsBic: bic.text.trim(),
+      organisationsKontoinhaber: kontoinh.text.trim(),
+      organisationsEmail: email.text.trim(),
+      organisationsTelefon: tel.text.trim(),
+    ));
+  }
+
+  Widget _rsField(TextEditingController c, String label, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: c,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+      ),
+    );
   }
 
   Widget _buildFLSSection(AppProvider appProvider) {

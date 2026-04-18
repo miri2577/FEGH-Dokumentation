@@ -26,6 +26,10 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   late TextEditingController _fachleistungsstundenController;
   late TextEditingController _kalkulationsfaktorOverrideController;
   late TextEditingController _stundensatzOverrideController;
+  late TextEditingController _bewilligungsbescheidController;
+  late TextEditingController _leistungstypController;
+  // Map<empfaengerId, Controller> fuer Fallnummern pro Kostentraeger
+  final Map<String, TextEditingController> _fallnummerControllers = {};
 
   String _selectedEingliederung = '';
   String _selectedKostentraeger = '';
@@ -86,6 +90,16 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     _stundensatzOverrideController = TextEditingController(
       text: widget.client?.stundensatzOverride?.toStringAsFixed(2) ?? '',
     );
+    _bewilligungsbescheidController = TextEditingController(
+      text: widget.client?.bewilligungsbescheidRef ?? '',
+    );
+    _leistungstypController = TextEditingController(
+      text: widget.client?.leistungstypSchluessel ?? '',
+    );
+    // Fallnummer-Controller fuer bereits vorhandene Eintraege
+    widget.client?.kostentraegerFallnummern?.forEach((empfId, nr) {
+      _fallnummerControllers[empfId] = TextEditingController(text: nr);
+    });
 
     // Listener für automatische Name-Aktualisierung
     _vornameController.addListener(_updateFullName);
@@ -124,6 +138,11 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     _fachleistungsstundenController.dispose();
     _kalkulationsfaktorOverrideController.dispose();
     _stundensatzOverrideController.dispose();
+    _bewilligungsbescheidController.dispose();
+    _leistungstypController.dispose();
+    for (final c in _fallnummerControllers.values) {
+      c.dispose();
+    }
     for (var controller in _individuelleTibZieleControllers) {
       controller.dispose();
     }
@@ -614,7 +633,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 labelText: 'Stundensatz EUR (leer = global)',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.euro),
-                hintText: 'z.B. 44.00',
+                hintText: 'z.B. 65.00 - aus §125-Verguetungsvereinbarung',
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               validator: (value) {
@@ -626,6 +645,37 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Abrechnungs-Stammdaten (fuer Rechnung)',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _leistungstypController,
+              decoration: const InputDecoration(
+                labelText: 'Leistungstyp-Schluessel (nach Rahmenvertrag)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.category),
+                hintText: 'z.B. B5.01 ABW Erwachsene',
+                helperText: 'Schluessel aus Landesrahmenvertrag - erscheint auf XRechnung',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _bewilligungsbescheidController,
+              decoration: const InputDecoration(
+                labelText: 'Bewilligungsbescheid-Referenz',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.description),
+                hintText: 'Geschaeftszeichen / Bescheid-Nr.',
+                helperText: 'Hilft dem Sozialamt, die Rechnung zuzuordnen',
+              ),
             ),
           ],
         ),
@@ -834,6 +884,15 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     return ziele.isNotEmpty ? ziele : null;
   }
 
+  Map<String, String>? _buildFallnummerMap() {
+    final map = <String, String>{};
+    _fallnummerControllers.forEach((empfId, ctrl) {
+      final v = ctrl.text.trim();
+      if (v.isNotEmpty) map[empfId] = v;
+    });
+    return map.isEmpty ? null : map;
+  }
+
   Future<void> _selectDate(BuildContext context, String field) async {
     final initialDate = _getDateForField(field) ?? DateTime.now();
     final picked = await showDatePicker(
@@ -914,6 +973,13 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
         tibZiele: _selectedTibZiele.isNotEmpty ? _selectedTibZiele : null,
         individuelleTibZiele: _getIndividuelleTibZiele(),
         rechtsgrundlage: _selectedRechtsgrundlage,
+        bewilligungsbescheidRef: _bewilligungsbescheidController.text.trim().isEmpty
+            ? null
+            : _bewilligungsbescheidController.text.trim(),
+        leistungstypSchluessel: _leistungstypController.text.trim().isEmpty
+            ? null
+            : _leistungstypController.text.trim(),
+        kostentraegerFallnummern: _buildFallnummerMap(),
       );
 
       bool success;
@@ -942,6 +1008,13 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
           tibZiele: _selectedTibZiele.isNotEmpty ? _selectedTibZiele : null,
           individuelleTibZiele: _getIndividuelleTibZiele(),
           rechtsgrundlage: _selectedRechtsgrundlage,
+          bewilligungsbescheidRef: _bewilligungsbescheidController.text.trim().isEmpty
+              ? null
+              : _bewilligungsbescheidController.text.trim(),
+          leistungstypSchluessel: _leistungstypController.text.trim().isEmpty
+              ? null
+              : _leistungstypController.text.trim(),
+          kostentraegerFallnummern: _buildFallnummerMap(),
         );
         success = await appProvider.updateClient(updatedClient);
       }

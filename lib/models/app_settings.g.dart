@@ -48,6 +48,19 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   bundesland:
       $enumDecodeNullable(_$BundeslandEnumMap, json['bundesland']) ??
       Bundesland.berlin,
+  organisationsName: json['organisationsName'] as String? ?? '',
+  organisationsStrasse: json['organisationsStrasse'] as String? ?? '',
+  organisationsPlz: json['organisationsPlz'] as String? ?? '',
+  organisationsOrt: json['organisationsOrt'] as String? ?? '',
+  organisationsUstId: json['organisationsUstId'] as String? ?? '',
+  organisationsSteuernr: json['organisationsSteuernr'] as String? ?? '',
+  organisationsEinrichtungsIk:
+      json['organisationsEinrichtungsIk'] as String? ?? '',
+  organisationsIban: json['organisationsIban'] as String? ?? '',
+  organisationsBic: json['organisationsBic'] as String? ?? '',
+  organisationsKontoinhaber: json['organisationsKontoinhaber'] as String? ?? '',
+  organisationsEmail: json['organisationsEmail'] as String? ?? '',
+  organisationsTelefon: json['organisationsTelefon'] as String? ?? '',
   uiCustomization: json['uiCustomization'] == null
       ? const UICustomization()
       : _uiCustomizationFromJson(
@@ -86,6 +99,18 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'openRouteServiceApiKey': instance.openRouteServiceApiKey,
       'totpSecret': instance.totpSecret,
       'bundesland': _$BundeslandEnumMap[instance.bundesland]!,
+      'organisationsName': instance.organisationsName,
+      'organisationsStrasse': instance.organisationsStrasse,
+      'organisationsPlz': instance.organisationsPlz,
+      'organisationsOrt': instance.organisationsOrt,
+      'organisationsUstId': instance.organisationsUstId,
+      'organisationsSteuernr': instance.organisationsSteuernr,
+      'organisationsEinrichtungsIk': instance.organisationsEinrichtungsIk,
+      'organisationsIban': instance.organisationsIban,
+      'organisationsBic': instance.organisationsBic,
+      'organisationsKontoinhaber': instance.organisationsKontoinhaber,
+      'organisationsEmail': instance.organisationsEmail,
+      'organisationsTelefon': instance.organisationsTelefon,
       'uiCustomization': _uiCustomizationToJson(instance.uiCustomization),
     };
 

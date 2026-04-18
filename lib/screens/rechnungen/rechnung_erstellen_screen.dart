@@ -27,6 +27,7 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
   final _bestellnummer = TextEditingController();
   final _bemerkung = TextEditingController();
   final bool _nurAktiveKlienten = true;
+  UstBefreiungsgrund _ustBefreiung = UstBefreiungsgrund.par4Nr16h;
 
   @override
   void initState() {
@@ -294,6 +295,7 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       positionen: rPositionen,
       bestellnummer: _bestellnummer.text.trim().isEmpty ? null : _bestellnummer.text.trim(),
       bemerkung: _bemerkung.text.trim().isEmpty ? null : _bemerkung.text.trim(),
+      ustBefreiung: _ustBefreiung,
     );
     await _service.addRechnung(rechnung);
     if (!mounted) return;
@@ -383,6 +385,23 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<UstBefreiungsgrund>(
+                initialValue: _ustBefreiung,
+                decoration: const InputDecoration(
+                  labelText: 'Steuerbefreiung nach §4 UStG',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.receipt),
+                  helperText: 'Im Zweifel Steuerberater fragen',
+                ),
+                items: UstBefreiungsgrund.values
+                    .map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text(u.anzeigeText, style: const TextStyle(fontSize: 13)),
+                        ))
+                    .toList(),
+                onChanged: (v) => v != null ? setState(() => _ustBefreiung = v) : null,
               ),
               const Divider(height: 32),
               Row(

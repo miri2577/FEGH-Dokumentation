@@ -53,6 +53,19 @@ class AppSettings {
   final String openRouteServiceApiKey; // API-Key fuer Online-Distanzberechnung
   final String totpSecret; // TOTP-Secret (Base32) fuer 2FA, leer = kein TOTP
   final Bundesland bundesland; // Bundesland der Organisation (Default: Berlin)
+  // ── Rechnungssteller-Stammdaten (fuer XRechnung-Export) ────────────
+  final String organisationsName; // Firmen-/Traegername auf Rechnung
+  final String organisationsStrasse;
+  final String organisationsPlz;
+  final String organisationsOrt;
+  final String organisationsUstId;    // USt-ID z.B. DE123456789
+  final String organisationsSteuernr; // Steuernummer falls keine USt-ID
+  final String organisationsEinrichtungsIk; // 9-stellige IK (nur stationaer)
+  final String organisationsIban;
+  final String organisationsBic;
+  final String organisationsKontoinhaber;
+  final String organisationsEmail;
+  final String organisationsTelefon;
   @JsonKey(fromJson: _uiCustomizationFromJson, toJson: _uiCustomizationToJson)
   final UICustomization uiCustomization;
 
@@ -86,6 +99,18 @@ class AppSettings {
     this.openRouteServiceApiKey = '',
     this.totpSecret = '',
     this.bundesland = Bundesland.berlin,
+    this.organisationsName = '',
+    this.organisationsStrasse = '',
+    this.organisationsPlz = '',
+    this.organisationsOrt = '',
+    this.organisationsUstId = '',
+    this.organisationsSteuernr = '',
+    this.organisationsEinrichtungsIk = '',
+    this.organisationsIban = '',
+    this.organisationsBic = '',
+    this.organisationsKontoinhaber = '',
+    this.organisationsEmail = '',
+    this.organisationsTelefon = '',
     this.uiCustomization = const UICustomization(),
   });
 
@@ -144,6 +169,18 @@ class AppSettings {
         openRouteServiceApiKey = '',
         totpSecret = '',
         bundesland = Bundesland.berlin,
+        organisationsName = '',
+        organisationsStrasse = '',
+        organisationsPlz = '',
+        organisationsOrt = '',
+        organisationsUstId = '',
+        organisationsSteuernr = '',
+        organisationsEinrichtungsIk = '',
+        organisationsIban = '',
+        organisationsBic = '',
+        organisationsKontoinhaber = '',
+        organisationsEmail = '',
+        organisationsTelefon = '',
         uiCustomization = const UICustomization();
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -186,6 +223,18 @@ class AppSettings {
     String? openRouteServiceApiKey,
     String? totpSecret,
     Bundesland? bundesland,
+    String? organisationsName,
+    String? organisationsStrasse,
+    String? organisationsPlz,
+    String? organisationsOrt,
+    String? organisationsUstId,
+    String? organisationsSteuernr,
+    String? organisationsEinrichtungsIk,
+    String? organisationsIban,
+    String? organisationsBic,
+    String? organisationsKontoinhaber,
+    String? organisationsEmail,
+    String? organisationsTelefon,
     UICustomization? uiCustomization,
   }) {
     return AppSettings(
@@ -220,6 +269,18 @@ class AppSettings {
       openRouteServiceApiKey: openRouteServiceApiKey ?? this.openRouteServiceApiKey,
       totpSecret: totpSecret ?? this.totpSecret,
       bundesland: bundesland ?? this.bundesland,
+      organisationsName: organisationsName ?? this.organisationsName,
+      organisationsStrasse: organisationsStrasse ?? this.organisationsStrasse,
+      organisationsPlz: organisationsPlz ?? this.organisationsPlz,
+      organisationsOrt: organisationsOrt ?? this.organisationsOrt,
+      organisationsUstId: organisationsUstId ?? this.organisationsUstId,
+      organisationsSteuernr: organisationsSteuernr ?? this.organisationsSteuernr,
+      organisationsEinrichtungsIk: organisationsEinrichtungsIk ?? this.organisationsEinrichtungsIk,
+      organisationsIban: organisationsIban ?? this.organisationsIban,
+      organisationsBic: organisationsBic ?? this.organisationsBic,
+      organisationsKontoinhaber: organisationsKontoinhaber ?? this.organisationsKontoinhaber,
+      organisationsEmail: organisationsEmail ?? this.organisationsEmail,
+      organisationsTelefon: organisationsTelefon ?? this.organisationsTelefon,
       uiCustomization: uiCustomization ?? this.uiCustomization,
     );
   }

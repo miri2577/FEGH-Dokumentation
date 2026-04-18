@@ -46,6 +46,28 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
     });
   }
 
+  RechnungsstellerDaten _buildSteller(AppProvider app) {
+    final s = app.settings;
+    return RechnungsstellerDaten(
+      name: s.organisationsName.isNotEmpty
+          ? s.organisationsName
+          : (s.organizationId.isNotEmpty ? s.organizationId : 'Leistungserbringer'),
+      strasse: s.organisationsStrasse,
+      plz: s.organisationsPlz,
+      ort: s.organisationsOrt,
+      umsatzsteuerId: s.organisationsUstId.isEmpty ? null : s.organisationsUstId,
+      steuernummer: s.organisationsSteuernr.isEmpty ? null : s.organisationsSteuernr,
+      einrichtungsIk: s.organisationsEinrichtungsIk.isEmpty ? null : s.organisationsEinrichtungsIk,
+      iban: s.organisationsIban.isEmpty ? null : s.organisationsIban,
+      bic: s.organisationsBic.isEmpty ? null : s.organisationsBic,
+      kontoinhaber: s.organisationsKontoinhaber.isEmpty ? null : s.organisationsKontoinhaber,
+      email: s.organisationsEmail.isEmpty ? null : s.organisationsEmail,
+      telefon: s.organisationsTelefon.isEmpty ? null : s.organisationsTelefon,
+      ansprechpartner: s.userName.isEmpty ? null : s.userName,
+      elektronischeAdresse: s.organisationsEmail.isEmpty ? null : s.organisationsEmail,
+    );
+  }
+
   Future<void> _neueRechnung() async {
     await Navigator.push(
       context,
@@ -72,19 +94,7 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
     }
 
     final app = context.read<AppProvider>();
-    final settings = app.settings;
-
-    final steller = RechnungsstellerDaten(
-      name: settings.organizationId.isNotEmpty ? settings.organizationId : 'Leistungserbringer',
-      strasse: '',
-      plz: '',
-      ort: '',
-      ansprechpartner: settings.userName,
-      email: null,
-      telefon: null,
-      elektronischeAdresse: null,
-    );
-
+    final steller = _buildSteller(app);
     final service = XRechnungService(rechnungssteller: steller);
     final xml = service.buildXml(rechnung: r, empfaenger: empf);
 
@@ -233,12 +243,7 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
     final empf = _empfaengerMap[r.empfaengerId];
     if (empf == null) return;
     final app = context.read<AppProvider>();
-    final steller = RechnungsstellerDaten(
-      name: app.settings.organizationId.isNotEmpty ? app.settings.organizationId : 'Leistungserbringer',
-      strasse: '',
-      plz: '',
-      ort: '',
-    );
+    final steller = _buildSteller(app);
     final service = XRechnungService(rechnungssteller: steller);
     final xml = service.buildXml(rechnung: r, empfaenger: empf);
     if (!mounted) return;
