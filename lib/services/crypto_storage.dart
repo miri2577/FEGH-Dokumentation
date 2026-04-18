@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:cryptography/cryptography.dart';
+import 'package:fegh_crypto/fegh_crypto.dart' as shared;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +26,7 @@ class CryptoStorage {
   final String storageKey;
   final FlutterSecureStorage secure;
   final Cipher _aead = AesGcm.with256bits();
+  final shared.FeghCrypto _sharedCrypto = shared.FeghCrypto();
   final Uuid _uuid = const Uuid();
   List<int>? _forcedMEK; // Optional: direkt gesetzter MEK (z. B. Team-Key)
   String? _externalPassphrase;
@@ -245,66 +247,30 @@ class CryptoStorage {
     return List<int>.generate(len, (i) => random.nextInt(256));
   }
 
+  /// Verschluesselt Bytes und liefert einen EncryptedRecord als Map.
+  ///
+  /// Delegiert ans Shared-Package `fegh_crypto` - Wire-Format ist
+  /// bit-identisch zur FEGH-Verwaltung.
   Future<Map<String, dynamic>> encryptRecord({
     required List<int> plaintext,
     Map<String, dynamic>? aad,
   }) async {
     final mek = await _getOrCreateMEK();
-
-    final dek = _randomBytes(32);
-    final nonce1 = _randomBytes(12);
-    final secretKeyDek = SecretKey(dek);
-    final aadBytes = utf8.encode(jsonEncode(aad ?? {}));
-    final box = await _aead.encrypt(plaintext,
-        secretKey: secretKeyDek, nonce: nonce1, aad: aadBytes);
-
-    final nonce2 = _randomBytes(12);
-    final secretKeyMek = SecretKey(mek);
-    final wrapped = await _aead.encrypt(dek,
-        secretKey: secretKeyMek,
-        nonce: nonce2,
-        aad: utf8.encode('{"type":"dek"}'));
-
-    return {
-      'v': 1,
-      'alg': 'AES-256-GCM',
-      'nonce': base64.encode(nonce1),
-      'aad': aad ?? {},
-      'ciphertext': base64.encode(box.cipherText),
-      'tag': base64.encode(box.mac.bytes),
-      'dekWrapped': {
-        'alg': 'AES-256-GCM',
-        'nonce': base64.encode(nonce2),
-        'ciphertext': base64.encode(wrapped.cipherText),
-        'tag': base64.encode(wrapped.mac.bytes)
-      }
-    };
+    final record = await _sharedCrypto.encryptRecord(
+      plaintext: plaintext,
+      mek: mek,
+      aad: aad,
+    );
+    return record.toJson();
   }
 
+  /// Entschluesselt einen EncryptedRecord (Map) und liefert Bytes.
   Future<List<int>> decryptRecord(Map<String, dynamic> record) async {
     try {
       final mek = await _getOrCreateMEK();
-      final secretKeyMek = SecretKey(mek);
-
-      final wrapped = record['dekWrapped'] as Map<String, dynamic>;
-      final dekBytes = await _aead.decrypt(
-        SecretBox(
-          base64.decode(wrapped['ciphertext']),
-          nonce: base64.decode(wrapped['nonce']),
-          mac: Mac(base64.decode(wrapped['tag'])),
-        ),
-        secretKey: secretKeyMek,
-        aad: utf8.encode('{"type":"dek"}')
-      );
-
-      final secretKeyDek = SecretKey(dekBytes);
-      final box = SecretBox(
-        base64.decode(record['ciphertext']),
-        nonce: base64.decode(record['nonce']),
-        mac: Mac(base64.decode(record['tag'])),
-      );
-      final aadBytes = utf8.encode(jsonEncode(record['aad'] ?? {}));
-      return _aead.decrypt(box, secretKey: secretKeyDek, aad: aadBytes);
+      final typed = shared.EncryptedRecord.fromJson(record);
+      final plain = await _sharedCrypto.decryptRecord(record: typed, mek: mek);
+      return plain;
     } catch (e) {
       if (kDebugMode) debugPrint('decryptRecord fehlgeschlagen: $e');
       throw Exception('Entschluesselung fehlgeschlagen: Datensatz ist korrupt oder Schluessel ungueltig');

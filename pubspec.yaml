@@ -55,6 +55,9 @@ dependencies:
   
   # Encryption & Security
   cryptography: ^2.7.0
+  # Geteiltes Wire-Format mit FEGH-Verwaltung
+  fegh_crypto:
+    path: ../fegh-shared/fegh_crypto
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.2
   http: ^1.2.2

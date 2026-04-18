@@ -127,8 +127,9 @@ class _TeamManagementScreenState extends State<TeamManagementScreen> {
         SnackBar(
           content: Text(success
               ? 'Team "${team.name}" erstellt'
-              : 'Fehler beim Erstellen'),
+              : 'Fehler beim Erstellen - pruefe HiDrive-Verbindung + Logs'),
           backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
       if (success) _loadTeams();

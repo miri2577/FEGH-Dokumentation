@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:cryptography/cryptography.dart' as aes;
-import 'package:crypto/crypto.dart' as hash;
+import 'package:fegh_crypto/fegh_crypto.dart' as shared;
 import 'package:flutter/foundation.dart';
 import '../models/team.dart';
 import '../models/app_settings.dart';
@@ -26,92 +25,133 @@ class AdminService {
 
   // ── Team-Verwaltung ──────────────────────────────────────────────
 
-  /// Erstellt ein neues Team: HiDrive-Ordner + Team-Key generieren + hochladen.
+  /// Erstellt ein neues Team. Funktioniert mit und ohne HiDrive.
+  ///
+  /// - Ohne HiDrive-Config: Team + Key nur lokal (verschluesselt via CryptoStorage)
+  /// - Mit HiDrive-Config: Lokal + Upload auf HiDrive (fuer Team-Sync)
   Future<bool> createTeam(Team team) async {
+    final hasHidrive = settings.hidriveUsername.isNotEmpty &&
+        settings.hidrivePassword.isNotEmpty;
+
     try {
-      // 1. Team-Ordner auf HiDrive anlegen
-      final teamSync = HiDriveBusinessSync.forTeam(
-        username: settings.hidriveUsername,
-        password: settings.hidrivePassword,
-        organizationId: settings.organizationId,
-        teamId: team.id,
-        rootSubdirectory: settings.rootSubdirectory.isNotEmpty
-            ? settings.rootSubdirectory
-            : null,
-      );
-      final setupResult = await teamSync.setupRemoteDirectory();
-      if (!setupResult.isSuccess) {
-        await FileLogger().log('❌ Team-Ordner Setup fehlgeschlagen: ${setupResult.error}');
-        return false;
-      }
-
-      // 2. Team-Key generieren (32 Byte AES)
+      // 1. Team-Key generieren (32 Byte AES) - immer
       final teamKey = _generateSecureRandomBytes(32);
-      final keySuccess = await _uploadTeamKey(team.id, teamKey);
-      if (!keySuccess) {
-        await FileLogger().log('❌ Team-Key Upload fehlgeschlagen für Team ${team.id}');
-        return false;
-      }
 
-      // 3. Team-Info verschlüsselt hochladen
+      // 2. Immer lokal speichern (Team-Info + Team-Key)
       final teamJson = jsonEncode(team.toJson());
-      final encrypted = await crypto.encryptRecord(
+      final encryptedInfo = await crypto.encryptRecord(
         plaintext: utf8.encode(teamJson),
         aad: {'type': 'team-info', 'teamId': team.id},
       );
-      final encBytes = Uint8List.fromList(utf8.encode(jsonEncode(encrypted)));
-      final uploadResult = await adminSync.uploadOrgScopedRecord(
-        'teams/${team.id}',
-        'team-info',
-        encBytes,
+      await crypto.saveJsonEncrypted('team-info', {
+        'teamId': team.id,
+        'record': encryptedInfo,
+      });
+
+      final encryptedKey = await crypto.encryptRecord(
+        plaintext: teamKey,
+        aad: {'type': 'team-key', 'teamId': team.id},
       );
-      if (!uploadResult.isSuccess) {
-        await FileLogger().log('❌ Team-Info Upload fehlgeschlagen: ${uploadResult.error}');
-        return false;
+      await crypto.saveJsonEncrypted('team-key', {
+        'teamId': team.id,
+        'record': encryptedKey,
+      });
+
+      // 3. Wenn HiDrive konfiguriert: zusaetzlich hochladen
+      if (hasHidrive) {
+        final teamSync = HiDriveBusinessSync.forTeam(
+          username: settings.hidriveUsername,
+          password: settings.hidrivePassword,
+          organizationId: settings.organizationId,
+          teamId: team.id,
+          rootSubdirectory: settings.rootSubdirectory.isNotEmpty
+              ? settings.rootSubdirectory
+              : null,
+        );
+        final setupResult = await teamSync.setupRemoteDirectory();
+        if (!setupResult.isSuccess) {
+          await FileLogger().log(
+              '⚠️ Team-Ordner HiDrive-Setup fehlgeschlagen: ${setupResult.error} - Team bleibt lokal');
+        } else {
+          await _uploadTeamKey(team.id, teamKey);
+          final encBytes = Uint8List.fromList(utf8.encode(jsonEncode(encryptedInfo)));
+          await adminSync.uploadOrgScopedRecord(
+            'teams/${team.id}',
+            'team-info',
+            encBytes,
+          );
+        }
       }
 
-      await FileLogger().log('✅ Team erstellt: ${team.name} (${team.id})');
+      await FileLogger().log(
+          '✅ Team erstellt: ${team.name} (${team.id}) ${hasHidrive ? "+ HiDrive" : "[lokal]"}');
       return true;
     } catch (e) {
       if (kDebugMode) debugPrint('[ADMIN] createTeam error: $e');
+      await FileLogger().log('❌ Team-Erstellung fehlgeschlagen: $e');
       return false;
     }
   }
 
   /// Lädt alle Teams aus der Organisation.
   Future<List<Team>> listTeams() async {
-    try {
-      debugPrint('[ADMIN] listTeams: lade von HiDrive...');
-      final result = await adminSync.listOrgScopedDirectories('teams');
-      debugPrint('[ADMIN] listTeams: success=${result.isSuccess}, dirs=${result.data}');
-      if (!result.isSuccess || result.data == null) return [];
+    final teamsById = <String, Team>{};
 
-      final teams = <Team>[];
-      for (final teamDir in result.data!) {
-        debugPrint('[ADMIN] listTeams: lade Team "$teamDir"...');
+    // 1. Lokale Teams laden (Quelle der Wahrheit)
+    try {
+      final manifest = await crypto.loadManifest();
+      for (final entry in manifest.entries.where((e) => e.schema == 'team-info')) {
         try {
-          final infoResult = await adminSync.downloadOrgScopedRecord(
-            'teams/$teamDir',
-            'team-info',
-          );
-          debugPrint('[ADMIN] listTeams: download success=${infoResult.isSuccess}, hasData=${infoResult.data != null}');
-          if (infoResult.isSuccess && infoResult.data != null) {
-            final encJson = jsonDecode(utf8.decode(infoResult.data!));
-            final clearBytes = await crypto.decryptRecord(encJson);
-            final teamJson = jsonDecode(utf8.decode(clearBytes));
-            teams.add(Team.fromJson(teamJson));
-            debugPrint('[ADMIN] listTeams: OK -> ${teamJson['name']}');
-          }
+          final data = await crypto.loadJsonDecrypted(entry.uuid);
+          final rec = data['record'] as Map<String, dynamic>;
+          final clearBytes = await crypto.decryptRecord(rec);
+          final teamJson = jsonDecode(utf8.decode(clearBytes));
+          final t = Team.fromJson(teamJson);
+          teamsById[t.id] = t;
         } catch (e) {
-          debugPrint('[ADMIN] Team $teamDir FEHLER: $e');
+          debugPrint('[ADMIN] Lokales Team-Entry kaputt: $e');
         }
       }
-      debugPrint('[ADMIN] listTeams: ${teams.length} Teams geladen');
-      return teams;
+      debugPrint('[ADMIN] listTeams lokal: ${teamsById.length} Teams');
     } catch (e) {
-      debugPrint('[ADMIN] listTeams error: $e');
-      return [];
+      debugPrint('[ADMIN] listTeams lokal Fehler: $e');
     }
+
+    // 2. Zusaetzlich HiDrive wenn konfiguriert
+    final hasHidrive = settings.hidriveUsername.isNotEmpty &&
+        settings.hidrivePassword.isNotEmpty;
+    if (hasHidrive) {
+      try {
+        final result = await adminSync.listOrgScopedDirectories('teams');
+        if (result.isSuccess && result.data != null) {
+          for (final teamDir in result.data!) {
+            try {
+              final infoResult = await adminSync.downloadOrgScopedRecord(
+                'teams/$teamDir',
+                'team-info',
+              );
+              if (infoResult.isSuccess && infoResult.data != null) {
+                final encJson = jsonDecode(utf8.decode(infoResult.data!));
+                final clearBytes = await crypto.decryptRecord(encJson);
+                final teamJson = jsonDecode(utf8.decode(clearBytes));
+                final t = Team.fromJson(teamJson);
+                // Cloud-Version ueberschreibt nur wenn neuer (updatedAt)
+                final existing = teamsById[t.id];
+                if (existing == null || t.updatedAt.isAfter(existing.updatedAt)) {
+                  teamsById[t.id] = t;
+                }
+              }
+            } catch (e) {
+              debugPrint('[ADMIN] Team $teamDir von Cloud FEHLER: $e');
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[ADMIN] listTeams Cloud-Fehler (ignoriert): $e');
+      }
+    }
+
+    return teamsById.values.toList();
   }
 
   /// Aktualisiert Team-Info auf HiDrive.
@@ -180,9 +220,9 @@ class AdminService {
 
   // ── Provisioning-Token ───────────────────────────────────────────
 
-  /// Generiert ein Provisioning-Token für einen Mitarbeiter.
-  /// Das Token enthält alle Infos zum automatischen Setup.
-  /// Wird mit einem PIN verschlüsselt (AES-256-GCM, PBKDF2).
+  /// Generiert ein Provisioning-Token fuer einen Mitarbeiter.
+  /// Delegiert ans Shared-Package `fegh_crypto` - Format kompatibel
+  /// zur FEGH-Verwaltung.
   Future<String?> generateProvisioningToken({
     required String employeeEmail,
     required String role,
@@ -190,7 +230,6 @@ class AdminService {
     required String pin,
   }) async {
     try {
-      // Team-Keys laden
       final teamKeys = <String, String>{};
       for (final teamId in teamIds) {
         final keyB64 = await fetchTeamKeyBase64(teamId);
@@ -199,54 +238,41 @@ class AdminService {
         }
       }
 
-      // TOTP-Secret generieren (RFC 6238, 160 Bit)
       final totpSecret = TotpService.generateSecret();
       final totpSecretB32 = TotpService.secretToBase32(totpSecret);
 
-      final payload = {
-        'type': 'egh-provisioning-v1',
-        'org': settings.organizationId,
-        'user': employeeEmail,
-        'role': role,
-        'teams': teamIds,
-        'teamKeys': teamKeys,
-        'totp': totpSecretB32,
-        'hidrive': {
-          'username': settings.hidriveUsername,
-          'appPassword': settings.hidrivePassword,
-        },
-        'flags': {
+      final token = shared.ProvisioningToken(
+        org: settings.organizationId,
+        user: employeeEmail,
+        role: role,
+        teams: teamIds,
+        teamKeys: teamKeys,
+        totp: totpSecretB32,
+        hidrive: shared.HidriveCredentials(
+          username: settings.hidriveUsername,
+          appPassword: settings.hidrivePassword,
+        ),
+        flags: const {
           'managed': true,
           'forceInitialSync': true,
         },
-        'ts': DateTime.now().toIso8601String(),
-      };
-
-      // Token mit PIN verschlüsseln
-      final payloadBytes = utf8.encode(jsonEncode(payload));
-      final pinKey = await _deriveKeyFromPin(pin);
-      final encrypted = await _encryptWithKey(payloadBytes, pinKey);
-      return base64Encode(utf8.encode(jsonEncode(encrypted)));
+        ts: DateTime.now().toUtc(),
+      );
+      return await token.encryptWithPin(pin);
     } catch (e) {
       if (kDebugMode) debugPrint('[ADMIN] generateProvisioningToken error: $e');
       return null;
     }
   }
 
-  /// Entschlüsselt ein Provisioning-Token mit PIN.
+  /// Entschluesselt ein Provisioning-Token mit PIN.
+  /// Delegiert ans Shared-Package.
   static Future<Map<String, dynamic>?> decryptProvisioningToken(
     String tokenB64,
     String pin,
   ) async {
-    try {
-      final tokenJson = jsonDecode(utf8.decode(base64Decode(tokenB64)));
-      final pinKey = await _deriveKeyFromPinStatic(pin);
-      final clearBytes = await _decryptWithKeyStatic(tokenJson, pinKey);
-      return jsonDecode(utf8.decode(clearBytes));
-    } catch (e) {
-      if (kDebugMode) debugPrint('[ADMIN] decryptProvisioningToken error: $e');
-      return null;
-    }
+    final token = await shared.ProvisioningToken.decryptWithPin(tokenB64, pin);
+    return token?.toJson();
   }
 
   // ── Rollen-Verwaltung (roles.json) ───────────────────────────────
@@ -419,50 +445,5 @@ class AdminService {
     return Uint8List.fromList(
       List<int>.generate(length, (_) => random.nextInt(256)),
     );
-  }
-
-  /// PBKDF2-artige Key-Ableitung aus PIN (vereinfacht mit SHA-256 Iterationen).
-  Future<Uint8List> _deriveKeyFromPin(String pin) async {
-    return _deriveKeyFromPinStatic(pin);
-  }
-
-  static Future<Uint8List> _deriveKeyFromPinStatic(String pin) async {
-    final salt = utf8.encode('egh-provisioning-salt-v1');
-    List<int> key = utf8.encode(pin);
-    for (int i = 0; i < 10000; i++) {
-      final hmac = hash.Hmac(hash.sha256, salt);
-      key = hmac.convert(key).bytes;
-    }
-    return Uint8List.fromList(key);
-  }
-
-  static Future<Map<String, dynamic>> _encryptWithKey(
-    List<int> plaintext,
-    Uint8List key,
-  ) async {
-    final cipher = aes.AesGcm.with256bits();
-    final nonce = _generateSecureRandomBytes(12);
-    final secretKey = aes.SecretKey(key);
-    final box = await cipher.encrypt(plaintext, secretKey: secretKey, nonce: nonce);
-    return {
-      'nonce': base64Encode(nonce),
-      'ciphertext': base64Encode(box.cipherText),
-      'tag': base64Encode(box.mac.bytes),
-    };
-  }
-
-  static Future<Uint8List> _decryptWithKeyStatic(
-    Map<String, dynamic> record,
-    Uint8List key,
-  ) async {
-    final cipher = aes.AesGcm.with256bits();
-    final secretKey = aes.SecretKey(key);
-    final box = aes.SecretBox(
-      base64Decode(record['ciphertext']),
-      nonce: base64Decode(record['nonce']),
-      mac: aes.Mac(base64Decode(record['tag'])),
-    );
-    final clearBytes = await cipher.decrypt(box, secretKey: secretKey);
-    return Uint8List.fromList(clearBytes);
   }
 }
