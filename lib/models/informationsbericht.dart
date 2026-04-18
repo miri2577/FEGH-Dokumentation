@@ -227,3 +227,14 @@ enum ZielerreichungStatus {
   @JsonValue('nicht_beurteilbar')
   nichtBeurteilbar,
 }
+
+/// Mapping: GAS-Wert (-2 .. +2) auf den Status fuer Formular 101.
+ZielerreichungStatus zielerreichungAusGas(int gasWert) {
+  // GAS +2/+1 = Ziel uebererreicht bzw. erreicht -> vollErreicht
+  // GAS  0     = wie erwartet, Ziel erreicht       -> vollErreicht
+  // GAS -1    = schlechter als erwartet            -> teilweiseErreicht
+  // GAS -2    = deutlich schlechter als erwartet   -> nichtErreicht
+  if (gasWert >= 0) return ZielerreichungStatus.vollErreicht;
+  if (gasWert == -1) return ZielerreichungStatus.teilweiseErreicht;
+  return ZielerreichungStatus.nichtErreicht;
+}

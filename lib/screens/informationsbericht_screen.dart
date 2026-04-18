@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../models/client.dart';
 import '../models/informationsbericht.dart';
+import '../models/teilhabeziel.dart' as wm;
+import '../models/zielmessung.dart' as zm;
+import '../services/wirkungsmessung_service.dart';
 import '../services/export_service.dart';
 import '../services/file_storage_service.dart';
 import '../services/pdf_generator_service.dart';
@@ -263,10 +266,20 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
             _buildSektionHeader('3. Bericht zu vereinbarten Teilhabezielen'),
             ..._buildTeilhabezieleCards(),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _addTeilhabeziel,
-              icon: const Icon(Icons.add),
-              label: const Text('Weiteres Teilhabeziel'),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _addTeilhabeziel,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Weiteres Teilhabeziel'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _uebernehmenAusWirkungsmessung,
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('Aus Wirkungsmessung übernehmen'),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
 
@@ -884,6 +897,90 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
     });
   }
 
+  /// Laedt die Teilhabeziele aus der Wirkungsmessung und befuellt das Formular.
+  /// Zielerreichung wird aus der letzten GAS-Messung abgeleitet.
+  Future<void> _uebernehmenAusWirkungsmessung() async {
+    final wmService = WirkungsmessungService();
+    final ziele = await wmService.zieleFuerClient(widget.client.id);
+    final aktiveZiele = ziele
+        .where((z) => z.status == wm.TeilhabezielStatus.aktiv ||
+            z.status == wm.TeilhabezielStatus.erreicht)
+        .toList();
+
+    if (aktiveZiele.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(
+          'Keine aktiven Teilhabeziele aus der Wirkungsmessung gefunden. '
+          'Zuerst unter "Teilhabeziele & Wirkung" anlegen.',
+        )),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aus Wirkungsmessung uebernehmen'),
+        content: Text(
+          '${aktiveZiele.length} Teilhabeziele werden aus der Wirkungsmessung '
+          'uebernommen. Die Zielerreichung wird aus der letzten GAS-Messung '
+          'abgeleitet. Bisherige Eintraege werden ersetzt.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Uebernehmen')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    // Aktuelle Form-Zustaende verwerfen
+    for (final tz in _teilhabeziele) {
+      tz.dispose();
+    }
+    final neueFormDaten = <_TeilhabezielFormData>[];
+
+    for (int i = 0; i < aktiveZiele.length; i++) {
+      final z = aktiveZiele[i];
+      final messungen = await wmService.messungenFuerZiel(z.id);
+      ZielerreichungStatus? zielerreichung;
+      if (messungen.isNotEmpty) {
+        final letzte = zm.GasBewertungExtension(messungen.last.bewertung).wert;
+        zielerreichung = zielerreichungAusGas(letzte);
+      } else if (z.status == wm.TeilhabezielStatus.erreicht) {
+        zielerreichung = ZielerreichungStatus.vollErreicht;
+      }
+
+      final erlaeuterung = messungen.isNotEmpty && messungen.last.kommentar != null
+          ? messungen.last.kommentar!
+          : z.beschreibung;
+
+      neueFormDaten.add(_TeilhabezielFormData.fromModel(Teilhabeziel(
+        teilhabezielNr: i + 1,
+        teilhabezielText: z.titel,
+        indikator: [z.spezifisch, z.messbar]
+            .where((s) => s != null && s.isNotEmpty)
+            .join(' | '),
+        zielerreichung: zielerreichung,
+        erlaeuterung: erlaeuterung,
+        leitzielText: z.kategorie == wm.TeilhabezielKategorie.leitziel ? z.titel : null,
+      )));
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _teilhabeziele = neueFormDaten;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${aktiveZiele.length} Ziele uebernommen'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   void _removeTeilhabeziel(int index) {
     setState(() {
       _teilhabeziele[index].dispose();
@@ -996,9 +1093,94 @@ class _InformationsberichtScreenState extends State<InformationsberichtScreen> {
   }
 
   Future<void> _exportPdf() async {
+    // Plausi-Check: Pflichtfelder fuer rechtssichere Einreichung
+    final fehlende = <String>[];
+    if (_teilhabefachdienstCtrl.text.trim().isEmpty) fehlende.add('Teilhabefachdienst/Bezirk');
+    if (_idKostenuebernahmeCtrl.text.trim().isEmpty) fehlende.add('ID Kostenuebernahme');
+    if (_familiennameCtrl.text.trim().isEmpty) fehlende.add('Familienname');
+    if (_vornameCtrl.text.trim().isEmpty) fehlende.add('Vorname');
+    if (_berichtszeitraumVon == null) fehlende.add('Berichtszeitraum von');
+    if (_berichtszeitraumBis == null) fehlende.add('Berichtszeitraum bis');
+    if (_leistungserbringerCtrl.text.trim().isEmpty) fehlende.add('Leistungserbringer');
+    if (_teilhabeziele.isEmpty ||
+        _teilhabeziele.every((z) => z.teilhabezielTextCtrl.text.trim().isEmpty)) {
+      fehlende.add('Mindestens ein Teilhabeziel');
+    }
+    if (_zusammenfassungCtrl.text.trim().isEmpty) fehlende.add('Zusammenfassung/Ausblick');
+    if (_ortDatumCtrl.text.trim().isEmpty) fehlende.add('Ort, Datum');
+
+    // Warnungen (nicht hart-blockierend)
+    final warnungen = <String>[];
+    final zieleOhneErreichung = _teilhabeziele
+        .where((z) => z.teilhabezielTextCtrl.text.trim().isNotEmpty && z.zielerreichung == null)
+        .length;
+    if (zieleOhneErreichung > 0) {
+      warnungen.add('$zieleOhneErreichung Ziele ohne Zielerreichungs-Status');
+    }
+    final zieleOhneIndikator = _teilhabeziele
+        .where((z) => z.teilhabezielTextCtrl.text.trim().isNotEmpty && z.indikatorCtrl.text.trim().isEmpty)
+        .length;
+    if (zieleOhneIndikator > 0) {
+      warnungen.add('$zieleOhneIndikator Ziele ohne Indikator (messbares Kriterium)');
+    }
+
+    if (fehlende.isNotEmpty || warnungen.isNotEmpty) {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: Icon(
+            fehlende.isNotEmpty ? Icons.error : Icons.warning_amber,
+            color: fehlende.isNotEmpty ? Colors.red : Colors.orange,
+            size: 40,
+          ),
+          title: Text(fehlende.isNotEmpty ? 'Pflichtfelder fehlen' : 'Hinweise'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fehlende.isNotEmpty) ...[
+                  const Text('Folgende Pflichtfelder sind leer:',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                  const SizedBox(height: 6),
+                  ...fehlende.map((f) => Text('• $f', style: const TextStyle(fontSize: 13))),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Ein Bericht ohne Pflichtangaben kann vom Teilhabefachdienst '
+                    'zurueckgewiesen werden.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+                if (warnungen.isNotEmpty) ...[
+                  if (fehlende.isNotEmpty) const SizedBox(height: 16),
+                  const Text('Weitere Hinweise:',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                  const SizedBox(height: 6),
+                  ...warnungen.map((w) => Text('• $w', style: const TextStyle(fontSize: 13))),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Zum Bearbeiten'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: fehlende.isNotEmpty ? Colors.red.shade700 : null,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Trotzdem exportieren'),
+            ),
+          ],
+        ),
+      );
+      if (result != true) return;
+    }
+
     // Nur noch Template-Fill: fuellt das offizielle Berliner PDF-Formular aus.
-    // Die frueheren "Nachbau"- und "App-Layout"-Varianten wurden entfernt,
-    // da sie nicht das offizielle Layout abbilden.
+    if (!mounted) return;
     await _generateAndExportPdf('syncfusion');
   }
 

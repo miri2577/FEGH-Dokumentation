@@ -103,28 +103,33 @@ class PdfGeneratorService {
     // --- 2. Allgemeine Informationen ---
     setText('IB_S2_05_01', bericht.allgemeineInformationen);
 
-    // --- 3. Teilhabeziele (erstes Ziel - Template hat Platz fuer eins) ---
+    // --- 3. Teilhabeziele (bis zu 10 Slots: _a bis _j) ---
     if (bericht.teilhabeziele != null && bericht.teilhabeziele!.isNotEmpty) {
-      final tz = bericht.teilhabeziele!.first;
-      setText('IB_S3_02_02_a', tz.leitzielNr?.toString());
-      setText('IB_S3_02_03_a', tz.leitzielText);
-      setText('IB_S3_03_02_a', tz.teilhabezielNr?.toString());
-      setText('IB_S3_03_04_a', tz.teilhabezielText);
-      setText('IB_S3_04_02_a', tz.indikator);
+      const suffixe = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+      final ziele = bericht.teilhabeziele!.take(suffixe.length).toList();
+      for (int i = 0; i < ziele.length; i++) {
+        final tz = ziele[i];
+        final s = suffixe[i];
+        setText('IB_S3_02_02_$s', tz.leitzielNr?.toString());
+        setText('IB_S3_02_03_$s', tz.leitzielText);
+        setText('IB_S3_03_02_$s', tz.teilhabezielNr?.toString());
+        setText('IB_S3_03_04_$s', tz.teilhabezielText);
+        setText('IB_S3_04_02_$s', tz.indikator);
 
-      if (tz.zielerreichung != null) {
-        setCheck('IB_S3_06_01_a', tz.zielerreichung == ZielerreichungStatus.vollErreicht);
-        setCheck('IB_S3_07_01_a', tz.zielerreichung == ZielerreichungStatus.teilweiseErreicht);
-        setCheck('IB_S3_08_01_a', tz.zielerreichung == ZielerreichungStatus.nichtErreicht);
-        setCheck('IB_S3_09_01_a', tz.zielerreichung == ZielerreichungStatus.nichtBeurteilbar);
+        if (tz.zielerreichung != null) {
+          setCheck('IB_S3_06_01_$s', tz.zielerreichung == ZielerreichungStatus.vollErreicht);
+          setCheck('IB_S3_07_01_$s', tz.zielerreichung == ZielerreichungStatus.teilweiseErreicht);
+          setCheck('IB_S3_08_01_$s', tz.zielerreichung == ZielerreichungStatus.nichtErreicht);
+          setCheck('IB_S3_09_01_$s', tz.zielerreichung == ZielerreichungStatus.nichtBeurteilbar);
+        }
+
+        if (tz.abweichendeEinschaetzung != null) {
+          setCheck('IB_S3_11_01_$s', tz.abweichendeEinschaetzung == false);
+          setCheck('IB_S3_11_03_$s', tz.abweichendeEinschaetzung == true);
+        }
+
+        setText('IB_S3_14_01_$s', tz.erlaeuterung);
       }
-
-      if (tz.abweichendeEinschaetzung != null) {
-        setCheck('IB_S3_11_01_a', tz.abweichendeEinschaetzung == false);
-        setCheck('IB_S3_11_03_a', tz.abweichendeEinschaetzung == true);
-      }
-
-      setText('IB_S3_14_01_a', tz.erlaeuterung);
     }
 
     // --- Weitere Anmerkungen ---
