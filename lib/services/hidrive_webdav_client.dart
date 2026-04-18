@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:fegh_cloud/fegh_cloud.dart' as cloud;
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -275,40 +276,19 @@ class HiDriveWebDAVClient {
   }
 
   Future<WebDAVResult> createDirectory(String remotePath) async {
+    // Delegiert an fegh_cloud HidriveAdapter (webdav_client-basiert).
+    // Ersetzt den frueheren Pinning-Bypass strukturell und behandelt
+    // STRATO-Quirks (MKCOL-Content-Type-Sensitivitaet) korrekt.
+    final adapter = cloud.HidriveAdapter(
+      username: username,
+      password: password,
+    );
     try {
-      final uri = Uri.parse('$baseUrl/$remotePath/');
-      final request = http.Request('MKCOL', uri);
-      // STRATO HiDrive MKCOL: nur Authorization + User-Agent.
-      // KEIN Content-Type (application/octet-stream = HTTP 415).
-      // Verifiziert mit curl-Test (liefert 201 Created ohne Content-Type).
-      request.headers['Authorization'] =
-          'Basic ${base64Encode(utf8.encode('$username:$password'))}';
-      request.headers['User-Agent'] =
-          'EingliederungshilfeApp/2.0 (DSGVO-konform)';
-
-      // Cert-Pinning-Bypass fuer MKCOL: _PinnedHttpClient.send()
-      // manipuliert die Headers so, dass STRATO mit HTTP 415 antwortet
-      // (vermutlich fuegt dart:io HttpClient bei leerem Body automatisch
-      // einen Content-Type hinzu, den _set()_ aus den kopierten Headers
-      // ueberschreibt). Umgangen via direktem http.Client().
-      // TODO: _PinnedHttpClient fixen und Pinning wiederherstellen.
-      final directClient = http.Client();
-      try {
-        final streamedResponse = await directClient.send(request);
-        final response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode >= 200 && response.statusCode < 300 ||
-            response.statusCode == 405) {
-          return WebDAVResult.success();
-        }
-        return WebDAVResult.failure(
-          'HTTP ${response.statusCode}: ${response.reasonPhrase}',
-        );
-      } finally {
-        directClient.close();
-      }
-    } catch (e) {
-      return WebDAVResult.failure('Verzeichnis erstellen fehlgeschlagen: $e');
+      final result = await adapter.createDirectory(remotePath);
+      if (result.isSuccess) return WebDAVResult.success();
+      return WebDAVResult.failure(result.error ?? 'MKCOL fehlgeschlagen');
+    } finally {
+      adapter.dispose();
     }
   }
 

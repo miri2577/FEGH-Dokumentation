@@ -58,6 +58,9 @@ dependencies:
   # Geteiltes Wire-Format mit FEGH-Verwaltung
   fegh_crypto:
     path: ../fegh-shared/fegh_crypto
+  # Geteilter Cloud-Storage-Adapter (WebDAV via webdav_client)
+  fegh_cloud:
+    path: ../fegh-shared/fegh_cloud
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.2
   http: ^1.2.2
