@@ -62,6 +62,12 @@ Client _$ClientFromJson(Map<String, dynamic> json) => Client(
     _$BundeslandEnumMap,
     json['bundeslandOverride'],
   ),
+  kostentraegerFallnummern:
+      (json['kostentraegerFallnummern'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
+  bewilligungsbescheidRef: json['bewilligungsbescheidRef'] as String?,
+  leistungstypSchluessel: json['leistungstypSchluessel'] as String?,
 );
 
 Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
@@ -98,6 +104,9 @@ Map<String, dynamic> _$ClientToJson(Client instance) => <String, dynamic>{
   'einwilligungWiderruflichBis': instance.einwilligungWiderruflichBis,
   'einwilligungBemerkung': instance.einwilligungBemerkung,
   'bundeslandOverride': _$BundeslandEnumMap[instance.bundeslandOverride],
+  'kostentraegerFallnummern': instance.kostentraegerFallnummern,
+  'bewilligungsbescheidRef': instance.bewilligungsbescheidRef,
+  'leistungstypSchluessel': instance.leistungstypSchluessel,
 };
 
 const _$FachleistungsIntervallEnumMap = {

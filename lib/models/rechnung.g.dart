@@ -18,6 +18,10 @@ RechnungsPosition _$RechnungsPositionFromJson(Map<String, dynamic> json) =>
       leistungszeitraumBis: json['leistungszeitraumBis'] as String?,
       clientId: json['clientId'] as String?,
       clientName: json['clientName'] as String?,
+      clientGeburtsdatum: json['clientGeburtsdatum'] as String?,
+      fallnummer: json['fallnummer'] as String?,
+      leistungstyp: json['leistungstyp'] as String?,
+      bewilligungsRef: json['bewilligungsRef'] as String?,
       hinweis: json['hinweis'] as String?,
     );
 
@@ -33,6 +37,10 @@ Map<String, dynamic> _$RechnungsPositionToJson(RechnungsPosition instance) =>
       'leistungszeitraumBis': instance.leistungszeitraumBis,
       'clientId': instance.clientId,
       'clientName': instance.clientName,
+      'clientGeburtsdatum': instance.clientGeburtsdatum,
+      'fallnummer': instance.fallnummer,
+      'leistungstyp': instance.leistungstyp,
+      'bewilligungsRef': instance.bewilligungsRef,
       'hinweis': instance.hinweis,
     };
 
@@ -60,6 +68,11 @@ Rechnung _$RechnungFromJson(Map<String, dynamic> json) => Rechnung(
   status:
       $enumDecodeNullable(_$RechnungStatusEnumMap, json['status']) ??
       RechnungStatus.entwurf,
+  ustBefreiung:
+      $enumDecodeNullable(_$UstBefreiungsgrundEnumMap, json['ustBefreiung']) ??
+      UstBefreiungsgrund.par4Nr16h,
+  istStorno: json['istStorno'] as bool? ?? false,
+  stornoFuerRechnungId: json['stornoFuerRechnungId'] as String?,
   erstelltAm: DateTime.parse(json['erstelltAm'] as String),
 );
 
@@ -79,6 +92,9 @@ Map<String, dynamic> _$RechnungToJson(Rechnung instance) => <String, dynamic>{
   'bemerkung': instance.bemerkung,
   'waehrung': instance.waehrung,
   'status': _$RechnungStatusEnumMap[instance.status]!,
+  'ustBefreiung': _$UstBefreiungsgrundEnumMap[instance.ustBefreiung]!,
+  'istStorno': instance.istStorno,
+  'stornoFuerRechnungId': instance.stornoFuerRechnungId,
   'erstelltAm': instance.erstelltAm.toIso8601String(),
 };
 
@@ -87,4 +103,11 @@ const _$RechnungStatusEnumMap = {
   RechnungStatus.versendet: 'versendet',
   RechnungStatus.bezahlt: 'bezahlt',
   RechnungStatus.storniert: 'storniert',
+};
+
+const _$UstBefreiungsgrundEnumMap = {
+  UstBefreiungsgrund.keine: 'keine',
+  UstBefreiungsgrund.par4Nr16h: 'n16h',
+  UstBefreiungsgrund.par4Nr25: 'n25',
+  UstBefreiungsgrund.par4Nr18: 'n18',
 };

@@ -2,6 +2,59 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'rechnung.g.dart';
 
+/// Steuerbefreiungsgrund nach §4 UStG fuer soziale/Behoerdenleistungen.
+enum UstBefreiungsgrund {
+  /// Keine Befreiung - normal steuerpflichtig
+  @JsonValue('keine')
+  keine,
+
+  /// §4 Nr. 16 h UStG - Soziale Einrichtungen (z.B. EGH durch anerkannten Traeger)
+  @JsonValue('n16h')
+  par4Nr16h,
+
+  /// §4 Nr. 25 UStG - Jugendhilfe (SGB VIII)
+  @JsonValue('n25')
+  par4Nr25,
+
+  /// §4 Nr. 18 UStG - Wohlfahrtspflege
+  @JsonValue('n18')
+  par4Nr18,
+}
+
+extension UstBefreiungsgrundExtension on UstBefreiungsgrund {
+  String get anzeigeText {
+    switch (this) {
+      case UstBefreiungsgrund.keine: return 'Keine (steuerpflichtig)';
+      case UstBefreiungsgrund.par4Nr16h: return '§4 Nr. 16 h UStG - Soziale Einrichtungen (EGH)';
+      case UstBefreiungsgrund.par4Nr25: return '§4 Nr. 25 UStG - Jugendhilfe';
+      case UstBefreiungsgrund.par4Nr18: return '§4 Nr. 18 UStG - Wohlfahrtspflege';
+    }
+  }
+
+  /// Text auf Rechnung (Pflichtangabe bei Befreiung).
+  String? get rechnungstext {
+    switch (this) {
+      case UstBefreiungsgrund.keine: return null;
+      case UstBefreiungsgrund.par4Nr16h:
+        return 'Steuerfreie Leistung nach §4 Nr. 16 Buchst. h UStG';
+      case UstBefreiungsgrund.par4Nr25:
+        return 'Steuerfreie Leistung nach §4 Nr. 25 UStG';
+      case UstBefreiungsgrund.par4Nr18:
+        return 'Steuerfreie Leistung nach §4 Nr. 18 UStG';
+    }
+  }
+
+  /// Kurzcode fuer XRechnung-Export (VATEX-EU-Codes).
+  String get vatexCode {
+    switch (this) {
+      case UstBefreiungsgrund.keine: return '';
+      case UstBefreiungsgrund.par4Nr16h: return 'VATEX-DE-HE';  // Haertehilfe/EGH
+      case UstBefreiungsgrund.par4Nr25: return 'VATEX-DE-H';    // Jugendhilfe
+      case UstBefreiungsgrund.par4Nr18: return 'VATEX-DE-V';    // Wohlfahrt
+    }
+  }
+}
+
 /// Eine einzelne Leistungsposition (z.B. 1 Fachleistungsstunde).
 @JsonSerializable()
 class RechnungsPosition {
@@ -15,6 +68,10 @@ class RechnungsPosition {
   final String? leistungszeitraumBis;
   final String? clientId;       // Bezug zum Klienten (intern)
   final String? clientName;     // Anzeigename fuer Rechnung
+  final String? clientGeburtsdatum; // ISO-Datum, fuer Zuordnung beim Kostentraeger
+  final String? fallnummer;     // Aktenzeichen des Kostentraegers fuer diesen Klienten
+  final String? leistungstyp;   // Leistungstyp-Schluessel nach Rahmenvertrag
+  final String? bewilligungsRef;// Bewilligungsbescheid-Referenz
   final String? hinweis;        // optionale Zusatzinfo
 
   RechnungsPosition({
@@ -28,6 +85,10 @@ class RechnungsPosition {
     this.leistungszeitraumBis,
     this.clientId,
     this.clientName,
+    this.clientGeburtsdatum,
+    this.fallnummer,
+    this.leistungstyp,
+    this.bewilligungsRef,
     this.hinweis,
   });
 
@@ -41,6 +102,10 @@ class RechnungsPosition {
     this.leistungszeitraumBis,
     this.clientId,
     this.clientName,
+    this.clientGeburtsdatum,
+    this.fallnummer,
+    this.leistungstyp,
+    this.bewilligungsRef,
     this.hinweis,
   }) : id = DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -71,6 +136,9 @@ class Rechnung {
   final String? bemerkung;
   final String waehrung;              // "EUR"
   final RechnungStatus status;
+  final UstBefreiungsgrund ustBefreiung; // Steuerbefreiungsgrund
+  final bool istStorno;                // Storno-/Korrektur-Rechnung?
+  final String? stornoFuerRechnungId;  // Bei Storno: Original-Rechnungs-ID
   final DateTime erstelltAm;
 
   Rechnung({
@@ -89,6 +157,9 @@ class Rechnung {
     this.bemerkung,
     this.waehrung = 'EUR',
     this.status = RechnungStatus.entwurf,
+    this.ustBefreiung = UstBefreiungsgrund.par4Nr16h,
+    this.istStorno = false,
+    this.stornoFuerRechnungId,
     required this.erstelltAm,
   });
 
@@ -107,6 +178,9 @@ class Rechnung {
     this.bemerkung,
     this.waehrung = 'EUR',
     this.status = RechnungStatus.entwurf,
+    this.ustBefreiung = UstBefreiungsgrund.par4Nr16h,
+    this.istStorno = false,
+    this.stornoFuerRechnungId,
   })  : id = DateTime.now().microsecondsSinceEpoch.toString(),
         erstelltAm = DateTime.now();
 
@@ -128,6 +202,9 @@ class Rechnung {
     String? bemerkung,
     String? waehrung,
     RechnungStatus? status,
+    UstBefreiungsgrund? ustBefreiung,
+    bool? istStorno,
+    String? stornoFuerRechnungId,
   }) {
     return Rechnung(
       id: id,
@@ -145,6 +222,9 @@ class Rechnung {
       bemerkung: bemerkung ?? this.bemerkung,
       waehrung: waehrung ?? this.waehrung,
       status: status ?? this.status,
+      ustBefreiung: ustBefreiung ?? this.ustBefreiung,
+      istStorno: istStorno ?? this.istStorno,
+      stornoFuerRechnungId: stornoFuerRechnungId ?? this.stornoFuerRechnungId,
       erstelltAm: erstelltAm,
     );
   }

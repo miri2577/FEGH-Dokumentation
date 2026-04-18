@@ -160,20 +160,130 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       return;
     }
 
+    // Plausi-Check vor Rechnungserstellung
+    if (!await _plausiCheck(app, positionen)) return;
+    if (!mounted) return;
+
+    await _wirklichAnlegen(app, positionen);
+  }
+
+  /// Prueft Klienten auf Pflichtfelder fuer rechtssichere Rechnung.
+  Future<bool> _plausiCheck(AppProvider app, List<_AggregatedPosition> positionen) async {
+    final fehler = <String>[]; // harte Pflichtfelder
+    final warnungen = <String>[]; // weichere Hinweise
+
+    // Empfaenger-Leitweg-ID pruefen
+    if (!_empfaenger!.leitwegIdGueltig) {
+      fehler.add('Empfaenger-Leitweg-ID ist formal ungueltig');
+    }
+
+    for (final p in positionen) {
+      final c = p.client;
+      final fallnr = c.fallnummerFuer(_empfaenger!.id);
+      if (fallnr == null || fallnr.isEmpty) {
+        fehler.add('${c.vollstaendigerName}: kein Aktenzeichen beim Empfaenger');
+      }
+      if (c.geburtsdatum == null) {
+        warnungen.add('${c.vollstaendigerName}: Geburtsdatum fehlt');
+      }
+      if (c.leistungstypSchluessel == null || c.leistungstypSchluessel!.isEmpty) {
+        warnungen.add('${c.vollstaendigerName}: Leistungstyp-Schluessel fehlt');
+      }
+      if (c.bewilligungsbescheidRef == null || c.bewilligungsbescheidRef!.isEmpty) {
+        warnungen.add('${c.vollstaendigerName}: Bewilligungsbescheid-Ref fehlt');
+      }
+
+      // Budget-Ueberschreitung pruefen
+      if (c.fachleistungsstunden != null) {
+        final verbraucht = app.getFlsVerbrauchImAktuellenZeitraum(c);
+        if (verbraucht > c.fachleistungsstunden!) {
+          warnungen.add('${c.vollstaendigerName}: Budget ueberschritten '
+              '(${verbraucht.toStringAsFixed(1)} / ${c.fachleistungsstunden} h)');
+        }
+      }
+    }
+
+    if (fehler.isEmpty && warnungen.isEmpty) return true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          fehler.isNotEmpty ? Icons.error : Icons.warning_amber,
+          color: fehler.isNotEmpty ? Colors.red : Colors.orange,
+          size: 40,
+        ),
+        title: Text(fehler.isNotEmpty ? 'Pflichtangaben fehlen' : 'Hinweise'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (fehler.isNotEmpty) ...[
+                const Text(
+                  'Ohne diese Angaben wird die Rechnung vom Sozialamt zurueckgewiesen:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 6),
+                ...fehler.map((f) => Text('• $f', style: const TextStyle(fontSize: 13))),
+              ],
+              if (warnungen.isNotEmpty) ...[
+                if (fehler.isNotEmpty) const SizedBox(height: 16),
+                const Text(
+                  'Diese Angaben werden oft verlangt:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                ),
+                const SizedBox(height: 6),
+                ...warnungen.map((w) => Text('• $w', style: const TextStyle(fontSize: 13))),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Zum Bearbeiten'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: fehler.isNotEmpty ? Colors.red.shade700 : null,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Trotzdem erstellen'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _wirklichAnlegen(AppProvider app, List<_AggregatedPosition> positionen) async {
+    if (_empfaenger == null) {
+      return;
+    }
+
     final df = DateFormat('yyyy-MM-dd');
     final nummer = await _service.naechsteRechnungsnummer();
-    final rPositionen = positionen.map((p) => RechnungsPosition.create(
-          bezeichnung: 'Fachleistungsstunden Eingliederungshilfe - ${p.client.vollstaendigerName}',
-          menge: p.stunden,
-          einheit: 'Stunde',
-          einzelpreis: p.einzelpreis,
-          steuerprozent: 0.0,
-          leistungszeitraumVon: df.format(p.vonDatum),
-          leistungszeitraumBis: df.format(p.bisDatum),
-          clientId: p.client.id,
-          clientName: p.client.vollstaendigerName,
-          hinweis: '${p.anzahlTermine} Termine',
-        )).toList();
+    final rPositionen = positionen.map((p) {
+      final fallnr = p.client.fallnummerFuer(_empfaenger!.id);
+      final geb = p.client.geburtsdatum != null ? df.format(p.client.geburtsdatum!) : null;
+      return RechnungsPosition.create(
+        bezeichnung: 'Fachleistungsstunden Eingliederungshilfe - ${p.client.vollstaendigerName}',
+        menge: p.stunden,
+        einheit: 'Stunde',
+        einzelpreis: p.einzelpreis,
+        steuerprozent: 0.0,
+        leistungszeitraumVon: df.format(p.vonDatum),
+        leistungszeitraumBis: df.format(p.bisDatum),
+        clientId: p.client.id,
+        clientName: p.client.vollstaendigerName,
+        clientGeburtsdatum: geb,
+        fallnummer: fallnr,
+        leistungstyp: p.client.leistungstypSchluessel,
+        bewilligungsRef: p.client.bewilligungsbescheidRef,
+        hinweis: '${p.anzahlTermine} Termine',
+      );
+    }).toList();
 
     final rechnung = Rechnung.create(
       rechnungsnummer: nummer,

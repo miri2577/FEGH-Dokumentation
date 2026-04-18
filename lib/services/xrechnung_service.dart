@@ -146,6 +146,10 @@ class XRechnungService {
 
     b.writeln('      <cac:PartyLegalEntity>');
     b.writeln('        <cbc:RegistrationName>${_esc(s.name)}</cbc:RegistrationName>');
+    // Einrichtungs-IK (nur relevant bei stationaer; optional)
+    if (s.einrichtungsIk != null && s.einrichtungsIk!.isNotEmpty) {
+      b.writeln('        <cbc:CompanyID schemeID="0088">${_esc(s.einrichtungsIk!)}</cbc:CompanyID>');
+    }
     b.writeln('      </cac:PartyLegalEntity>');
 
     if (s.ansprechpartner != null && s.ansprechpartner!.isNotEmpty) {
@@ -229,12 +233,12 @@ class XRechnungService {
       b.writeln('      <cbc:TaxAmount currencyID="${r.waehrung}">${_amt(steuer)}</cbc:TaxAmount>');
       b.writeln('      <cac:TaxCategory>');
       // Kategorie: Z = Zero rated (0%), S = Standard (19%), E = Exempt
-      final cat = prozent == 0 ? 'Z' : 'S';
+      final cat = prozent == 0 ? 'E' : 'S';
       b.writeln('        <cbc:ID>$cat</cbc:ID>');
       b.writeln('        <cbc:Percent>${_amt(prozent)}</cbc:Percent>');
-      if (prozent == 0) {
-        b.writeln('        <cbc:TaxExemptionReasonCode>VATEX-EU-132-1H</cbc:TaxExemptionReasonCode>');
-        b.writeln('        <cbc:TaxExemptionReason>Leistung nach §4 Nr. 25 UStG (Jugendhilfe) bzw. §4 Nr. 16 UStG</cbc:TaxExemptionReason>');
+      if (prozent == 0 && r.ustBefreiung != UstBefreiungsgrund.keine) {
+        b.writeln('        <cbc:TaxExemptionReasonCode>${r.ustBefreiung.vatexCode}</cbc:TaxExemptionReasonCode>');
+        b.writeln('        <cbc:TaxExemptionReason>${_esc(r.ustBefreiung.rechnungstext ?? "")}</cbc:TaxExemptionReason>');
       }
       b.writeln('        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>');
       b.writeln('      </cac:TaxCategory>');
@@ -265,10 +269,30 @@ class XRechnungService {
     }
     b.writeln('    <cac:Item>');
     b.writeln('      <cbc:Name>${_esc(p.bezeichnung)}</cbc:Name>');
-    if (p.hinweis != null && p.hinweis!.isNotEmpty) {
-      b.writeln('      <cbc:Description>${_esc(p.hinweis!)}</cbc:Description>');
+    // Beschreibung: Hinweis + Klient-Meta (Fallnummer, Geburtsdatum, Leistungstyp)
+    final desc = StringBuffer();
+    if (p.hinweis != null && p.hinweis!.isNotEmpty) desc.write(p.hinweis);
+    if (p.fallnummer != null && p.fallnummer!.isNotEmpty) {
+      if (desc.isNotEmpty) desc.write(' | ');
+      desc.write('Aktenzeichen: ${p.fallnummer}');
     }
-    final cat = p.steuerprozent == 0 ? 'Z' : 'S';
+    if (p.clientGeburtsdatum != null && p.clientGeburtsdatum!.isNotEmpty) {
+      if (desc.isNotEmpty) desc.write(' | ');
+      desc.write('geb. ${p.clientGeburtsdatum}');
+    }
+    if (p.leistungstyp != null && p.leistungstyp!.isNotEmpty) {
+      if (desc.isNotEmpty) desc.write(' | ');
+      desc.write('Leistungstyp: ${p.leistungstyp}');
+    }
+    if (p.bewilligungsRef != null && p.bewilligungsRef!.isNotEmpty) {
+      if (desc.isNotEmpty) desc.write(' | ');
+      desc.write('Bewilligung: ${p.bewilligungsRef}');
+    }
+    if (desc.isNotEmpty) {
+      b.writeln('      <cbc:Description>${_esc(desc.toString())}</cbc:Description>');
+    }
+    // Steuerkategorie: E = Exempt (steuerbefreit), S = Standard (19%)
+    final cat = p.steuerprozent == 0 ? 'E' : 'S';
     b.writeln('      <cac:ClassifiedTaxCategory>');
     b.writeln('        <cbc:ID>$cat</cbc:ID>');
     b.writeln('        <cbc:Percent>${_amt(p.steuerprozent)}</cbc:Percent>');
@@ -316,6 +340,7 @@ class RechnungsstellerDaten {
   final String land;
   final String? umsatzsteuerId; // DE123456789 - wenn vorhanden
   final String? steuernummer;   // wenn keine USt-ID
+  final String? einrichtungsIk;  // 9-stellige IK-Nummer (nur stationaer relevant)
   final String? iban;
   final String? bic;
   final String? kontoinhaber;
@@ -332,6 +357,7 @@ class RechnungsstellerDaten {
     this.land = 'DE',
     this.umsatzsteuerId,
     this.steuernummer,
+    this.einrichtungsIk,
     this.iban,
     this.bic,
     this.kontoinhaber,

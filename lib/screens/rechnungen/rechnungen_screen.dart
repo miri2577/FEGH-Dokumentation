@@ -96,18 +96,137 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
         mimeType: MimeType.other,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('XRechnung ${r.rechnungsnummer}.xml gespeichert'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // OZG-RE-Einreichungs-Hinweis
+      await _zeigeEinreichungsHinweis(r);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Fehler: $e'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<void> _zeigeEinreichungsHinweis(Rechnung r) async {
+    return showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.cloud_upload, color: Colors.green, size: 40),
+        title: Text('XRechnung ${r.rechnungsnummer}.xml gespeichert'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Naechste Schritte fuer die Einreichung:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Text('1. Bei OZG-RE (Rechnungseingangsplattform) hochladen:',
+                style: TextStyle(fontSize: 13)),
+            SelectableText(
+              '   https://xrechnung.bund.de',
+              style: TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            ),
+            SizedBox(height: 8),
+            Text('2. Oder per PEPPOL-Netzwerk versenden '
+                '(falls Ihr System daran angebunden ist)',
+                style: TextStyle(fontSize: 13)),
+            SizedBox(height: 8),
+            Text('3. Oder als Anhang per DE-Mail / beA '
+                '(Fallback, weniger bevorzugt)',
+                style: TextStyle(fontSize: 13)),
+            SizedBox(height: 12),
+            Text('Rechnungsstatus nach Versand auf "Versendet" setzen.',
+                style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Schliessen')),
+          FilledButton.icon(
+            onPressed: () async {
+              await _setzeStatus(r, RechnungStatus.versendet);
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+            },
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Als versendet markieren'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _setzeStatus(Rechnung r, RechnungStatus neuerStatus) async {
+    await _service.updateRechnung(r.copyWith(status: neuerStatus));
+    await _load();
+  }
+
+  Future<void> _storno(Rechnung r) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.undo, color: Colors.red, size: 40),
+        title: const Text('Storno-Rechnung erstellen?'),
+        content: Text(
+          'Eine Storno-Rechnung fuer ${r.rechnungsnummer} wird mit negativen '
+          'Betraegen erzeugt. Die Original-Rechnung wird auf "Storniert" '
+          'gesetzt. Dies kann nicht rueckgaengig gemacht werden.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Storno erstellen'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    // Negative Positionen
+    final stornoPositionen = r.positionen.map((p) => RechnungsPosition.create(
+          bezeichnung: 'STORNO - ${p.bezeichnung}',
+          menge: -p.menge,
+          einheit: p.einheit,
+          einzelpreis: p.einzelpreis,
+          steuerprozent: p.steuerprozent,
+          leistungszeitraumVon: p.leistungszeitraumVon,
+          leistungszeitraumBis: p.leistungszeitraumBis,
+          clientId: p.clientId,
+          clientName: p.clientName,
+          clientGeburtsdatum: p.clientGeburtsdatum,
+          fallnummer: p.fallnummer,
+          leistungstyp: p.leistungstyp,
+          bewilligungsRef: p.bewilligungsRef,
+          hinweis: 'Storno: ${p.hinweis ?? ""}',
+        )).toList();
+
+    final stornoNummer = await _service.naechsteRechnungsnummer();
+    final storno = Rechnung.create(
+      rechnungsnummer: '$stornoNummer-ST',
+      rechnungsdatum: DateTime.now(),
+      leistungsVon: r.leistungsVon,
+      leistungsBis: r.leistungsBis,
+      empfaengerId: r.empfaengerId,
+      positionen: stornoPositionen,
+      bestellnummer: r.bestellnummer,
+      vertragsnummer: r.vertragsnummer,
+      projektnummer: r.projektnummer,
+      bemerkung: 'Storno zu Rechnung ${r.rechnungsnummer}',
+      ustBefreiung: r.ustBefreiung,
+      istStorno: true,
+      stornoFuerRechnungId: r.id,
+    );
+    await _service.addRechnung(storno);
+    await _setzeStatus(r, RechnungStatus.storniert);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Storno ${storno.rechnungsnummer} erstellt'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   Future<void> _xmlAnsehen(Rechnung r) async {
@@ -288,26 +407,52 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
                               switch (v) {
                                 case 'xml': _exportiereXml(r); break;
                                 case 'view': _xmlAnsehen(r); break;
+                                case 'mark_sent': _setzeStatus(r, RechnungStatus.versendet); break;
+                                case 'mark_paid': _setzeStatus(r, RechnungStatus.bezahlt); break;
+                                case 'storno': _storno(r); break;
                                 case 'delete': _loeschen(r); break;
                               }
                             },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'xml', child: Row(children: [
-                                Icon(Icons.download, size: 18),
-                                SizedBox(width: 8),
-                                Text('XML herunterladen'),
-                              ])),
-                              PopupMenuItem(value: 'view', child: Row(children: [
-                                Icon(Icons.code, size: 18),
-                                SizedBox(width: 8),
-                                Text('XML ansehen'),
-                              ])),
-                              PopupMenuItem(value: 'delete', child: Row(children: [
-                                Icon(Icons.delete, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Loeschen', style: TextStyle(color: Colors.red)),
-                              ])),
-                            ],
+                            itemBuilder: (_) {
+                              final kannStornieren = r.status != RechnungStatus.storniert &&
+                                  r.status != RechnungStatus.entwurf &&
+                                  !r.istStorno;
+                              return [
+                                const PopupMenuItem(value: 'xml', child: Row(children: [
+                                  Icon(Icons.download, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('XML herunterladen'),
+                                ])),
+                                const PopupMenuItem(value: 'view', child: Row(children: [
+                                  Icon(Icons.code, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('XML ansehen'),
+                                ])),
+                                if (r.status == RechnungStatus.entwurf)
+                                  const PopupMenuItem(value: 'mark_sent', child: Row(children: [
+                                    Icon(Icons.send, size: 18, color: Colors.blue),
+                                    SizedBox(width: 8),
+                                    Text('Als versendet markieren'),
+                                  ])),
+                                if (r.status == RechnungStatus.versendet)
+                                  const PopupMenuItem(value: 'mark_paid', child: Row(children: [
+                                    Icon(Icons.check_circle, size: 18, color: Colors.green),
+                                    SizedBox(width: 8),
+                                    Text('Als bezahlt markieren'),
+                                  ])),
+                                if (kannStornieren)
+                                  const PopupMenuItem(value: 'storno', child: Row(children: [
+                                    Icon(Icons.undo, size: 18, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Stornieren', style: TextStyle(color: Colors.red)),
+                                  ])),
+                                const PopupMenuItem(value: 'delete', child: Row(children: [
+                                  Icon(Icons.delete, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Loeschen', style: TextStyle(color: Colors.red)),
+                                ])),
+                              ];
+                            },
                           ),
                         ),
                       );

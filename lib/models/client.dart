@@ -100,6 +100,18 @@ class Client {
   // anderem Bundesland betreut wird als der Traeger sitzt.
   final Bundesland? bundeslandOverride;
 
+  // Fallnummer/Aktenzeichen pro Kostentraeger - WICHTIG fuer Rechnung!
+  // Ein Klient kann bei mehreren Kostentraegern gefuehrt werden und hat
+  // dort jeweils eigene Aktenzeichen. Key = Empfaenger-ID, Value = Aktenzeichen.
+  final Map<String, String>? kostentraegerFallnummern;
+
+  // Bewilligungsbescheid-Referenz (Geschaeftszeichen/Bescheid-Nummer des
+  // zustaendigen Kostentraegers) - auf Rechnung oft verlangt
+  final String? bewilligungsbescheidRef;
+
+  // Leistungstyp nach Landesrahmenvertrag (z.B. "B5.01 ABW Erwachsene")
+  final String? leistungstypSchluessel;
+
   Client({
     required this.id,
     this.klientenId,
@@ -133,6 +145,9 @@ class Client {
     this.einwilligungWiderruflichBis,
     this.einwilligungBemerkung,
     this.bundeslandOverride,
+    this.kostentraegerFallnummern,
+    this.bewilligungsbescheidRef,
+    this.leistungstypSchluessel,
   });
 
   Client.create({
@@ -166,8 +181,16 @@ class Client {
     this.einwilligungWiderruflichBis,
     this.einwilligungBemerkung,
     this.bundeslandOverride,
+    this.kostentraegerFallnummern,
+    this.bewilligungsbescheidRef,
+    this.leistungstypSchluessel,
   }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
        createdAt = DateTime.now();
+
+  /// Gibt das Aktenzeichen fuer einen bestimmten Kostentraeger zurueck.
+  /// Faellt auf [klientenId] zurueck, wenn kein spezifisches Aktenzeichen hinterlegt ist.
+  String? fallnummerFuer(String empfaengerId) =>
+      kostentraegerFallnummern?[empfaengerId] ?? klientenId;
 
   factory Client.fromJson(Map<String, dynamic> json) => _$ClientFromJson(json);
   Map<String, dynamic> toJson() => _$ClientToJson(this);
@@ -203,6 +226,9 @@ class Client {
     String? einwilligungWiderruflichBis,
     String? einwilligungBemerkung,
     Bundesland? bundeslandOverride,
+    Map<String, String>? kostentraegerFallnummern,
+    String? bewilligungsbescheidRef,
+    String? leistungstypSchluessel,
   }) {
     return Client(
       id: id,
@@ -237,6 +263,9 @@ class Client {
       einwilligungWiderruflichBis: einwilligungWiderruflichBis ?? this.einwilligungWiderruflichBis,
       einwilligungBemerkung: einwilligungBemerkung ?? this.einwilligungBemerkung,
       bundeslandOverride: bundeslandOverride ?? this.bundeslandOverride,
+      kostentraegerFallnummern: kostentraegerFallnummern ?? this.kostentraegerFallnummern,
+      bewilligungsbescheidRef: bewilligungsbescheidRef ?? this.bewilligungsbescheidRef,
+      leistungstypSchluessel: leistungstypSchluessel ?? this.leistungstypSchluessel,
     );
   }
 

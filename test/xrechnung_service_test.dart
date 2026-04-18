@@ -119,10 +119,11 @@ void main() {
       expect(xml.contains('<cbc:InvoicedQuantity unitCode="HUR">12.50</cbc:InvoicedQuantity>'), isTrue);
     });
 
-    test('Steuerkategorie Z bei 0% mit Befreiungsgrund', () {
+    test('Steuerkategorie E (Exempt) bei 0% mit Befreiungsgrund', () {
       final xml = service.buildXml(rechnung: makeRechnung(), empfaenger: empfaenger);
-      expect(xml.contains('<cbc:ID>Z</cbc:ID>'), isTrue);
-      expect(xml.contains('VATEX-EU-132-1H'), isTrue);
+      expect(xml.contains('<cbc:ID>E</cbc:ID>'), isTrue);
+      // VATEX-DE-HE ist der Code fuer §4 Nr. 16 h UStG (Soziale Einrichtungen / EGH)
+      expect(xml.contains('VATEX-DE-HE'), isTrue);
     });
 
     test('Special-Characters werden escaped', () {
