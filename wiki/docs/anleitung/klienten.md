@@ -29,6 +29,22 @@ Ein Klienten-Datensatz umfasst:
 | Fachleistungsstunden | Bewilligte Stunden |
 | Fachleistungsintervall | Woechentlich, monatlich oder jaehrlich |
 | Verbrauchte Stunden | Bereits geleistete Stunden |
+| Bewilligungsbescheid-Referenz | Geschaeftszeichen des Sozialamts |
+| Leistungstyp-Schluessel | Leistungstyp nach Rahmenvertrag (z.B. B5.01 ABW Erwachsene) |
+
+### Fallnummer pro Kostentraeger
+
+Ein Klient kann bei **mehreren Kostentraegern** mit unterschiedlichem
+Aktenzeichen gefuehrt werden (z.B. Umzug zwischen Bezirken). Die
+Fallnummer-Liste ordnet jedem Rechnungsempfaenger ein Aktenzeichen zu.
+
+- **Empfaenger** (Dropdown): einer der in Berichte > Rechnungen > Empfaenger
+  angelegten Kostentraeger
+- **Fallnummer / Aktenzeichen**: eindeutig pro Kostentraeger
+
+Beim Rechnungslauf wird automatisch die korrekte Fallnummer pro Klient
+eingesetzt. Fehlt die Fallnummer fuer den aktuellen Kostentraeger, wird
+als Fallback die Klienten-ID gesetzt (kann vom Sozialamt abgelehnt werden).
 
 ### FLS-Kalkulation (Fachleistungsstunden)
 

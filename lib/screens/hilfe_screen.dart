@@ -297,6 +297,18 @@ class HilfeScreen extends StatelessWidget {
         'Vor Rechnungserstellung: Leitweg-ID, Aktenzeichen, Leistungstyp, Bewilligungsbescheid, Budget werden geprueft'),
       _buildFeatureItem(context, Icons.undo, 'Storno-Rechnung',
         'Stornorechnung mit negativen Betraegen, Verweis auf Original, automatischer Status-Wechsel'),
+      _buildFeatureItem(context, Icons.auto_awesome, 'Monatslauf (Automatik)',
+        'Ein Klick erzeugt fuer alle Kostentraeger die Rechnungen des letzten Monats. Review-Dialog vor dem Speichern, '
+        'nur Klienten mit hinterlegter Fallnummer beim Empfaenger werden beruecksichtigt'),
+      _buildFeatureItem(context, Icons.badge, 'Fallnummer pro Kostentraeger',
+        'Pro Klient kann fuer jeden Kostentraeger ein eigenes Aktenzeichen hinterlegt werden '
+        '(wichtig bei Bezirkswechsel). Wird beim Rechnungslauf automatisch eingesetzt'),
+      _buildFeatureItem(context, Icons.business, 'Rechnungssteller-Daten',
+        'Einstellungen > Rechnungssteller: Traegeradresse, USt-ID / Steuernr., Einrichtungs-IK, IBAN/BIC. '
+        'Statusbadge zeigt Vollstaendigkeit der Pflichtangaben fuer §14 UStG'),
+      _buildFeatureItem(context, Icons.history, 'Audit-Log (DSGVO)',
+        'Jede Rechnungsaktion (Erstellung, Statuswechsel, Storno, XML-Export) wird verschluesselt '
+        'protokolliert fuer Rechenschaftspflicht nach DSGVO Art. 5 Abs. 2'),
       _buildInfoBox(context, Icons.error_outline, Colors.orange,
         'Kalkulationsfaktor (z.B. 1,33) ist NUR INFORMATIV fuer die Personalplanung. '
         'Er wird NICHT auf Rechnungen angewendet - der Faktor ist bereits im Stundensatz '

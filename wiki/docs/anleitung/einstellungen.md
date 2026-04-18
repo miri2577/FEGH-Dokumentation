@@ -30,10 +30,29 @@ Globale Einstellungen fuer die Fachleistungsstunden-Berechnung:
 
 | Einstellung | Standard | Beschreibung |
 |------------|----------|-------------|
-| Kalkulationsfaktor | 1,33 | Verhaeltnis Gesamtarbeitszeit zu abrechnungsfaehiger Zeit (Berlin-typisch: 1,25-1,33) |
-| Stundensatz | 40,00 EUR | Verguetung pro Fachleistungsstunde |
+| Kalkulationsfaktor | 1,33 | **Nur informativ** - Verhaeltnis Gesamtarbeitszeit zu Kontaktzeit. Bereits im Stundensatz eingepreist, darf nicht zusaetzlich auf Rechnungen angewendet werden. |
+| Stundensatz | 40,00 EUR | Verguetung pro abgerechneter Fachleistungsstunde (aus §125-Vereinbarung) |
 
-Diese Werte koennen pro Klient ueberschrieben werden.
+Diese Werte koennen pro Klient ueberschrieben werden
+(`kalkulationsfaktorOverride`, `stundensatzOverride`).
+
+## Rechnungssteller-Daten
+
+Pflichtangaben fuer XRechnung / §14 UStG. Ohne diese Daten kann keine
+rechtsguetige Rechnung erzeugt werden.
+
+| Feld | Pflicht | Beschreibung |
+|------|---------|-------------|
+| Name des Leistungserbringers | ja | Firmenname bzw. Traegerbezeichnung |
+| Strasse, PLZ, Ort | ja | Vollstaendige Anschrift |
+| USt-IdNr. | bedingt | Bei Umsatzsteuerpflicht; bei §4 UStG-Befreiung Steuernummer |
+| Steuernummer | bedingt | Alternativ zur USt-IdNr. |
+| Einrichtungs-IK | empfohlen | Institutionskennzeichen der SV fuer Sozialleistungstraeger |
+| IBAN / BIC / Kontoinhaber | ja | Zahlungsweg auf der Rechnung |
+| E-Mail / Telefon | empfohlen | Kontaktdaten fuer Rueckfragen des Kostentraegers |
+
+Statusbadge im Einstellungen-Screen: gruen, wenn alle Pflichtangaben
+vollstaendig; rot sonst. Ein Klick oeffnet den Bearbeiten-Dialog.
 
 ## Cloud-Sync (HiDrive)
 

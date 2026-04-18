@@ -158,6 +158,44 @@ Pro Rechnung: Entwurf -> Versendet -> Bezahlt.
 - **Bezahlt**: Nach Zahlungseingang markieren
 - **Storniert**: Storno-Rechnung erzeugen (siehe unten)
 
+## Monatslauf (Automatik)
+
+Fuer wiederkehrende Monatsabrechnungen: Berichte > Rechnungen > FAB
+**Monatslauf** (teal-farbig, oberer FAB).
+
+FEGH erzeugt in einem Durchgang pro Kostentraeger eine Rechnung fuer den
+**letzten abgeschlossenen Kalendermonat** und verwendet dabei:
+
+- Nur Klienten mit hinterlegter Fallnummer beim jeweiligen Empfaenger
+- Nur abrechenbare TerminArten (siehe Tabelle oben)
+- Indirekte Dokumentations-/Buero-Termine mit Fallbezug aus der
+  `clientAllocations`-Aufteilung
+- Stundensatz pro Klient (individuell oder Default)
+
+Vor dem Speichern zeigt FEGH einen **Review-Dialog** mit Breakdown pro
+Empfaenger, Klient, Stunden und Betrag. Der Nutzer bestaetigt oder bricht
+ab. Jede erzeugte Rechnung wird im Audit-Log erfasst.
+
+Empfehlung: Monatslauf am 1. des Folgemonats ausfuehren, Rechnungen
+anschliessend pruefen und per XRechnung / OZG-RE einreichen.
+
+## Audit-Log
+
+Alle abrechnungsrelevanten Aktionen werden verschluesselt im DSGVO-Audit-Log
+persistiert:
+
+| Aktion | Kontext |
+|--------|---------|
+| `rechnung.create` | Rechnungsnr., Bruttobetrag |
+| `rechnung.status` | Rechnungsnr., alter/neuer Status |
+| `rechnung.storno` | Original-Nr., Storno-Nr. |
+| `rechnung.xml_export` | Rechnungsnr. |
+
+Das Log dient der **Rechenschaftspflicht nach DSGVO Art. 5 Abs. 2** und
+der Dokumentation fuer Wirtschaftspruefungen / Betriebspruefungen.
+Aufbewahrung: 3 Jahre (automatische Rotation), Rechnungsdaten selbst
+10 Jahre nach HGB/AO.
+
 ## Storno-Rechnung
 
 Bei Fehler oder Rueckgabe einer bereits versendeten Rechnung:

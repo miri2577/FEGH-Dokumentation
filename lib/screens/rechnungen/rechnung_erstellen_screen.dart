@@ -6,6 +6,7 @@ import '../../models/client.dart';
 import '../../models/rechnung.dart';
 import '../../models/rechnung_empfaenger.dart';
 import '../../providers/app_provider.dart';
+import '../../services/audit_logger.dart';
 import '../../services/rechnung_service.dart';
 import 'empfaenger_editor_screen.dart';
 
@@ -298,6 +299,12 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       ustBefreiung: _ustBefreiung,
     );
     await _service.addRechnung(rechnung);
+    final userId = app.settings.userName;
+    await AuditLogger.instance.logRechnungErstellt(
+      userId,
+      rechnung.rechnungsnummer,
+      rechnung.gesamtBrutto,
+    );
     if (!mounted) return;
     Navigator.pop(context, rechnung);
   }

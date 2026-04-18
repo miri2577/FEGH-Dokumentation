@@ -4,9 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:provider/provider.dart';
+import '../../models/appointment.dart';
+import '../../models/client.dart';
 import '../../models/rechnung.dart';
 import '../../models/rechnung_empfaenger.dart';
 import '../../providers/app_provider.dart';
+import '../../services/audit_logger.dart';
 import '../../services/rechnung_service.dart';
 import '../../services/xrechnung_service.dart';
 import 'empfaenger_editor_screen.dart';
@@ -105,6 +108,9 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
         ext: 'xml',
         mimeType: MimeType.other,
       );
+      // Audit-Log: XML-Export
+      final userId = app.settings.userName;
+      await AuditLogger.instance.logRechnungXmlExport(userId, r.rechnungsnummer);
       if (!mounted) return;
       // OZG-RE-Einreichungs-Hinweis
       await _zeigeEinreichungsHinweis(r);
@@ -167,11 +173,19 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
   }
 
   Future<void> _setzeStatus(Rechnung r, RechnungStatus neuerStatus) async {
+    final userId = context.read<AppProvider>().settings.userName;
     await _service.updateRechnung(r.copyWith(status: neuerStatus));
+    await AuditLogger.instance.logRechnungStatusAenderung(
+      userId,
+      r.rechnungsnummer,
+      r.status.name,
+      neuerStatus.name,
+    );
     await _load();
   }
 
   Future<void> _storno(Rechnung r) async {
+    final userId = context.read<AppProvider>().settings.userName;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -230,6 +244,11 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
     );
     await _service.addRechnung(storno);
     await _setzeStatus(r, RechnungStatus.storniert);
+    await AuditLogger.instance.logRechnungStorniert(
+      userId,
+      r.rechnungsnummer,
+      storno.rechnungsnummer,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -464,13 +483,244 @@ class _RechnungenScreenState extends State<RechnungenScreen> {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _neueRechnung,
-        icon: const Icon(Icons.add),
-        label: const Text('Neue Rechnung'),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'monatslauf',
+            onPressed: _monatslauf,
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('Monatslauf'),
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'neueRechnung',
+            onPressed: _neueRechnung,
+            icon: const Icon(Icons.add),
+            label: const Text('Neue Rechnung'),
+          ),
+        ],
       ),
     );
   }
+
+  /// Erstellt in einem Rutsch pro Kostentraeger eine Rechnung fuer den
+  /// letzten abgeschlossenen Monat - mit Review-Dialog vor dem Speichern.
+  Future<void> _monatslauf() async {
+    final now = DateTime.now();
+    final letzterMonatStart = DateTime(now.year, now.month - 1, 1);
+    final letzterMonatEnde = DateTime(now.year, now.month, 0);
+
+    final app = context.read<AppProvider>();
+    final alleEmpfaenger = await _service.loadEmpfaenger();
+    if (!mounted) return;
+
+    if (alleEmpfaenger.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Rechnungsempfaenger angelegt')),
+      );
+      return;
+    }
+
+    // Pro Empfaenger: welche Klienten sind dort zugeordnet (ueber Fallnummer-Map)?
+    final vorschau = <RechnungEmpfaenger, List<_MonatslaufPosition>>{};
+
+    for (final empf in alleEmpfaenger) {
+      final positionen = <_MonatslaufPosition>[];
+      for (final client in app.clients) {
+        // Nur Klienten mit Aktenzeichen bei diesem Empfaenger ODER global
+        final fallnr = client.fallnummerFuer(empf.id);
+        if (fallnr == null || fallnr.isEmpty) continue;
+
+        // Aggregiere abrechenbare Termine im Monat
+        final termine = app.appointments.where((a) {
+          final d = DateTime(a.date.year, a.date.month, a.date.day);
+          return !d.isBefore(letzterMonatStart) &&
+              !d.isAfter(letzterMonatEnde) &&
+              a.effectiveTerminArt.istAbrechenbar;
+        }).toList();
+
+        double stunden = 0;
+        int anzahlTermine = 0;
+        for (final a in termine) {
+          if (a.isIndirect && a.clientAllocations != null) {
+            for (final alloc in a.clientAllocations!) {
+              if (alloc.clientId == client.id) {
+                stunden += alloc.stunden;
+                anzahlTermine++;
+              }
+            }
+          } else if (a.clientId == client.id) {
+            stunden += a.fachleistungsstunden;
+            anzahlTermine++;
+          }
+        }
+        if (stunden <= 0) continue;
+
+        final satz = client.stundensatzOverride ?? app.settings.stundensatz;
+        positionen.add(_MonatslaufPosition(
+          client: client,
+          stunden: stunden,
+          einzelpreis: satz,
+          anzahlTermine: anzahlTermine,
+        ));
+      }
+      if (positionen.isNotEmpty) {
+        vorschau[empf] = positionen;
+      }
+    }
+
+    if (vorschau.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine abrechenbaren Leistungen im Vormonat gefunden')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    // Review-Dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.auto_awesome, color: Colors.teal, size: 40),
+        title: Text('Monatslauf ${_monatName(letzterMonatStart.month)} '
+            '${letzterMonatStart.year}'),
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${vorschau.length} Rechnung(en), '
+                    '${vorschau.values.fold<int>(0, (s, l) => s + l.length)} Positionen gesamt'),
+                const SizedBox(height: 12),
+                ...vorschau.entries.map((e) {
+                  final gesamt = e.value.fold<double>(0, (s, p) => s + p.stunden * p.einzelpreis);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(e.key.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Leitweg-ID: ${e.key.leitwegId}',
+                              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          ...e.value.map((p) => Text(
+                                '  ${p.client.vollstaendigerName}: '
+                                '${p.stunden.toStringAsFixed(2)} h × '
+                                '${p.einzelpreis.toStringAsFixed(2)} € = '
+                                '${(p.stunden * p.einzelpreis).toStringAsFixed(2)} €',
+                                style: const TextStyle(fontSize: 12),
+                              )),
+                          const SizedBox(height: 4),
+                          Text('Summe: ${gesamt.toStringAsFixed(2)} €',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Alle erstellen'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    // Rechnungen anlegen
+    final df = DateFormat('yyyy-MM-dd');
+    int erstellt = 0;
+    for (final eintrag in vorschau.entries) {
+      final empf = eintrag.key;
+      final positionen = eintrag.value;
+      final nummer = await _service.naechsteRechnungsnummer();
+      final rPositionen = positionen.map((p) {
+        final fallnr = p.client.fallnummerFuer(empf.id);
+        final geb = p.client.geburtsdatum != null ? df.format(p.client.geburtsdatum!) : null;
+        return RechnungsPosition.create(
+          bezeichnung: 'Fachleistungsstunden EGH - ${p.client.vollstaendigerName}',
+          menge: p.stunden,
+          einheit: 'Stunde',
+          einzelpreis: p.einzelpreis,
+          steuerprozent: 0.0,
+          leistungszeitraumVon: df.format(letzterMonatStart),
+          leistungszeitraumBis: df.format(letzterMonatEnde),
+          clientId: p.client.id,
+          clientName: p.client.vollstaendigerName,
+          clientGeburtsdatum: geb,
+          fallnummer: fallnr,
+          leistungstyp: p.client.leistungstypSchluessel,
+          bewilligungsRef: p.client.bewilligungsbescheidRef,
+          hinweis: '${p.anzahlTermine} Termine',
+        );
+      }).toList();
+
+      final rechnung = Rechnung.create(
+        rechnungsnummer: nummer,
+        rechnungsdatum: DateTime.now(),
+        leistungsVon: letzterMonatStart,
+        leistungsBis: letzterMonatEnde,
+        empfaengerId: empf.id,
+        positionen: rPositionen,
+        bemerkung: 'Monatslauf ${_monatName(letzterMonatStart.month)} '
+            '${letzterMonatStart.year}',
+      );
+      await _service.addRechnung(rechnung);
+      await AuditLogger.instance.logRechnungErstellt(
+        app.settings.userName,
+        rechnung.rechnungsnummer,
+        rechnung.gesamtBrutto,
+      );
+      erstellt++;
+    }
+
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$erstellt Rechnung(en) erstellt'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  String _monatName(int m) {
+    const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    return monate[m - 1];
+  }
+}
+
+class _MonatslaufPosition {
+  final Client client;
+  final double stunden;
+  final double einzelpreis;
+  final int anzahlTermine;
+  _MonatslaufPosition({
+    required this.client,
+    required this.stunden,
+    required this.einzelpreis,
+    required this.anzahlTermine,
+  });
 }
 
 class _EmpfaengerListeScreen extends StatefulWidget {

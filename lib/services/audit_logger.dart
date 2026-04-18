@@ -162,4 +162,35 @@ class AuditLogger {
 
   Future<void> logRecoveryUsed(String userId) =>
       log(action: 'recovery.used', userId: userId);
+
+  // ── Rechnungs-Events ────────────────────────────────────────────
+
+  Future<void> logRechnungErstellt(String userId, String rechnungsnr, double betrag) =>
+      log(action: 'rechnung.create', userId: userId, context: {
+        'rechnungsnr': rechnungsnr,
+        'brutto': betrag,
+      });
+
+  Future<void> logRechnungStatusAenderung(
+    String userId,
+    String rechnungsnr,
+    String alterStatus,
+    String neuerStatus,
+  ) =>
+      log(action: 'rechnung.status', userId: userId, context: {
+        'rechnungsnr': rechnungsnr,
+        'alt': alterStatus,
+        'neu': neuerStatus,
+      });
+
+  Future<void> logRechnungStorniert(String userId, String originalNr, String stornoNr) =>
+      log(action: 'rechnung.storno', userId: userId, context: {
+        'original': originalNr,
+        'storno': stornoNr,
+      });
+
+  Future<void> logRechnungXmlExport(String userId, String rechnungsnr) =>
+      log(action: 'rechnung.xml_export', userId: userId, context: {
+        'rechnungsnr': rechnungsnr,
+      });
 }
