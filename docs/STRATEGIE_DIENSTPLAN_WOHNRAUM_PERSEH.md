@@ -9,9 +9,19 @@ pro Phase mit klarem MVP, danach inkrementeller Ausbau.
 
 ## Phase 1: Dienstplan-Modul
 
-**Motivation:** Show-stopper fuer besonderes Wohnen, Tagesstaetten,
-ambulante Dienste mit Schichtbetrieb. Ohne Dienstplan kein Verkauf
-an Wohnheime / ABW-Traeger mit mehr als 10 MA.
+**Offene Frage:** Fuer rein **ambulante** Eingliederungshilfe
+(ABW, einzelfallbezogen, keine 24/7-Schichten) ist ein Dienstplan-
+Modul zweifelhaft — Mitarbeiter koordinieren ihre Termine ueber
+den Kalender, nicht ueber Schichten. Dienstplan wird erst relevant
+bei **stationaerer/tagesstrukturierender** Hilfe (besonderes
+Wohnen, WfbM, Tagesstaette). Wenn FEGH primaer ambulante
+Berliner Traeger adressiert: **Phase 1 kann entfallen oder stark
+reduziert werden** (nur einfacher Urlaubs-/Krankheitskalender).
+
+**Motivation (falls Zielmarkt auch stationaer):** Show-stopper fuer
+besonderes Wohnen, Tagesstaetten, ambulante Dienste mit
+Schichtbetrieb. Ohne Dienstplan kein Verkauf an Wohnheime mit
+mehr als 10 MA.
 
 **Business-Case:** Berliner Traeger besonderes Wohnen: 50-200 MA,
 24/7-Betrieb, Frueh-/Spaet-/Nacht-Schichten, Tausch-Anfragen,
@@ -350,6 +360,104 @@ Berlin-Kunden wertvoller als ein PerSEH-XML-Konnektor.
 zuerst — die sind Show-stopper beim Kundengewinn. Phase 3a (PDF-
 Vorausfuellung Landesformulare) danach oder parallel. Phase 3c
 (XML) nur mit konkretem Anchor-Kunden.
+
+---
+
+## Phase 4 (OPTIONAL): Telematikinfrastruktur-Anbindung (gematik-Konnektor)
+
+**Status: Offene Frage — nicht entschieden.**
+
+### Hintergrund
+
+Der Begriff "Konnektor" im Sozial-/Gesundheitsbereich bezeichnet fast
+immer den **gematik-TI-Konnektor** — Hardware/Gateway zur Anbindung
+an das deutsche eHealth-Netz (eGK, ePA, KIM-Mail, eRezept, eAU).
+Die klassische Hardware-Box wird 2025/2026 durch ein zentrales
+TI-Gateway mit Highspeed-Konnektor im RZ abgeloest; Terminologie
+bleibt aber "Konnektor".
+
+### Rechtliche Lage
+
+- **Pflegeeinrichtungen (SGB XI):** Pflicht seit 01.07.2025 nach
+  §341 Abs. 8 SGB V. Stichtag 01.12.2026: nur noch TI/KIM-Abrechnung.
+- **Eingliederungshilfe (SGB IX):** **Noch keine Pflicht**. BMG-Auftrag
+  an gematik fuer EGH-Anbindung erst in 21. Legislaturperiode erwartet;
+  realistischer TI-Rollstart fuer EGH 2028-2030.
+- **Mischtraeger** (Wohnheim + Pflege) sind praktisch schon heute
+  ueber die Pflege-Pflicht angebunden und binden stationaere EGH
+  freiwillig mit.
+
+### Kann ein Berliner stationaerer EGH-Traeger den Konnektor bekommen?
+
+**Ja, sehr wahrscheinlich** — zwei Szenarien:
+
+1. Traeger bietet neben EGH auch Pflegeleistungen (SGB XI) an und
+   muss deshalb an die TI (Pflege-Pflicht seit 07/2025).
+2. Traeger bindet freiwillig an, als Vorbereitung auf kommende
+   EGH-Pflicht oder fuer KIM-Mail (sichere Kommunikation mit
+   Aerzten / Sozialdiensten / Krankenkassen).
+
+Es ist also **nicht der PerSEH-Konnektor und auch keine
+Berliner Sozialamt-Schnittstelle**, sondern die **bundesweite
+gematik-TI-Infrastruktur**.
+
+### Was wuerde FEGH hier beitragen?
+
+**Wenn ueberhaupt, dann als optionales Modul:**
+
+- **KIM-Mail-Integration** (sichere verschluesselte E-Mail zwischen
+  Leistungserbringern, Aerzten, Krankenkassen) — direkt sinnvoll,
+  auch fuer Dokumentenversand
+- **ePA-Upload** (elektronische Patientenakte) — fuer Berichte an
+  behandelnde Aerzte; erfordert aber Einwilligung der
+  leistungsberechtigten Person
+- **SMC-B-Karte + eHBA-Integration** — Authentifizierung am
+  TI-Gateway, typischerweise ueber vorhandene Fachsoftware-Adapter
+- **Medikationsplan** (Bundeseinheitlicher Medikationsplan) —
+  Abruf aus ePA, Anzeige in FEGH; fuer besonderes Wohnen mit
+  Medikationsgabe interessant
+
+**Erheblicher Aufwand:**
+
+- gematik-Zulassung fuer Client-Modul der Anwendung (teuer,
+  mehrere Monate)
+- TI-Gateway-Anbindung via standardisierte Schnittstelle
+- Zertifikatsmanagement (SMC-B, eHBA)
+- Laufende Konformitaetspruefungen bei gematik-Updates
+
+### Vorlaeufige Einschaetzung
+
+**Kurzfristig (0-12 M): NEIN.** Aufwand sehr hoch, Markt fuer rein
+ambulante EGH nicht zwingend vorhanden. Stationaere Traeger, die
+die TI bereits ueber Pflege-Systeme haben, nutzen dort ihre
+vorhandenen Software-Loesungen (myneva, Vivendi, CGM).
+
+**Mittelfristig (1-3 J): Beobachten.** Wenn EGH-TI-Pflicht naeher
+rueckt (Gesetzentwurf 21. LP), neu evaluieren. FEGH koennte dann
+als Greenfield-Native-App schneller konform sein als Legacy-
+Systeme.
+
+**Langfristig (3-5+ J): Moeglich, wenn Zielmarkt stationaer.** Fuer
+rein ambulanten Berliner Zielmarkt bleibt es optional — KIM-Mail
+oder einfacher Medikationsplan-Viewer koennten isoliert wertvoll
+sein, ohne vollstaendige gematik-Zulassung.
+
+### Frage an Nutzer zur Klaerung
+
+Wenn ein Kunde sagt "wir bekommen den Konnektor": nachfragen ob
+- Hardware-Box oder TI-Gateway kommt
+- SMC-B-Karte + eHBA beantragt werden
+- Von Traeger-IT / Verband (Paritaet/AWO) oder Sozialamt?
+
+Bei "ja, Hardware+SMC-B" → TI/gematik. Bei "Schnittstelle zum
+Sozialamt" → vermutlich anderes Projekt, weiter recherchieren.
+
+### Entscheidung offen
+
+Diese Phase wird **nicht** ohne expliziten Kundenwunsch und
+geklaertem ROI angefasst. Festgehalten als Option fuer spaeter,
+falls EGH-TI-Pflicht kommt oder Mischtraeger (Wohnheim + Pflege)
+als Zielgruppe aktiv werden.
 
 ---
 
