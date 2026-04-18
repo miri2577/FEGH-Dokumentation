@@ -329,7 +329,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => SingleChildScrollView(
+      builder: (sheetContext) => SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -116,15 +116,27 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     // Neue Felder initialisieren
     _selectedHilfeTyp = widget.client?.hilfeTyp ?? HilfeTyp.eingliederungshilfe;
     _selectedIntervall = widget.client?.fachleistungsIntervall ?? FachleistungsIntervall.monatlich;
-    _selectedKostentraeger = widget.client?.kostenuebernahme ?? '';
+    // Validierung gegen Liste - schuetzt DropdownButton vor Assertion
+    final storedKt = widget.client?.kostenuebernahme ?? '';
+    _selectedKostentraeger = Kostentraeger.alleGruppiert
+            .any((e) => e['wert'] == storedKt)
+        ? storedKt
+        : '';
     _selectedGeburtsdatum = widget.client?.geburtsdatum;
     _selectedBetreuungSeit = widget.client?.betreuungSeit;
     _selectedKostenuebernahmeVon = widget.client?.kostenuebernahmeVon;
     _selectedKostenuebernahmeBis = widget.client?.kostenuebernahmeBis;
+    // Vertreter-IDs werden gegen Mitarbeiter-Liste validiert im Build
+    // (AppProvider ist erst dort verfuegbar)
     _selectedVertreter1Id = widget.client?.vertreter1Id;
     _selectedVertreter2Id = widget.client?.vertreter2Id;
     _selectedTibZiele = widget.client?.tibZiele ?? [];
-    _selectedRechtsgrundlage = widget.client?.rechtsgrundlage;
+    // Nur uebernehmen, wenn Wert in aktueller Liste vorhanden
+    // (schuetzt vor DropdownButton-Assertion bei Legacy-Daten)
+    final storedRg = widget.client?.rechtsgrundlage;
+    _selectedRechtsgrundlage = rechtsgrundlagen.any((e) => e['wert'] == storedRg)
+        ? storedRg
+        : null;
 
     // Individuelle TIB-Ziele Controller initialisieren
     final individuelleTibZiele = widget.client?.individuelleTibZiele ?? [];
@@ -830,7 +842,9 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
         child: Column(
           children: [
             DropdownButtonFormField<String?>(
-              value: _selectedVertreter1Id,
+              value: mitarbeiter.any((m) => m.id == _selectedVertreter1Id)
+                  ? _selectedVertreter1Id
+                  : null,
               decoration: const InputDecoration(
                 labelText: 'Vertreter 1',
                 border: OutlineInputBorder(),
@@ -846,7 +860,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                     value: m.id,
                     child: Text('${m.vorname} ${m.name} (Team ${m.teamNummer})'),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: (value) {
                 setState(() {
@@ -856,7 +870,9 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String?>(
-              value: _selectedVertreter2Id,
+              value: mitarbeiter.any((m) => m.id == _selectedVertreter2Id)
+                  ? _selectedVertreter2Id
+                  : null,
               decoration: const InputDecoration(
                 labelText: 'Vertreter 2',
                 border: OutlineInputBorder(),

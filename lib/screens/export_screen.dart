@@ -363,7 +363,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -394,7 +394,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -418,7 +418,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -449,7 +449,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -533,7 +533,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -556,7 +556,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -601,7 +601,7 @@ class _ExportScreenState extends State<ExportScreen> {
     } catch (e) {
       if (mounted) _showErrorMessage('Fehler: $e');
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
