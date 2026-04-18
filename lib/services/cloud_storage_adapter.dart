@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:fegh_cloud/fegh_cloud.dart' as cloud;
 import 'package:flutter/foundation.dart';
 import 'hidrive_webdav_client.dart';
 
@@ -93,18 +94,17 @@ class HiDriveStorageAdapter implements CloudStorageAdapter {
 
 /// Nextcloud/ownCloud-Implementierung (WebDAV, fast identisch mit HiDrive).
 class NextcloudStorageAdapter implements CloudStorageAdapter {
-  final HiDriveWebDAVClient _client;
+  final cloud.NextcloudAdapter _client;
   final String _serverName;
 
   NextcloudStorageAdapter({
     required String serverUrl,
     required String username,
     required String password,
-  }) : _client = HiDriveWebDAVClient(
-          baseUrl: '$serverUrl/remote.php/dav/files/$username',
+  })  : _client = cloud.NextcloudAdapter(
+          serverUrl: serverUrl,
           username: username,
-          password: password,
-          certificatePins: const [], // Nextcloud hat eigenes SSL
+          appToken: password, // appToken oder Login-Passwort
         ),
         _serverName = serverUrl;
 
@@ -112,46 +112,96 @@ class NextcloudStorageAdapter implements CloudStorageAdapter {
   String get adapterName => 'Nextcloud ($_serverName)';
 
   @override
-  Future<bool> testConnection() async {
-    final result = await _client.testConnection();
-    return result.isSuccess;
-  }
+  Future<bool> testConnection() async =>
+      (await _client.testConnection()).isSuccess;
 
   @override
-  Future<bool> uploadFile(String remotePath, Uint8List data) async {
-    final result = await _client.put(remotePath, data);
-    return result.isSuccess;
-  }
+  Future<bool> uploadFile(String remotePath, Uint8List data) async =>
+      (await _client.upload(remotePath, data)).isSuccess;
 
   @override
   Future<Uint8List?> downloadFile(String remotePath) async {
-    final result = await _client.get(remotePath);
-    return result.isSuccess ? result.data : null;
+    final r = await _client.download(remotePath);
+    return r.isSuccess ? r.data : null;
   }
 
   @override
-  Future<bool> deleteFile(String remotePath) async {
-    final result = await _client.delete(remotePath);
-    return result.isSuccess;
-  }
+  Future<bool> deleteFile(String remotePath) async =>
+      (await _client.delete(remotePath)).isSuccess;
 
   @override
   Future<List<String>> listFiles(String remotePath) async {
-    final result = await _client.list(remotePath);
-    return result.isSuccess ? (result.data ?? []) : [];
+    final r = await _client.list(remotePath);
+    if (!r.isSuccess) return [];
+    return r.data!.where((e) => !e.isDirectory).map((e) => e.name).toList();
   }
 
   @override
   Future<List<String>> listDirectories(String remotePath) async {
-    final result = await _client.listDirectories(remotePath);
-    return result.isSuccess ? (result.data ?? []) : [];
+    final r = await _client.listDirectories(remotePath);
+    if (!r.isSuccess) return [];
+    return r.data!.map((e) => e.name).toList();
   }
 
   @override
-  Future<bool> createDirectory(String remotePath) async {
-    final result = await _client.createDirectory(remotePath);
-    return result.isSuccess;
+  Future<bool> createDirectory(String remotePath) async =>
+      (await _client.createDirectory(remotePath)).isSuccess;
+}
+
+/// ownCloud-Implementierung (identisch Nextcloud, eigener Display-Name).
+class OwncloudStorageAdapter implements CloudStorageAdapter {
+  final cloud.OwncloudAdapter _client;
+  final String _serverName;
+
+  OwncloudStorageAdapter({
+    required String serverUrl,
+    required String username,
+    required String password,
+  })  : _client = cloud.OwncloudAdapter(
+          serverUrl: serverUrl,
+          username: username,
+          appToken: password,
+        ),
+        _serverName = serverUrl;
+
+  @override
+  String get adapterName => 'ownCloud ($_serverName)';
+
+  @override
+  Future<bool> testConnection() async =>
+      (await _client.testConnection()).isSuccess;
+
+  @override
+  Future<bool> uploadFile(String remotePath, Uint8List data) async =>
+      (await _client.upload(remotePath, data)).isSuccess;
+
+  @override
+  Future<Uint8List?> downloadFile(String remotePath) async {
+    final r = await _client.download(remotePath);
+    return r.isSuccess ? r.data : null;
   }
+
+  @override
+  Future<bool> deleteFile(String remotePath) async =>
+      (await _client.delete(remotePath)).isSuccess;
+
+  @override
+  Future<List<String>> listFiles(String remotePath) async {
+    final r = await _client.list(remotePath);
+    if (!r.isSuccess) return [];
+    return r.data!.where((e) => !e.isDirectory).map((e) => e.name).toList();
+  }
+
+  @override
+  Future<List<String>> listDirectories(String remotePath) async {
+    final r = await _client.listDirectories(remotePath);
+    if (!r.isSuccess) return [];
+    return r.data!.map((e) => e.name).toList();
+  }
+
+  @override
+  Future<bool> createDirectory(String remotePath) async =>
+      (await _client.createDirectory(remotePath)).isSuccess;
 }
 
 /// Nur-lokaler Adapter (kein Cloud-Sync). Gibt immer Erfolg zurueck.
@@ -192,6 +242,12 @@ class CloudStorageFactory {
         );
       case 'nextcloud':
         return NextcloudStorageAdapter(
+          serverUrl: url,
+          username: username,
+          password: password,
+        );
+      case 'owncloud':
+        return OwncloudStorageAdapter(
           serverUrl: url,
           username: username,
           password: password,
