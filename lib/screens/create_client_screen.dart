@@ -5,6 +5,8 @@ import '../models/client.dart';
 import '../models/mitarbeiter.dart';
 import '../models/kostentraeger.dart';
 import '../models/icf_bereiche.dart';
+import '../models/rechnung_empfaenger.dart';
+import '../services/rechnung_service.dart';
 import '../utils/responsive_utils.dart';
 import 'wirkungsmessung/ziel_liste_screen.dart';
 
@@ -30,6 +32,8 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   late TextEditingController _leistungstypController;
   // Map<empfaengerId, Controller> fuer Fallnummern pro Kostentraeger
   final Map<String, TextEditingController> _fallnummerControllers = {};
+  List<RechnungEmpfaenger> _alleEmpfaenger = [];
+  final _rechnungService = RechnungService();
 
   String _selectedEingliederung = '';
   String _selectedKostentraeger = '';
@@ -127,6 +131,45 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     // Individuelle TIB-Ziele Controller initialisieren
     final individuelleTibZiele = widget.client?.individuelleTibZiele ?? [];
     _individuelleTibZieleControllers = individuelleTibZiele.map((ziel) => TextEditingController(text: ziel)).toList();
+
+    _loadEmpfaenger();
+  }
+
+  Future<void> _loadEmpfaenger() async {
+    final liste = await _rechnungService.loadEmpfaenger();
+    if (!mounted) return;
+    setState(() => _alleEmpfaenger = liste);
+  }
+
+  void _fallnummerHinzufuegen() {
+    // Finde einen Empfaenger ohne bisherigen Eintrag
+    final zugeordnet = _fallnummerControllers.keys.toSet();
+    final frei = _alleEmpfaenger.where((e) => !zugeordnet.contains(e.id)).toList();
+    if (frei.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alle vorhandenen Empfaenger sind bereits zugeordnet')),
+      );
+      return;
+    }
+    setState(() {
+      _fallnummerControllers[frei.first.id] = TextEditingController();
+    });
+  }
+
+  void _fallnummerEntfernen(String empfId) {
+    setState(() {
+      _fallnummerControllers[empfId]?.dispose();
+      _fallnummerControllers.remove(empfId);
+    });
+  }
+
+  void _fallnummerEmpfaengerAendern(String altId, String neuId) {
+    if (altId == neuId) return;
+    if (_fallnummerControllers.containsKey(neuId)) return; // schon belegt
+    setState(() {
+      final ctrl = _fallnummerControllers.remove(altId);
+      if (ctrl != null) _fallnummerControllers[neuId] = ctrl;
+    });
   }
 
   @override
@@ -677,9 +720,106 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 helperText: 'Hilft dem Sozialamt, die Rechnung zuzuordnen',
               ),
             ),
+            const SizedBox(height: 16),
+            _buildFallnummerListe(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFallnummerListe() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Aktenzeichen pro Kostentraeger',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _alleEmpfaenger.isEmpty ? null : _fallnummerHinzufuegen,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Hinzufuegen'),
+            ),
+          ],
+        ),
+        if (_alleEmpfaenger.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.amber),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Zuerst Rechnungsempfaenger anlegen (Berichte > Rechnungen > Empfaenger)',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_fallnummerControllers.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Fallback: das allgemeine Klienten-ID-Feld wird als Aktenzeichen verwendet.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey),
+            ),
+          )
+        else
+          ..._fallnummerControllers.entries.map((e) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: e.key,
+                        decoration: const InputDecoration(
+                          labelText: 'Kostentraeger',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: _alleEmpfaenger
+                            .map((emp) => DropdownMenuItem(
+                                  value: emp.id,
+                                  child: Text(emp.name, overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) _fallnummerEmpfaengerAendern(e.key, v);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: e.value,
+                        decoration: const InputDecoration(
+                          labelText: 'Aktenzeichen',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                      onPressed: () => _fallnummerEntfernen(e.key),
+                    ),
+                  ],
+                ),
+              )),
+      ],
     );
   }
 
