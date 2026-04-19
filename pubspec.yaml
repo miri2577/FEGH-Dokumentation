@@ -70,6 +70,9 @@ dependencies:
   # Gemeinsames PDF-Toolkit (Design-Tokens, Layout-Bausteine, Preview)
   fegh_pdf_kit:
     path: ../fegh-shared/fegh_pdf_kit
+  # Backup + Recovery (RecoveryService, BackupCodec, BackupEnvelope)
+  fegh_backup:
+    path: ../fegh-shared/fegh_backup
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.2
   http: ^1.2.2
