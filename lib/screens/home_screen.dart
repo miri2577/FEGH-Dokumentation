@@ -37,7 +37,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final Map<int, Widget> _screenCache = {};
-  final MatrixChatService _chatService = MatrixChatService();
+  final MatrixChatService _chatService = MatrixChatService(
+    appName: 'FEGH-Dokumentation',
+    databaseName: 'fegh_matrix',
+  );
 
   @override
   void initState() {

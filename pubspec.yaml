@@ -73,6 +73,9 @@ dependencies:
   # Backup + Recovery (RecoveryService, BackupCodec, BackupEnvelope)
   fegh_backup:
     path: ../fegh-shared/fegh_backup
+  # Matrix-Chat (MatrixChatService, ChatListScreen, ChatRoomScreen)
+  fegh_chat:
+    path: ../fegh-shared/fegh_chat
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.2
   http: ^1.2.2
