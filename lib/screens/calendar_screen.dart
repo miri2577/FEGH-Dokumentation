@@ -807,34 +807,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       tooltip: 'Automatische Farbe',
                                       onPressed: () async {
                                         // customColor auf null setzen (Reset)
-                                        final resetClient = Client(
-                                          id: client.id,
-                                          klientenId: client.klientenId,
-                                          name: client.name,
-                                          berufsgruppe: client.berufsgruppe,
-                                          eingliederung: client.eingliederung,
-                                          createdAt: client.createdAt,
-                                          vorname: client.vorname,
-                                          nachname: client.nachname,
-                                          geburtsdatum: client.geburtsdatum,
-                                          betreuungSeit: client.betreuungSeit,
-                                          kostenuebernahme: client.kostenuebernahme,
-                                          kostenuebernahmeVon: client.kostenuebernahmeVon,
-                                          kostenuebernahmeBis: client.kostenuebernahmeBis,
-                                          fachleistungsstunden: client.fachleistungsstunden,
-                                          fachleistungsIntervall: client.fachleistungsIntervall,
-                                          hilfeTyp: client.hilfeTyp,
-                                          icfBereiche: client.icfBereiche,
-                                          verbrauchteStunden: client.verbrauchteStunden,
-                                          kalkulationsfaktorOverride: client.kalkulationsfaktorOverride,
-                                          stundensatzOverride: client.stundensatzOverride,
-                                          vertreter1Id: client.vertreter1Id,
-                                          vertreter2Id: client.vertreter2Id,
-                                          tibZiele: client.tibZiele,
-                                          individuelleTibZiele: client.individuelleTibZiele,
-                                          rechtsgrundlage: client.rechtsgrundlage,
-                                          customColor: null,
-                                        );
+                                        final resetClient =
+                                            client.copyWith(clearCustomColor: true);
                                         await appProvider.updateClient(resetClient);
                                         setDialogState(() {});
                                         if (mounted) setState(() {});

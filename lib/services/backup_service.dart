@@ -398,12 +398,10 @@ class BackupService {
     // Convert clients
     final iosClients = (iosBackup['clients'] as List? ?? []).cast<Map<String, dynamic>>();
     final clients = iosClients.map((iosClient) {
-      return Client(
-        id: iosClient['id'] as String,
+      return Client.create(
         name: iosClient['name'] as String,
         berufsgruppe: iosClient['berufsgruppe'] as String? ?? 'Sozialpädagoge',
         eingliederung: iosClient['eingliederung'] as String? ?? 'Soziale Teilhabe',
-        createdAt: _convertIOSTimestamp(iosClient['createdAt']),
       );
     }).toList();
 

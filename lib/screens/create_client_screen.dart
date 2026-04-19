@@ -1132,7 +1132,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
         leistungstypSchluessel: _leistungstypController.text.trim().isEmpty
             ? null
             : _leistungstypController.text.trim(),
-        kostentraegerFallnummern: _buildFallnummerMap(),
+        kostentraegerFallnummern: _buildFallnummerMap() ?? const {},
       );
 
       bool success;
@@ -1167,7 +1167,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
           leistungstypSchluessel: _leistungstypController.text.trim().isEmpty
               ? null
               : _leistungstypController.text.trim(),
-          kostentraegerFallnummern: _buildFallnummerMap(),
+          kostentraegerFallnummern: _buildFallnummerMap() ?? const {},
         );
         success = await appProvider.updateClient(updatedClient);
       }
