@@ -32,8 +32,9 @@ class _MitarbeiterScreenState extends State<MitarbeiterScreen> {
       _vornameController.text = widget.editMitarbeiter!.vorname;
       _emailController.text = widget.editMitarbeiter!.email;
       _telefonController.text = widget.editMitarbeiter!.telefon;
-      _selectedTeam = widget.editMitarbeiter!.teamNummer;
-      _selectedBereich = widget.editMitarbeiter!.bereich;
+      _selectedTeam = widget.editMitarbeiter!.teamNummer ?? 1;
+      _selectedBereich = widget.editMitarbeiter!.bereich ??
+          MitarbeiterBereich.eingliederungshilfe;
       _isActive = widget.editMitarbeiter!.isActive;
     }
   }

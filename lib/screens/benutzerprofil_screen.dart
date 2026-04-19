@@ -41,8 +41,9 @@ class _BenutzerprofilScreenState extends State<BenutzerprofilScreen> {
       _telefonController.text = _currentUser!.telefon;
       _wochenstundenController.text = _currentUser!.wochenarbeitszeit.toString();
       _urlaubstageController.text = _currentUser!.urlaubstage.toString();
-      _selectedTeam = _currentUser!.teamNummer;
-      _selectedBereich = _currentUser!.bereich;
+      _selectedTeam = _currentUser!.teamNummer ?? 1;
+      _selectedBereich =
+          _currentUser!.bereich ?? MitarbeiterBereich.eingliederungshilfe;
     }
   }
 
