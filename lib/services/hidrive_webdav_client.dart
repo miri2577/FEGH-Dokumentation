@@ -310,17 +310,23 @@ class HiDriveConfig {
     return '$defaultBaseUrl/$username$suffix';
   }
 
+  // Kanonische Pfad-Struktur kommt aus dem Shared-Package `fegh_cloud`
+  // (FeghPaths). HiDriveConfig ist nur noch der WebDAV-URL-Wrapper.
+
   // Multi-User/Multi-Team Ordnerstruktur
   static String getBasePath(String username) {
     return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe');
   }
 
   static String getOrganizationBasePath(String username, String organizationId, {String? rootSubdirectory}) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId', rootSubdirectory: rootSubdirectory);
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).organization,
+        rootSubdirectory: rootSubdirectory);
   }
 
   static String getTeamBasePath(String username, String organizationId, String teamId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/teams/$teamId');
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).teamRoot(teamId));
   }
 
   // Admin-Zugriff (Personalverwaltungs-App)
@@ -329,11 +335,14 @@ class HiDriveConfig {
   }
 
   static String getEmployeesPath(String username, String organizationId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/employees');
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).employees);
   }
 
   static String getAdministrationPath(String username, String organizationId, {String? rootSubdirectory}) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/administration', rootSubdirectory: rootSubdirectory);
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).administration,
+        rootSubdirectory: rootSubdirectory);
   }
 
   // Team-spezifischer Zugriff
@@ -342,32 +351,43 @@ class HiDriveConfig {
   }
 
   static String getTeamClientsPath(String username, String organizationId, String teamId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/teams/$teamId/clients');
+    return buildWebDAVUrl(username,
+        subdirectory:
+            cloud.FeghPaths(orgId: organizationId).teamClientsDir(teamId));
   }
 
   static String getTeamSchedulesPath(String username, String organizationId, String teamId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/teams/$teamId/schedules');
+    return buildWebDAVUrl(username,
+        subdirectory:
+            cloud.FeghPaths(orgId: organizationId).teamSchedulesDir(teamId));
   }
 
   static String getTeamReportsPath(String username, String organizationId, String teamId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/teams/$teamId/reports');
+    return buildWebDAVUrl(username,
+        subdirectory:
+            cloud.FeghPaths(orgId: organizationId).teamReportsDir(teamId));
   }
 
   static String getTeamWorktimePath(String username, String organizationId, String teamId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/teams/$teamId/worktime');
+    return buildWebDAVUrl(username,
+        subdirectory:
+            cloud.FeghPaths(orgId: organizationId).teamWorktimeDir(teamId));
   }
 
   // Geteilte Ressourcen
   static String getSharedPath(String username, String organizationId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/shared');
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).shared);
   }
 
   static String getSharedCalendarPath(String username, String organizationId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/shared/calendar-sync');
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).calendarSync);
   }
 
   static String getSharedMessagesPath(String username, String organizationId) {
-    return buildWebDAVUrl(username, subdirectory: 'eingliederungshilfe/organizations/$organizationId/shared/messages');
+    return buildWebDAVUrl(username,
+        subdirectory: cloud.FeghPaths(orgId: organizationId).messagesDir);
   }
 
   // System-Pfade
