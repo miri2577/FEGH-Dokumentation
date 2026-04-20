@@ -9,8 +9,9 @@ Version: **1.0.0-beta.1** | [GitHub Repository](https://github.com/miri2577/FEGH
     **[FEGH-Verwaltung](https://miri2577.github.io/FEGH-Verwaltung/)**
     als Ergaenzung. Sie uebernimmt Mitarbeiter-Stammdaten, Dienst-
     planung und zentrale Reports. Beide Apps teilen Daten ueber
-    HiDrive/Nextcloud und die geteilten Shared-Packages
-    `fegh_crypto` und `fegh_cloud`.
+    einen gemeinsamen WebDAV-Cloud-Speicher (HiDrive, Nextcloud,
+    ownCloud oder selbst gehostet) und die Shared-Packages
+    `fegh_core`, `fegh_crypto`, `fegh_cloud` u. a.
 
 ---
 
