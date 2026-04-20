@@ -2,6 +2,164 @@
 
 Die Wirkungsmessung ist zentraler Bestandteil des **Wirksamkeitsnachweises nach §128 SGB IX** (Bundesteilhabegesetz). Ab **01.01.2027** ist sie im Berliner Rahmenvertrag verpflichtend.
 
+## Funktionsweise im Detail
+
+### Das Problem, das wir loesen
+
+Das Bundesteilhabegesetz (BTHG) hat die Eingliederungshilfe
+paradigmatisch umgestellt — weg von der reinen Fuersorge-Logik ("wir
+kuemmern uns"), hin zu einer Teilhabe-Logik ("wir belegen, dass
+unsere Arbeit wirkt"). §128 SGB IX verlangt seit 2020 einen
+**Wirksamkeitsnachweis**, der spaetestens ab 2027 in allen Berliner
+Vertraegen zwingend ist.
+
+Ohne digitales Wirkungsmodul muessten Einrichtungen:
+
+- SMART-Ziele per Hand im Textverarbeitungsprogramm formulieren
+- Messungen in Excel pflegen (Baseline, Zwischen-, Endmessung)
+- POS-Fragebogen auf Papier ausfuellen (48 Items × n Klienten)
+- Ergebnisse manuell in einen Jahresbericht zusammenbauen
+
+Das wird schnell unbearbeitbar. Die App bindet **SMART-Ziele** an
+den **ICF-Standard**, erfasst **GAS-Messungen** und die
+**Personal Outcomes Scale** strukturiert, und erzeugt den
+Wirksamkeitsbericht als PDF auf Knopfdruck.
+
+### Konkretes Szenario: Ein Jahr mit Herrn K.
+
+Herr K. lebt im betreuten Wohnen. Sein Teilhabewunsch: "Ich moechte
+wieder selbststaendig Buerokram erledigen koennen — Briefe an
+Behoerden, Rechnungen bezahlen." Betreuungsbeginn: 01. April 2026.
+
+**01. April 2026 — Ziel definieren.**
+
+Mitarbeiterin Sophie setzt sich mit Herrn K. zusammen und
+formuliert **drei Ziele** hierarchisch:
+
+1. **Leitziel** (ICF `d170 Schreiben`, `d175 Probleme loesen`):
+   "Herr K. kann innerhalb eines Jahres wieder selbststaendig
+   offizielle Korrespondenz bewaeltigen."
+2. **Teilhabeziel** (ICF `d620 Gueter des taeglichen Bedarfs
+   beschaffen`):
+   - **S** — Herr K. oeffnet eigene Briefe.
+   - **M** — Anzahl geoeffneter/bearbeiteter Briefe pro Monat.
+   - **A** — Er will unabhaengiger werden, keine Angst mehr haben.
+   - **R** — In 6 Monaten zumindest Routinepost.
+   - **T** — bis 30.09.2026.
+3. **Handlungsziel**: "Herr K. beantwortet einen Behoerdenbrief
+   mit Unterstuetzung." — Zieldatum 30.04.2026.
+
+**01. April — Baseline-Messung (GAS = -2).**
+
+Sophie druckt "Messung" beim Handlungsziel:
+
+- **Typ**: Baseline
+- **GAS**: -2 (Herr K. oeffnet seit Monaten keine Post mehr, die
+  ungeoeffneten Briefe haben sich in einer Kiste gestapelt)
+- **Kommentar**: "18 ungeoeffnete Briefe in Schuhkarton, davon drei
+  mit Mahnungen. K. beschreibt starke Vermeidungssymptomatik."
+
+**Parallel: POS-Baseline.**
+
+Sophie fuehrt mit Herrn K. einen POS-Durchlauf (~20 Minuten):
+48 Items, z. B. Domaene 7 "Materielles Wohlbefinden" → Item "Der
+Klient verwaltet seine Finanzen selbststaendig" → Bewertung **1**
+(trifft nicht zu). Gesamt-POS: 62 von 144 Punkten.
+
+**Juni 2026 — Zwischenmessung #1.**
+
+Herr K. hat in 8 Wochen **4 Briefe** zusammen mit Sophie beantwortet.
+
+- **GAS**: 0 (wie erwartet)
+- **Kommentar**: "Routine bei Standard-Briefen vorhanden, bei
+  Behoerden noch hohe Anspannung."
+
+**Oktober 2026 — Zwischenmessung #2 und neue POS.**
+
+Herr K. bewaeltigt Routinepost inzwischen allein (Krankenkasse,
+Rechnungen). Behoerdenpost macht er mit Telefonsupport durch Sophie.
+
+- **GAS**: +1 (besser als erwartet — er hat mehr Routinen
+  uebernommen als im SMART-Ziel definiert)
+- **POS #2**: 78 Punkte (+16 zur Baseline), Zuwachs vor allem in
+  Domaene 1 "Selbstbestimmung" und 8 "Persoenliche Entwicklung".
+
+**31. Maerz 2027 — Endmessung + Jahresbericht.**
+
+Das Leitziel gilt als **erreicht**:
+
+- Alle drei Unterzielebenen mindestens GAS 0.
+- POS um 19 Punkte verbessert.
+
+Sophie oeffnet das Wirkungs-Dashboard: POS-Netzdiagramm zeigt den
+Zuwachs in den acht Domaenen, GAS-Verlaeufe zeigen die drei Ziele
+ueber die Zeit. Ein Klick → **PDF-Bericht** (12 Seiten):
+
+- Klient-Info, Zeitraum, Ersteller
+- Zusammenfassung mit 4 KPIs
+- Teilhabeziele mit allen SMART-Kriterien + Mess-Tabellen
+- POS-Auswertung mit Spider-Chart Baseline vs. Endmessung
+- Fazit (auto-generiert): "Deutliche positive Entwicklung in
+  Selbstbestimmung und persoenlicher Entwicklung."
+- Unterschriftszeile fuer Sophie, Herrn K. und Sozialamt
+
+Diesen Bericht nimmt Sophie mit zur Hilfeplan-Konferenz im April
+2027. Das Sozialamt verlaengert die Kostenuebernahme; die
+Einrichtung hat ihren **Wirksamkeitsnachweis nach §128 SGB IX**.
+
+### Warum GAS *und* POS?
+
+Die beiden Verfahren messen unterschiedliche Dimensionen:
+
+| Verfahren | Perspektive | Granularitaet | Messfrequenz |
+|-----------|------------|---------------|--------------|
+| **GAS** | individuelles Ziel (klientspezifisch) | pro Ziel eine 5-stufige Skala | pro Messung ~1 Minute |
+| **POS** | allgemeine Lebensqualitaet (standardisiert) | 48 Items in 8 Domaenen | pro Messung ~20 Minuten |
+
+**GAS** beantwortet: "Hat *dieser* Klient *sein* Ziel erreicht?"
+(individuell, nicht vergleichbar zwischen Klienten)
+
+**POS** beantwortet: "Ist *seine* Lebensqualitaet insgesamt
+gestiegen?" (standardisiert, vergleichbar, aggregierbar ueber
+Einrichtungen)
+
+Die Kombination ist Goldstandard fuer Teilhabewirkung:
+GAS liefert den konkreten Nachweis ("Briefe oeffnen jetzt
+selbststaendig"), POS die aggregierte Aussage ("Selbstbestimmung
+gestiegen um 42 %"). Beide wandern in den Jahresbericht.
+
+### Die ICF-Verknuepfung verstanden
+
+Jedes Ziel verlinkt auf einen **ICF-Bereich** (International
+Classification of Functioning — WHO-Standard). Beispiele:
+
+- `d170 Schreiben` — sekundaere Kommunikation
+- `d620 Gueter des taeglichen Bedarfs beschaffen` — Alltags-
+  handlungen
+- `d910 Gemeinschaftsleben` — soziale Teilhabe im weiteren Sinn
+
+Zweck der ICF-Bindung:
+
+- **Cross-Bundesland-Kompatibilitaet**: Berliner TIB, NRW-BEI und
+  Hamburger HMBV haben **alle** ICF-Mapping. Ein Umzug bricht die
+  Zieldoku nicht.
+- **Wissenschaftliche Vergleichbarkeit**: Studien ueber
+  EGH-Wirkungen (z. B. durch DIMDI, Kompetenzzentren) nutzen ICF.
+- **Traeger-Akzeptanz**: Sozialaemter kennen ICF — Ziele *ohne*
+  ICF-Referenz wirken im Hilfeplan weniger professionell.
+
+### Rechtlicher Hintergrund
+
+- **§128 SGB IX** — Wirksamkeitsnachweis als Pflicht des Leistungs-
+  erbringers gegenueber Traeger und Klient.
+- **§121 SGB IX** (Teilhabeplan) — die Ziele der Wirkungsmessung
+  sind **die** Ziele des Teilhabeplans, nicht parallele.
+- **Art. 9 DSGVO** — POS-Daten sind besondere Kategorie
+  (Gesundheitsdaten). Einwilligung zwingend.
+- **BTHG / Berliner Rahmenvertrag 2027** — konkrete Umsetzung in
+  Berlin: jeder Klient muss bis Ende 2027 mindestens zwei POS-
+  Messungen haben, sonst Sanktionen bei der Verguetung.
+
 ## Was misst die App?
 
 Die App kombiniert zwei wissenschaftlich etablierte Instrumente:
