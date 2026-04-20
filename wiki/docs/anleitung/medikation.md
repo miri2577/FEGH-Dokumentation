@@ -73,6 +73,34 @@ lassen — Herr K. war bei einem Termin beim Hausarzt. Die
 nicht-quittierten Slots wurden automatisch als "versaeumt"
 markiert. Clara (Nachtschicht) traegt den Grund nach.
 
+### Der BtM-Gabe-Flow als Sequenzdiagramm
+
+So laeuft die BtM-Gabe von Tilidin bei Herrn K. durch das System:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Anna as Anna (Fruehschicht)
+    participant App as Doku-App
+    actor Bjoern as Bjoern (Zeuge)
+    participant BtM as BtM-Service
+    participant Audit as Audit-Log
+
+    Anna->>App: tippt auf Slot "Tilidin 08:00"
+    App->>Anna: "Medi-PIN?"
+    Anna->>App: 4-stellige PIN
+    App->>App: PBKDF2 pruefen (lokal)
+    App->>Anna: "Zeuge auswaehlen"
+    Anna->>App: waehlt Bjoern
+    App->>Bjoern: Push-Benachrichtigung
+    Bjoern->>App: bestaetigt mit eigener ID
+    App->>Anna: "BtM-Bestand vorher / nachher"
+    Anna->>App: 14 / 13 Tabletten + Belegnummer
+    App->>BtM: speichert BtmEntry
+    App->>Audit: medication.given + medication.btm.entry
+    BtM-->>Anna: gruener Slot + Bestaetigung
+```
+
 ### Sicherheitsschichten im Ueberblick
 
 | Schicht | Was sie leistet | Wann sie greift |
