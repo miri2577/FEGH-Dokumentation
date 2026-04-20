@@ -245,4 +245,4 @@ Jeder Klient kann eine individuelle Farbe zugewiesen bekommen (`customColor` als
 
 ## Klient einem Team zuweisen
 
-Admins koennen Klienten ueber den Verwaltung-Tab einem bestimmten Team zuweisen. Die Klientendaten werden verschluesselt im Team-Verzeichnis auf HiDrive abgelegt.
+Admins koennen Klienten ueber den Verwaltung-Tab einem bestimmten Team zuweisen. Die Klientendaten werden verschluesselt im Team-Verzeichnis des Cloud-Speichers abgelegt (HiDrive, Nextcloud, ownCloud oder generischer WebDAV — abhaengig von der Organisations-Einstellung).

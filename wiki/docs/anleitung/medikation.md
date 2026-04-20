@@ -95,7 +95,7 @@ Jede Gabe-Quittung erzeugt drei parallele Schreibvorgaenge:
 3. **Bei BtM**: zusaetzlich ein `BtmEntry` in
    `btm_entries_v1` mit Menge, Restbestand, Zeuge, Belegnummer.
 
-Beim naechsten Cloud-Sync landen alle drei auf HiDrive und sind fuer
+Beim naechsten Cloud-Sync landen alle drei im Cloud-Speicher (HiDrive / Nextcloud / ownCloud / WebDAV) und sind fuer
 andere Geraete sichtbar.
 
 ### Rechtlicher Hintergrund kurz zusammengefasst

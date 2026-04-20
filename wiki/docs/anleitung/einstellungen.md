@@ -146,9 +146,10 @@ rechtsguetige Rechnung erzeugt werden.
 Statusbadge im Einstellungen-Screen: gruen, wenn alle Pflichtangaben
 vollstaendig; rot sonst. Ein Klick oeffnet den Bearbeiten-Dialog.
 
-## Cloud-Sync (HiDrive)
+## Cloud-Sync (HiDrive / Nextcloud / ownCloud / WebDAV)
 
-- HiDrive Benutzername und Passwort
+- Provider-Typ (HiDrive / Nextcloud / ownCloud / WebDAV)
+- Benutzername und App-Passwort
 - Organisations-ID
 - Team-ID
 - Sync-Passphrase (optional, fuer zusaetzliche Verschluesselung)

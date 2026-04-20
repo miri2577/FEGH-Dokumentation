@@ -10,9 +10,9 @@ Einstiegspunkte** brauchen:
 1. **Admin / Einrichtungsleitung** baut die Organisation neu auf —
    wird einmalig gemacht, dauert typisch 15 Minuten.
 2. **Mitarbeiter** bekommen einen **Einladungscode** und sind in 60
-   Sekunden einsatzfaehig — ohne jemals HiDrive-Zugangsdaten zu sehen.
+   Sekunden einsatzfaehig — ohne jemals Cloud-Zugangsdaten zu sehen.
 
-Ohne diese Trennung wuerden 50 Mitarbeiter 50 Mal HiDrive-Logins
+Ohne diese Trennung wuerden 50 Mitarbeiter 50 Mal Cloud-Logins
 eintippen, 50 Mal "Organisations-ID" setzen, 50 Mal Fehler machen.
 Mit dem Einladungscode laden sie ihre **komplette Konfiguration**
 aus einem verschluesselten QR-Code.
@@ -25,15 +25,19 @@ Tablet.**
 1. App installieren, oeffnen.
 2. **"Organisation einrichten"** waehlen.
 3. Ihr Profil: Dora Schmitt, Sozialarbeiterin, 40 h/Woche.
-4. Speichermodus: **HiDrive Cloud-Sync** (fuer Team-Betrieb noetig).
-5. HiDrive-Credentials aus dem STRATO-Kundenportal eingeben.
+4. Speichermodus: **Cloud-Sync** (fuer Team-Betrieb noetig). Sie
+   entscheidet sich fuer HiDrive als Provider — moeglich waeren auch
+   Nextcloud, ownCloud oder ein selbst betriebener WebDAV-Server.
+5. Cloud-Credentials aus dem Provider-Kundenportal eingeben
+   (bei HiDrive das dedizierte App-Passwort, bei Nextcloud/ownCloud
+   ein Application Token).
 6. Organisations-ID vergeben: `assistenz-ggmbh`.
 7. Admin-Modus aktiviert.
 8. "Verbindung testen" → gruener Haken → App startet mit Dashboard +
    zusaetzlichem Verwaltung-Tab.
 
 **Was im Hintergrund passiert:**
-- Die App erzeugt auf HiDrive die komplette Ordnerstruktur
+- Die App erzeugt im Cloud-Speicher die komplette Ordnerstruktur
   (`/eingliederungshilfe/organizations/assistenz-ggmbh/...`).
 - Ein **Master Encryption Key** (MEK) wird generiert und
   verschluesselt in die Cloud geschrieben.
@@ -49,7 +53,7 @@ Tablet.**
    zuweisen.
 3. System erzeugt pro Mitarbeiter einen **Provisioning-Token**:
    ein kurzer Base64-String mit allen noetigen Konfig-Daten
-   (HiDrive-App-Passwort, Org-ID, Team-ID, Team-Key, Rolle).
+   (Cloud-App-Passwort, Org-ID, Team-ID, Team-Key, Rolle).
 4. Token wird **mit einer 6-stelligen PIN verschluesselt** (PBKDF2
    aus der PIN), als **QR-Code** angezeigt.
 5. Dora gibt jedem Mitarbeiter:
@@ -63,14 +67,14 @@ Tablet.**
 2. QR-Code mit Kamera scannen — Token landet in der App (noch
    verschluesselt).
 3. PIN eingeben: Token wird lokal entschluesselt, Konfig extrahiert.
-4. HiDrive-Zugang, Organisation, Team, Rolle sind **automatisch**
+4. Cloud-Zugang, Organisation, Team, Rolle sind **automatisch**
    gesetzt.
 5. Sven bestaetigt sein Profil (Vorname, Nachname).
 6. App startet → er sieht Dashboard mit den Klienten seines Teams.
 
-**Kritisch**: Sven hat HiDrive-Credentials nie gesehen oder getippt.
-Wenn er morgen ausscheidet, kann Dora auf HiDrive einfach das
-App-Passwort rotieren — alle Tokens werden wertlos, und Sven hat
+**Kritisch**: Sven hat Cloud-Credentials nie gesehen oder getippt.
+Wenn er morgen ausscheidet, kann Dora im Cloud-Kundenportal einfach
+das App-Passwort rotieren — alle Tokens werden wertlos, und Sven hat
 keinen Zugang mehr, ohne dass er die Daten explizit loeschen muss.
 
 ### Die Entscheidung: Nur lokal vs. Cloud-Sync
@@ -80,7 +84,7 @@ Der Setup-Wizard bietet zwei Speichermodi:
 | Modus | Geeignet fuer | Was funktioniert nicht |
 |-------|---------------|-------------------------|
 | **Nur lokal** | Einzelplatz, kein Team, offline-only | Kein Team-Chat, keine Multi-Geraete-Akten, keine Verwaltungs-App-Anbindung |
-| **HiDrive Cloud-Sync** | Team, mehrere Geraete, Kombination Doku+Verwaltung | HiDrive-Abo noetig |
+| **Cloud-Sync** (HiDrive, Nextcloud, ownCloud, generisches WebDAV) | Team, mehrere Geraete, Kombination Doku+Verwaltung | Abo / eigene Server-Infrastruktur noetig |
 
 Der Wechsel von "Nur lokal" nach Cloud-Sync ist **nachtraeglich moeglich**
 (Einstellungen → Cloud), der Wechsel zurueck erfordert einen Export
@@ -132,9 +136,11 @@ Waehlen Sie diesen Pfad, wenn Sie die Organisation fuer Ihr Team aufsetzen.
 2. **Profil eingeben**: Vorname, Nachname, Berufsgruppe, Wochenarbeitszeit
 3. **Speichermodus waehlen**:
     - *Nur lokal (verschluesselt)*: Alle Daten bleiben auf dem Geraet. AES-256 Verschluesselung. Kein Internet noetig.
-    - *HiDrive Cloud-Sync*: Verschluesselt mit STRATO HiDrive synchronisiert. Fuer Teams und mehrere Geraete.
-4. **HiDrive konfigurieren** (bei Cloud-Sync):
-    - HiDrive Benutzername und Passwort eingeben
+    - *Cloud-Sync*: Verschluesselt mit einem WebDAV-Provider
+      (HiDrive, Nextcloud, ownCloud oder generisch) synchronisiert.
+      Fuer Teams und mehrere Geraete.
+4. **Cloud konfigurieren** (bei Cloud-Sync):
+    - Provider-Typ waehlen und Benutzername + App-Passwort eingeben
     - Organisations-ID vergeben (z.B. `meine-firma`)
     - Admin-Modus aktivieren
     - Verbindung testen
@@ -149,7 +155,7 @@ Waehlen Sie diesen Pfad, wenn Sie einen QR-Code oder Token von Ihrem Admin erhal
 1. **"Einladungscode verwenden"** waehlen
 2. **Token einfuegen** (QR-Code scannen oder Text einfuegen)
 3. **6-stelligen PIN eingeben** (erhalten Sie separat von Ihrem Admin)
-4. Token wird entschluesselt -- HiDrive, Organisation, Team und Rolle werden automatisch konfiguriert
+4. Token wird entschluesselt -- Cloud, Organisation, Team und Rolle werden automatisch konfiguriert
 5. **Profil bestaetigen**: Vorname und Nachname eingeben
 6. **App starten**
 

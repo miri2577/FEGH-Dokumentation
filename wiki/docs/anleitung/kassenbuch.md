@@ -144,7 +144,7 @@ Ein neu angelegter Eintrag erzeugt drei Schreibvorgaenge:
    `kassenbuch_monatsabschluesse_v1` mit `saldoStart`, `saldoEnde`,
    Unterschrift.
 
-Beim Cloud-Sync landen Eintraege und Abschluss auf HiDrive unter
+Beim Cloud-Sync landen Eintraege und Abschluss im konfigurierten Cloud-Speicher (HiDrive, Nextcloud, ownCloud oder generischer WebDAV) unter
 `teams/<teamId>/clients/<clientId>/kassenbuch/`.
 
 ### Saldo-Berechnung mit Rollover
