@@ -107,6 +107,37 @@ Diesen Bericht nimmt Sophie mit zur Hilfeplan-Konferenz im April
 2027. Das Sozialamt verlaengert die Kostenuebernahme; die
 Einrichtung hat ihren **Wirksamkeitsnachweis nach §128 SGB IX**.
 
+### Ein Jahr Wirkungsmessung als Timeline
+
+```mermaid
+gantt
+    title Herr K. — Wirkungsmessung 2026/2027
+    dateFormat  YYYY-MM-DD
+    axisFormat %b %Y
+
+    section Ziel-Hierarchie
+    Leitziel "Bueroarbeit eigenstaendig"    :active, l, 2026-04-01, 365d
+    Teilhabeziel "Briefe beantworten"        :active, t1, 2026-04-01, 180d
+    Handlungsziel "1 Brief m. Unterst."      :h1, 2026-04-01, 30d
+
+    section GAS-Messungen
+    Baseline -2        :milestone, 2026-04-01, 0d
+    Zwischen 0         :milestone, 2026-06-15, 0d
+    Zwischen +1        :milestone, 2026-10-15, 0d
+    End +1             :milestone, 2027-03-31, 0d
+
+    section POS-Messungen
+    Baseline 62 Pkt    :milestone, pos1, 2026-04-01, 0d
+    Zwischenmessung 78 :milestone, pos2, 2026-10-15, 0d
+    Endmessung 81 Pkt  :milestone, pos3, 2027-03-31, 0d
+
+    section Bericht
+    Jahresbericht + HP-Konferenz :crit, 2027-03-31, 7d
+```
+
+<!-- SCREENSHOT: Wirkungs-Dashboard mit POS-Spider-Chart und GAS-Verlaeufen -->
+<!-- SCREENSHOT: GAS-Messungs-Dialog mit 5-Punkte-Skala -->
+
 ### Warum GAS *und* POS?
 
 Die beiden Verfahren messen unterschiedliche Dimensionen:

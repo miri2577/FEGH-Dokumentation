@@ -132,6 +132,33 @@ Diese Art der Korrektur — Storno + Neuausstellung — ist
 GoBD-konform (§146 Abs. 4 AO). Direkt-Editieren versendeter
 Rechnungen ist verboten.
 
+### Der Monatslauf als Flowchart
+
+```mermaid
+flowchart TD
+    Start([Monatslauf starten]) --> SelectMonth[Abrechnungsmonat waehlen]
+    SelectMonth --> Load[Termine + Arbeitszeit des Monats laden]
+    Load --> Filter[Nur FLS-relevante Kategorien:<br/>Kliententermin, Buero, Doku]
+    Filter --> Alloc[clientAllocations-Aufteilung<br/>bei Multi-Klient-Eintraegen]
+    Alloc --> Cap{Pro Klient:<br/>geleistet > bewilligt?}
+    Cap -->|ja| Kappen[Auf bewilligt kappen<br/>Ueberschuss = pro bono]
+    Cap -->|nein| Full[volle Stunden]
+    Kappen --> Group
+    Full --> Group[Gruppieren nach Kostentraeger]
+    Group --> Review[Review-Dialog<br/>Breakdown pro Empf/Klient]
+    Review --> Confirm{Anja bestaetigt?}
+    Confirm -->|nein| Abort([Abbruch])
+    Confirm -->|ja| Plausi[Plausi-Check:<br/>LeitwegID, Fallnummer, Steuerbefreiung]
+    Plausi -->|hart-FAIL| Error([Fehler: blockieren])
+    Plausi -->|ok| Create[Pro Kostentraeger 1 Rechnung erzeugen]
+    Create --> XML[XRechnung-XML schreiben]
+    XML --> Export[Status Entwurf,<br/>Audit-Event rechnung.create]
+    Export --> End([Rechnungen liegen zum Versenden bereit])
+```
+
+<!-- SCREENSHOT: Monatslauf-Review-Dialog mit Breakdown-Tabelle -->
+<!-- SCREENSHOT: Plausi-Check-Ergebnis mit gruenen und roten Markierungen -->
+
 ### Das FLS-Budget-Gewissen
 
 Beim Eintragen eines Termins prueft das System **sofort** den

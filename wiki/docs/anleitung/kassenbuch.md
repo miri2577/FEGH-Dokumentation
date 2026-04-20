@@ -105,6 +105,38 @@ im Maerz passiert?" — Anja kann den Monatsauszug als PDF generieren
 (Saldo-Anfang, alle Einzelbuchungen, Endsaldo, Unterschriften der
 freigegebenen Eintraege, separater Block fuer Stornos).
 
+### Der Storno-Workflow als Sequenzdiagramm
+
+So laeuft Anjas Korrektur vom 22. Maerz technisch ab:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Anja as Anja (Teamleitung)
+    participant UI as Kassenbuch-UI
+    participant Dialog as Storno-Dialog
+    participant Svc as KassenbuchService
+    participant Store as SharedPreferences
+    participant Audit as Audit-Log
+
+    Anja->>UI: Lang-Druecken auf freigegebenem Eintrag
+    UI->>Anja: Menue "Stornieren"
+    Anja->>Dialog: klickt "Stornieren"
+    Dialog->>Anja: Pflicht: Grund + Unterschrift
+    Anja->>Dialog: "Betragsfehler" + Canvas-Signature
+    Dialog->>Svc: stornoEintrag(originalId, reason, sigB64)
+    Svc->>Store: Laden aller Eintraege
+    Svc->>Svc: Pruefung: Original confirmed? schon storniert?
+    Svc->>Store: Schreiben Gegenbuchung (neg. Betrag, confirmed, stornoOfEntryId)
+    Svc->>Audit: kassenbuch.entry.storno
+    Svc-->>Dialog: stornoId
+    Dialog->>UI: invalidate Provider
+    UI-->>Anja: Liste neu: Original markiert "STORNIERT", Gegenbuchung "STORNO"
+```
+
+<!-- SCREENSHOT: Storno-Dialog mit Signature-Pad und Grund-Feld -->
+<!-- SCREENSHOT: Kassenbuch-Liste mit STORNIERT-Badge auf Original und STORNO-Badge auf Gegenbuchung -->
+
 ### Was die Canvas-Unterschrift konkret macht
 
 - Wenn Daniel eine Buchung freigeben will, erscheint das

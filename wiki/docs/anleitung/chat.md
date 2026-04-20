@@ -100,6 +100,44 @@ Verschluesselung:
    wird der Geraeteschluessel-Fingerprint per QR oder Emoji-Vergleich
    gepruefet, damit MitM-Angriffe auffallen.
 
+### Olm/Megolm-Verschluesselung als Sequenzdiagramm
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Nadine as Nadine
+    participant App1 as Nadines App
+    participant Server as Matrix-Server<br/>(Conduit)
+    participant App2 as Karins App
+    actor Karin as Karin
+
+    Note over App1,App2: Einmalig beim ersten Kontakt:<br/>Schluessel-Verifikation
+    App1->>Server: publish deviceKey (Public)
+    App2->>Server: publish deviceKey (Public)
+    Server->>App1: Karins deviceKey
+    Server->>App2: Nadines deviceKey
+    App1-->>App2: QR oder Emoji-Vergleich offline
+    Note over App1,App2: Beide Seiten bestaetigen verified
+
+    Note over App1,App2: Pro Raum einmalig:<br/>Megolm-Gruppenschluessel
+    App1->>App1: generiere GroupKey K
+    App1->>Server: K verschluesselt mit Karins deviceKey
+    Server->>App2: verschluesselter K
+    App2->>App2: entpacke K mit eigenem privateKey
+
+    Note over Nadine,Karin: Konkret — Nachricht senden
+    Nadine->>App1: tippt Nachricht
+    App1->>App1: AES mit K -> ciphertext
+    App1->>Server: ciphertext
+    Note right of Server: Server sieht nur Bytes,<br/>nicht den Inhalt
+    Server->>App2: ciphertext
+    App2->>App2: AES mit K -> Klartext
+    App2-->>Karin: "Herr P. seit 20 min im Bad..."
+```
+
+<!-- SCREENSHOT: Chat-Ansicht mit Schloss-Icon und Mitglieder-Liste -->
+<!-- SCREENSHOT: Schluessel-Verifikation mit Emoji-Vergleich -->
+
 ### Raumtypen und ihr Zweck
 
 | Raumtyp | Zweck | Mitglieder |

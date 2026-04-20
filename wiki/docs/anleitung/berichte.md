@@ -50,6 +50,44 @@ die Bedarfsfortschreibung.
 Sabine laedt die PDF ins besondere elektronische Anwaltspostfach
 (beA) hoch, schickt sie an das Sozialamt.
 
+### Datenflowchart: Was fliesst in welchen Bericht?
+
+```mermaid
+flowchart LR
+    K[Klient-Stammdaten] --> IB[Informationsbericht]
+    K --> WR[Wirksamkeitsbericht]
+    K --> XR[XRechnung]
+    K --> MB[Monatsbericht]
+
+    T[Termine + Arbeitszeit] --> IB
+    T --> XR
+    T --> MB
+
+    W[Wirkungsmessungen] --> WR
+    W --> MB
+
+    F[FLS-Berechnung] --> XR
+
+    KB[Kassenbuch] --> MB
+    KB --> KM[Kassenbuch-Monatsauszug]
+
+    BTM[BtM-Gaben + Bestand] --> BTMR[BtM-Bestandsliste]
+
+    S[Schichten + Lohn] --> ZN[Zeitnachweis PDF]
+    S --> TCSV[Team-CSV]
+
+    IB -.-> PDF1[PDF Formular 101]
+    WR -.-> PDF2[PDF mit POS-Chart]
+    XR -.-> XML[UBL 2.1 XML]
+    MB -.-> PDF3[PDF Monatsbericht]
+    KM -.-> PDF4[PDF Saldo + Signaturen]
+    BTMR -.-> CSV1[CSV + PDF]
+    ZN -.-> PDF5[PDF je Mitarbeiter]
+    TCSV -.-> CSV2[CSV fuer Lohnbuchh.]
+```
+
+<!-- SCREENSHOT: Berichte-Uebersicht mit Export-Buttons pro Typ -->
+
 ### Welche Export-Formate fuer welchen Zweck?
 
 | Ziel | Format | Warum |

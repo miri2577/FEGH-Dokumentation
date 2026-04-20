@@ -60,6 +60,40 @@ Perioden klar getrennt:
 GAS- und POS-Messungen — bundesweit einheitlich — laufen nahtlos
 durch.
 
+### Die Instrument-Familien als Graph
+
+```mermaid
+flowchart TD
+    ICF[ICF-Standard<br/>WHO-Klassifikation]
+
+    ICF --> ITP[ITP-Familie<br/>9 Lebensbereiche]
+    ICF --> BEI[BEI-Familie<br/>9 Lebensbereiche mit eigener Skala]
+    ICF --> HMBV[HMBV-Familie<br/>5 Bereiche + Intensitaet 0-4]
+    ICF --> EIG[Eigenstaendige Instrumente]
+
+    ITP --> HE[Hessen ITP]
+    ITP --> BB[Brandenburg]
+    ITP --> MV[Mecklenburg-Vorpommern]
+    ITP --> SN[Sachsen]
+    ITP --> ST[Sachsen-Anhalt]
+    ITP --> TH[Thueringen]
+
+    BEI --> NRW[NRW BEI_NRW]
+    BEI --> BW[Baden-Wuerttemberg BEI_BW]
+    BEI --> SH[Schleswig-Holstein BEI-SH]
+
+    HMBV --> HH[Hamburg HMBV]
+    HMBV --> HB[Bremen HMBV-Adaption]
+
+    EIG --> BE[Berlin TIB + Formular 101]
+    EIG --> NI[Niedersachsen B.E.Ni]
+    EIG --> BY[Bayern Gesamtplan / ANLEI]
+    EIG --> RP[Rheinland-Pfalz generisch]
+    EIG --> SL[Saarland SBI]
+```
+
+<!-- SCREENSHOT: Bundesland-Auswahl im Setup-Wizard mit Info-Karte -->
+
 ### Die Instrument-Familien im Ueberblick
 
 Warum 4 Familien und nicht 16 Einzelinstrumente? Weil viele

@@ -73,6 +73,25 @@ Am Monatsende:
 - Termine Mias mit Verknuepfung zu Herrn K.s Zielen erscheinen im
   Wirksamkeitsbericht, wenn sie GAS-Messungen ausloesen.
 
+### Ein Termin — vier Datenfluesse
+
+```mermaid
+flowchart LR
+    T[Termin<br/>Mo 10:00-11:30<br/>Herr K.<br/>Kliententermin]
+
+    T --> A[Arbeitszeit<br/>1,5h Betreuung]
+    T --> F[FLS-Abrechnung<br/>1,5h x 52 EUR]
+    T --> W[Wirkungsmessung<br/>GAS-Update Ziel d620]
+    T --> V[Verlaufsbericht<br/>Text fuer Hilfeplan]
+
+    A -.speist.-> MA[Monats-Zeitnachweis]
+    F -.speist.-> R[XRechnung an Sozialamt]
+    W -.speist.-> JB[Jahres-Wirksamkeitsbericht]
+    V -.speist.-> HP[Hilfeplan-Konferenz]
+```
+
+<!-- SCREENSHOT: Termin-Formular mit Klient, Art, Ziel-Verknuepfung -->
+
 ### Wiederholungstermine und Serien
 
 Regelmaessige Termine (z. B. jeden Montag 10-11:30) werden als

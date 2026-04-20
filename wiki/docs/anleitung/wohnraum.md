@@ -80,6 +80,41 @@ Nachzahlung von 87,40 EUR. Daniel:
 4. Der Dienstplan behaelt bestehende Schichten fuer Herrn T. —
    neue Schichten werden ihm aber nicht mehr automatisch zugewiesen.
 
+### Miet-Buchung und Integration mit Kassenbuch
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Daniel as Daniel (Sozialarbeiter)
+    participant WR as Wohnraum-Screen
+    participant Svc as KassenbuchService
+    participant Store as SharedPreferences
+    participant Audit as Audit-Log
+
+    Daniel->>WR: Kontextmenue "Miete buchen"
+    WR->>Daniel: Monatsauswahl (April 2026)
+    Daniel->>WR: bestaetigt
+    WR->>Svc: loadForClientInMonth(clientId, April)
+    Svc->>Store: lesen
+    Store-->>Svc: bestehende Eintraege
+    Svc->>Svc: sucht Beleg-Tag RENT-wohn-3-202604
+    alt bereits gebucht
+        Svc-->>WR: FEHLER: Duplikat
+        WR-->>Daniel: "Miete April bereits gebucht"
+    else neu
+        WR->>Daniel: Confirm "Warmmiete 450 EUR als Abbuchung?"
+        Daniel->>WR: ja
+        WR->>Svc: addEintrag(neg. Betrag, Beleg-Tag)
+        Svc->>Store: schreiben
+        Svc->>Audit: kassenbuch.entry.created + wohnraum.rent.booked
+        Svc-->>WR: ok
+        WR-->>Daniel: "Miete 450 EUR gebucht"
+    end
+```
+
+<!-- SCREENSHOT: Wohnraum-Detailansicht mit Warmmiete + Status -->
+<!-- SCREENSHOT: Monatsauswahl-Dialog fuer Mietbuchung -->
+
 ### Warum ein Wohnraum = ein Klient?
 
 Das Modell erlaubt im MVP **genau einen Klienten** pro Wohnraum-

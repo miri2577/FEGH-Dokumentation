@@ -61,6 +61,38 @@ als auch die Verwaltungs-Felder (klientenId, leistungstypSchluessel,
 kostentraegerFallnummern). Beim naechsten Sync laden beide Apps
 denselben JSON-Record und koennen ihn identisch darstellen.
 
+### Datenfluss Verwaltung → Doku (Klient-Anlage)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Anja as Anja (Admin)
+    participant Verw as Verwaltungs-App
+    participant Cloud as Cloud (WebDAV)
+    participant Sync as Sync-Scheduler
+    participant Doku as Doku-App (Tablet)
+    actor Mia as Mia (Fachkraft)
+
+    Anja->>Verw: "Neuer Klient" Formular
+    Verw->>Verw: Client.create(klientenId, ..., bundesland)
+    Verw->>Verw: AES-256-GCM mit Team-Key
+    Verw->>Cloud: PUT /teams/hauptstrasse/clients/<id>.bin
+    Note over Cloud: ciphertext (keine Klartext-Daten)
+
+    loop alle 5 Minuten
+        Doku->>Cloud: PROPFIND /teams/hauptstrasse/clients/
+    end
+    Cloud-->>Doku: Liste neuer Eintraege
+    Doku->>Cloud: GET /teams/hauptstrasse/clients/<id>.bin
+    Doku->>Doku: AES-256-GCM Decrypt mit Team-Key
+    Doku->>Doku: Client.fromJson(jsonDecode(bytes))
+    Mia->>Doku: oeffnet Klient-Liste
+    Doku-->>Mia: neuer Klient sichtbar
+```
+
+<!-- SCREENSHOT: Klient-Formular Verwaltung mit Fallnummer-pro-Kostentraeger -->
+<!-- SCREENSHOT: Klient-Detailansicht Doku-App mit FLS-Balken -->
+
 ### Bundesland-Override — warum?
 
 Standardmaessig uebernimmt der Klient das Bundesland der Organisation

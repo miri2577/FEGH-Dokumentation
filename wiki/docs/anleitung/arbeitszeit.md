@@ -86,6 +86,34 @@ Am Monatsende wandert 4,1 h × FLS-Satz in die Rechnung fuer Herrn K.,
 abgerechnet — sie sind im Stundensatz eingepreist. Aber sie stehen
 auf Toms Lohnnachweis.
 
+### Die drei Sichten auf einen Arbeitszeit-Eintrag
+
+```mermaid
+flowchart TB
+    E[Arbeitszeit-Eintrag<br/>Tom, 08:00-11:30<br/>Betreuung bei Herr K.]
+
+    E --> A[Arbeitsrecht-Sicht]
+    E --> F[FLS-Sicht]
+    E --> L[Lohn-Sicht]
+
+    A --> AP[Brutto 3,5h]
+    A --> AC[ArbZG-Check:<br/>unter 10h? Ruhezeit?]
+    AP --> AZN[Monats-Zeitnachweis]
+
+    F --> FK[Kategorie abrechenbar?<br/>ja bei Betreuung]
+    F --> FZ[Zuordnung Klient Herr K.]
+    FK --> FLS[FLS-Abrechnung]
+    FZ --> FLS
+
+    L --> LM[Lohn-Multiplier nach Schichttyp]
+    L --> LP[Pauseabzug]
+    LM --> LOHN[Lohnbuchhaltung]
+    LP --> LOHN
+```
+
+<!-- SCREENSHOT: Arbeitszeit-Start-/Stop-Buttons + Taetigkeits-Auswahl -->
+<!-- SCREENSHOT: Klient-Aufteilung-Dialog bei Dokumentation -->
+
 ### Taetigkeitstypen im Detail
 
 Die Kategorisierung ist nicht kosmetisch — sie ist **abrechnungs-
