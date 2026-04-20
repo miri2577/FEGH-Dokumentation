@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:fegh_core/fegh_core.dart' show ShiftIcsExporter;
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -38,6 +43,41 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
     await _future;
   }
 
+  Future<void> _exportIcs() async {
+    final shifts = await _service.loadForEmployee(widget.employeeId);
+    if (!mounted) return;
+    if (shifts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Schichten zum Exportieren.')),
+      );
+      return;
+    }
+    final name = widget.employeeName ?? widget.employeeId;
+    final ics = ShiftIcsExporter.export(
+      shifts,
+      calName: 'FEGH Meine Schichten',
+      employeeNameResolver: (_) => name,
+    );
+    final bytes = Uint8List.fromList(utf8.encode(ics));
+    try {
+      await FileSaver.instance.saveFile(
+        name: 'fegh-meine-schichten',
+        bytes: bytes,
+        ext: 'ics',
+        mimeType: MimeType.other,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${shifts.length} Schichten als .ics exportiert.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export fehlgeschlagen: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('EEEE, dd.MM.yyyy', 'de_DE');
@@ -48,6 +88,13 @@ class _MyShiftsScreenState extends State<MyShiftsScreen> {
         title: Text(widget.employeeName != null
             ? 'Meine Schichten – ${widget.employeeName}'
             : 'Meine Schichten'),
+        actions: [
+          IconButton(
+            tooltip: 'In Outlook/Kalender exportieren (.ics)',
+            icon: const Icon(Icons.calendar_today_outlined),
+            onPressed: _exportIcs,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
