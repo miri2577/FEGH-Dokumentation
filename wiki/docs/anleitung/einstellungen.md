@@ -1,5 +1,97 @@
 # Einstellungen
 
+## Funktionsweise im Detail
+
+### Das Problem, das wir loesen
+
+Die App bedient sehr unterschiedliche Einrichtungen: kleine
+Wohngruppen mit 3 Mitarbeitern genauso wie mittelgrosse Traeger mit
+50 Mitarbeitern und mehreren Standorten. Jede Einrichtung hat
+eigene Stundensaetze, eigene Kalkulationsfaktoren, eigenes
+Bundesland, eigene Urlaubsregelungen.
+
+Ohne zentrale Einstellungen muesste jeder dieser Werte an jeder
+Stelle im Code stehen — Folge: Updates gelten nicht, Defaults sind
+falsch, Einstellungen widersprechen sich. Der Einstellungs-Screen
+buendelt alle **organisationsweiten** und **persoenlichen** Parameter
+an einer Stelle und sorgt dafuer, dass andere Module sie konsistent
+abfragen.
+
+### Zwei Ebenen: persoenlich vs. organisationsweit
+
+| Ebene | Wer setzt | Beispiele |
+|-------|-----------|-----------|
+| **Persoenlich** | Mitarbeiter selbst | Name, Dunkelmodus, Wochenarbeitszeit, Zwei-Faktor |
+| **Organisation** | Admin | Bundesland, FLS-Stundensatz, Kalkulationsfaktor, Leistungstyp-Default |
+| **Geraete-lokal** | automatisch | Cloud-Zugang, Session-Tokens, Recovery-Material |
+
+Persoenliche Einstellungen gelten nur fuer den aktuellen Mitarbeiter
+auf dem aktuellen Geraet. Organisations-Einstellungen werden ueber
+die Cloud verteilt und gelten fuer alle — die App laedt sie bei
+jedem Sync-Zyklus neu. Geraete-lokale Einstellungen kommen nie in
+die Cloud (sie enthalten Keys/Tokens).
+
+### Konkretes Szenario: Einrichtung wechselt Kostentraeger-Vertrag
+
+Die Traeger-Einrichtung "Assistenz gGmbH" hat seit 2026 einen
+neuen Rahmenvertrag mit dem Land Berlin. Wirksam ab 01. April 2026:
+
+- Stundensatz steigt von 52,00 auf 54,50 EUR
+- Kalkulationsfaktor bleibt 1,33
+
+**01. April, Admin Anja passt an.**
+
+1. `Einstellungen → FLS-Kalkulation`
+2. Stundensatz: 54,50 setzen
+3. Speichern
+4. Audit-Event `settings.updated` mit alt=52,00, neu=54,50 wird
+   geschrieben.
+
+**Was automatisch passiert:**
+
+- Alle **neu erstellten** Rechnungen ab heute nutzen 54,50 EUR.
+- **Bestehende Rechnungen** bleiben unberuehrt (sie haben den
+  Stundensatz bereits festgeschrieben — Aenderung waere GoBD-
+  Verstoss).
+- Klienten mit einem `stundensatzOverride` werden NICHT beruehrt —
+  dort gelten die individuell ausgehandelten Saetze weiter.
+
+Zwei Minuten spaeter loggt sich Mitarbeiterin Mia auf ihrem Tablet
+ein: Beim naechsten Cloud-Sync laedt ihr Geraet die neue
+Stundensatz-Einstellung. Sie bemerkt nichts — die naechste Rechnung,
+die sie erzeugt, nutzt schon 54,50.
+
+### Zwei-Faktor-Authentifizierung (TOTP)
+
+Optional. Schuetzt gegen:
+
+- **Tablet gestohlen**: der Dieb kennt das Entsperr-Passwort nicht;
+  App verlangt TOTP beim Start.
+- **Recovery-Code kompromittiert**: zweiter Faktor blockiert
+  Recovery-Misbrauch.
+
+Einrichtung:
+
+1. `Einstellungen → Zugriffsstatus → 2FA einrichten`
+2. QR-Code mit Authenticator-App scannen (Google Authenticator,
+   Authy, 1Password, Bitwarden, KeePassXC-Plugin alle ok).
+3. Testen: 6-stelliger Code eingeben.
+4. **Backup-Codes** ausdrucken und sicher verwahren — falls das
+   Handy weg ist.
+
+Der TOTP-Standard (RFC 6238) nutzt 30-sekuendige Zeitfenster, d. h.
+das Geraet und die App-Uhr muessen synchron sein (bis ±60 s ok).
+
+### Rechtlicher Hintergrund
+
+- **§146 Abs. 4 AO / GoBD** — einmal erzeugte Rechnungs-Stundensaetze
+  duerfen nicht rueckwirkend geaendert werden.
+- **Art. 32 DSGVO** — angemessene Sicherheit durch technische und
+  organisatorische Massnahmen. 2FA ist eine solche TOM.
+- **Betriebsrats-Mitbestimmung** — zentrale Einstellungen zur
+  Arbeitszeiterfassung (Wochenarbeitszeit-Default, Urlaubstage)
+  unterliegen §87 BetrVG.
+
 ## Zugriffsstatus
 
 Zeigt die aktuelle Konfiguration:

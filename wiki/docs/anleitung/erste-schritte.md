@@ -1,5 +1,121 @@
 # Erste Schritte
 
+## Funktionsweise im Detail
+
+### Zwei verschiedene Einstiege — warum?
+
+FEGH-Dokumentation bedient zwei Rollen, die **unterschiedliche
+Einstiegspunkte** brauchen:
+
+1. **Admin / Einrichtungsleitung** baut die Organisation neu auf —
+   wird einmalig gemacht, dauert typisch 15 Minuten.
+2. **Mitarbeiter** bekommen einen **Einladungscode** und sind in 60
+   Sekunden einsatzfaehig — ohne jemals HiDrive-Zugangsdaten zu sehen.
+
+Ohne diese Trennung wuerden 50 Mitarbeiter 50 Mal HiDrive-Logins
+eintippen, 50 Mal "Organisations-ID" setzen, 50 Mal Fehler machen.
+Mit dem Einladungscode laden sie ihre **komplette Konfiguration**
+aus einem verschluesselten QR-Code.
+
+### Konkretes Szenario: Team-Setup einer neuen Einrichtung
+
+**Montag 09:00 — Einrichtungsleitung Dora startet mit einem leeren
+Tablet.**
+
+1. App installieren, oeffnen.
+2. **"Organisation einrichten"** waehlen.
+3. Ihr Profil: Dora Schmitt, Sozialarbeiterin, 40 h/Woche.
+4. Speichermodus: **HiDrive Cloud-Sync** (fuer Team-Betrieb noetig).
+5. HiDrive-Credentials aus dem STRATO-Kundenportal eingeben.
+6. Organisations-ID vergeben: `assistenz-ggmbh`.
+7. Admin-Modus aktiviert.
+8. "Verbindung testen" → gruener Haken → App startet mit Dashboard +
+   zusaetzlichem Verwaltung-Tab.
+
+**Was im Hintergrund passiert:**
+- Die App erzeugt auf HiDrive die komplette Ordnerstruktur
+  (`/eingliederungshilfe/organizations/assistenz-ggmbh/...`).
+- Ein **Master Encryption Key** (MEK) wird generiert und
+  verschluesselt in die Cloud geschrieben.
+- Doras Geraet erhaelt einen **Data Encryption Key** (DEK), der
+  aus ihrem Login abgeleitet ist.
+- **Recovery-Codes** werden erzeugt — Dora wird aufgefordert, sie
+  auszudrucken.
+
+**Montag 10:30 — Dora laedt 5 Mitarbeiter ein.**
+
+1. `Verwaltung → Mitarbeiter einladen`
+2. Fuer jeden Mitarbeiter: Name eingeben, Rolle waehlen, Team
+   zuweisen.
+3. System erzeugt pro Mitarbeiter einen **Provisioning-Token**:
+   ein kurzer Base64-String mit allen noetigen Konfig-Daten
+   (HiDrive-App-Passwort, Org-ID, Team-ID, Team-Key, Rolle).
+4. Token wird **mit einer 6-stelligen PIN verschluesselt** (PBKDF2
+   aus der PIN), als **QR-Code** angezeigt.
+5. Dora gibt jedem Mitarbeiter:
+   - den QR-Code (am Bildschirm, ausgedruckt oder per beA)
+   - die PIN (muendlich oder separat — getrennt vom QR transportiert)
+
+**Montag 14:00 — Mitarbeiter Sven installiert die App auf seinem
+Tablet.**
+
+1. App starten, **"Einladungscode verwenden"**.
+2. QR-Code mit Kamera scannen — Token landet in der App (noch
+   verschluesselt).
+3. PIN eingeben: Token wird lokal entschluesselt, Konfig extrahiert.
+4. HiDrive-Zugang, Organisation, Team, Rolle sind **automatisch**
+   gesetzt.
+5. Sven bestaetigt sein Profil (Vorname, Nachname).
+6. App startet → er sieht Dashboard mit den Klienten seines Teams.
+
+**Kritisch**: Sven hat HiDrive-Credentials nie gesehen oder getippt.
+Wenn er morgen ausscheidet, kann Dora auf HiDrive einfach das
+App-Passwort rotieren — alle Tokens werden wertlos, und Sven hat
+keinen Zugang mehr, ohne dass er die Daten explizit loeschen muss.
+
+### Die Entscheidung: Nur lokal vs. Cloud-Sync
+
+Der Setup-Wizard bietet zwei Speichermodi:
+
+| Modus | Geeignet fuer | Was funktioniert nicht |
+|-------|---------------|-------------------------|
+| **Nur lokal** | Einzelplatz, kein Team, offline-only | Kein Team-Chat, keine Multi-Geraete-Akten, keine Verwaltungs-App-Anbindung |
+| **HiDrive Cloud-Sync** | Team, mehrere Geraete, Kombination Doku+Verwaltung | HiDrive-Abo noetig |
+
+Der Wechsel von "Nur lokal" nach Cloud-Sync ist **nachtraeglich moeglich**
+(Einstellungen → Cloud), der Wechsel zurueck erfordert einen Export
+und Neu-Setup.
+
+### Was gepruefte Ersteinrichtung ausmacht
+
+Das Team ist voll einsatzfaehig, wenn:
+
+- **Dashboard** zeigt mindestens einen Test-Klient
+- **Termine** laesst sich anlegen und speichern
+- **Berichte → Empfaenger** hat mindestens einen Kostentraeger
+  (Fallnummer-Basis)
+- **Einstellungen → Bundesland** ist gesetzt (sonst funktionieren
+  Zielkategorien nicht)
+- **Einstellungen → FLS-Kalkulation** hat einen plausiblen
+  Stundensatz
+- **Cloud-Sync** hat einen erfolgreichen Testlauf gemacht
+
+Erst dann lohnt sich der **Import bestehender Klienten** oder das
+produktive Eintippen von Daten.
+
+### Rechtlicher Hintergrund
+
+- **Art. 32 DSGVO** — Sicherheit der Verarbeitung. Ersteinrichtung
+  muss dokumentiert nachweisen koennen, dass Schluesselmaterial
+  sicher generiert und gespeichert wurde.
+- **Art. 30 DSGVO** — Verzeichnis der Verarbeitungstaetigkeiten.
+  Vor produktivem Einsatz sollte die Einrichtung dokumentieren,
+  welche Datenarten in welchen Modulen verarbeitet werden.
+- **Art. 35 DSGVO** — Datenschutz-Folgenabschaetzung. Bei
+  Verarbeitung von Gesundheitsdaten (Art. 9) zwingend — das
+  Wiki-Kapitel [DSFA](../sicherheit/dsfa.md) in der Verwaltungs-
+  App bietet eine Vorlage.
+
 ## Installation
 
 Die App ist als Flutter-Anwendung verfuegbar und kann auf allen unterstuetzten Plattformen installiert werden.

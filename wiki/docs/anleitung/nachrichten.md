@@ -1,5 +1,11 @@
 # Nachrichten und Chat
 
+Diese Seite ist die **Schnellstart-Anleitung** zum Chat-Tab. Fuer
+ausfuehrliche Hintergruende (Einsatz-Szenarien, Matrix/Olm/Megolm-
+Verschluesselung, Abgrenzung zur Klienten-Akte, rechtliche
+Grundlagen) siehe [Chat](chat.md) — dort liegt das Handbuch-Kapitel
+mit Funktionsweise im Detail.
+
 ## Verschluesselter Team-Chat (Matrix)
 
 Seit Version 0.2.0-beta.1 nutzt die App einen integrierten **Matrix-Chat** fuer die Team-Kommunikation. Alle Nachrichten sind Ende-zu-Ende verschluesselt (Megolm, wie Signal/Threema).
