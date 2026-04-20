@@ -2,6 +2,120 @@
 
 FEGH-Dokumentation unterstuetzt alle 16 Bundeslaender mit ihrem jeweiligen Bedarfserhebungsinstrument. Das Bundesland wird einmalig im Setup-Wizard oder jederzeit in den Einstellungen festgelegt.
 
+## Funktionsweise im Detail
+
+### Das Problem, das wir loesen
+
+Das BTHG hat die Eingliederungshilfe zwar bundeseinheitlich neu
+aufgestellt — die **konkrete Umsetzung** ist aber Laendersache.
+Jedes Bundesland hat nach §131 SGB IX einen eigenen Landesrahmen-
+vertrag ausgehandelt, und fast jedes Bundesland hat dabei auf ein
+eigenes Bedarfserhebungsinstrument gesetzt. Fuer Einrichtungen, die
+ueber Landesgrenzen hinweg arbeiten, heisst das:
+
+- In Berlin nutzt man **TIB** + das handschriftliche **Formular 101**.
+- 100 km suedlich in Brandenburg: **ITP Brandenburg**.
+- In der selben Klienten-Akte muss beides moeglich sein, wenn Herr K.
+  von Berlin nach Potsdam zieht.
+- Der Kostentraeger-Bericht an das Berliner Bezirksamt erwartet
+  TIB-Formatierung; der Bericht an den LWV Hessen erwartet ITP.
+
+Ohne durchdachte Mehrmandanten-Logik waeren das **16 parallele
+Apps**. FEGH loest das mit einem einzigen Datenmodell + Bundesland-
+Profil-System: Das Bundesland steuert welche Dropdowns, welches
+Formular, welches Portal-Linkziel angezeigt werden. Der Rest bleibt
+identisch.
+
+### Konkretes Szenario: Ein Klient wechselt das Bundesland
+
+Frau S. zog im August 2026 von Berlin nach Duesseldorf. Ihre
+Einrichtung (Berliner Traeger) betreut sie fuer eine Uebergangs-
+phase weiter. In Berlin war sie mit **TIB + Formular 101**
+dokumentiert, der Kostentraeger war das **Sozialamt
+Friedrichshain-Kreuzberg**.
+
+**August 2026 — Uebergabe in der Einrichtung.**
+
+Admin Anja oeffnet Frau S.' Klient-Akte:
+
+1. **Bundesland-Override** von `Berlin` auf **`Nordrhein-Westfalen`**
+2. Die App liest das neue Bundesland-Profil
+   (`BundeslandProfile.forLand(nrw)`):
+   - Bedarfsinstrument: **BEI_NRW** (9 ICF-Lebensbereiche)
+   - Portal: **PerSEH (LVR/LWL)**
+   - Keine Formular-101-Anforderung
+3. Bestehende **TIB-Ziele** bleiben als `icfBereiche` erhalten — der
+   ICF-Code `d170` heisst in BEI_NRW genauso wie in TIB Berlin.
+   Die App zeigt sie aber **unter der BEI_NRW-Klassifikation** an.
+4. Neue Ziele nutzen ab sofort BEI_NRW-Dropdowns.
+5. Kostentraeger-Wechsel: Anja ergaenzt die Fallnummer beim neuen
+   Traeger (LVR Landschaftsverband Rheinland).
+
+Beim **Wirksamkeitsbericht Ende 2026** zeigt das PDF beide
+Perioden klar getrennt:
+
+- Jan-Jul: "Bedarfserhebung: TIB (Berlin)"
+- Aug-Dez: "Bedarfserhebung: BEI_NRW"
+
+GAS- und POS-Messungen — bundesweit einheitlich — laufen nahtlos
+durch.
+
+### Die Instrument-Familien im Ueberblick
+
+Warum 4 Familien und nicht 16 Einzelinstrumente? Weil viele
+Bundeslaender sich inhaltlich gegenseitig abgeschrieben haben — mit
+marginalen Anpassungen:
+
+- **ITP-Familie** (Hessen, Brandenburg, MV, Sachsen,
+  Sachsen-Anhalt, Thueringen): Originalentwurf aus Hessen, direkt
+  uebernommen. 9 ICF-Lebensbereiche + Freitextziele.
+- **HMBV-Familie** (Hamburg Original, Bremen adaptiert): **5**
+  Kernbereiche mit 5-stufiger Unterstuetzungsintensitaet (0-4).
+  Deutlich anders strukturiert als ITP.
+- **BEI-Familie** (NRW, BW, SH): ICF-basiert mit 9 Lebensbereichen,
+  aber **eigene Scoring-Skala** pro Land.
+- **Eigenstaendige**: Berlin (TIB), Niedersachsen (B.E.Ni), Bayern
+  (Gesamtplan → ANLEI-Migration 2026-2028), Rheinland-Pfalz +
+  Saarland (generisches ICF).
+
+Die App hat fuer jedes Instrument ein **`BundeslandProfil`** mit:
+
+- Bedarfsinstrument-Enum (fuer Logik)
+- Menschlesbare Bezeichnung (fuer UI)
+- Formular-Flag (`hatFormular101: bool`)
+- Fahrtzeit-Abrechenbarkeit (`fahrtzeitAbrechenbar: bool` — relevant
+  fuer FLS-Berechnung)
+- Portal-URL fuer Einreichung
+- Besonderheiten als Freitext (fuer den Info-Dialog)
+
+### Was konkret passiert, wenn man das Bundesland aendert
+
+Die Aenderung des Organisations-Bundeslands (`Einstellungen →
+Bundesland`) hat **sofortige** Auswirkungen auf die App:
+
+| Ort | Was sich aendert |
+|-----|------------------|
+| Neue Ziele anlegen | Dropdown zeigt passendes Instrument |
+| Berichte → Amtliche Formulare | Portallinks aktualisiert |
+| FLS-Berechnung | `fahrtzeitAbrechenbar`-Flag greift |
+| Setup-Wizard-Info-Karte | Neue Besonderheiten angezeigt |
+
+**Was sich NICHT aendert**: bereits erfasste Ziele, bereits
+erstellte Rechnungen, bereits gespeicherte Wirkungsmessungen. Die
+sind historisch mit dem Bundesland verknuepft, das zum Zeitpunkt
+ihrer Entstehung galt. Das ist Absicht: Audits rekonstruieren die
+Vergangenheit, nicht den aktuellen Stand.
+
+### Rechtlicher Hintergrund
+
+- **§131 SGB IX** — Landesrahmenvertraege. Jeder LRV kann eigene
+  Instrumente vorschreiben; 13 von 16 Laendern haben das genutzt.
+- **§128 SGB IX** — Wirksamkeitsnachweis (bundesweit GAS/POS).
+- **§118 SGB IX** — Bedarfsermittlung als Teil des Teilhabeplans.
+- **Art. 20 DSGVO (Datenuebertragbarkeit)**: Bei Klient-Umzug muss
+  die Akte im strukturierten, elektronisch verarbeitbaren Format
+  uebertragbar sein. JSON-Export deckt das ab.
+
 ## Warum ist das wichtig?
 
 Nach §128 SGB IX und §131 SGB IX (BTHG) nutzt jedes Bundesland ein eigenes Bedarfserhebungsinstrument, das Pflichtbestandteil des Landesrahmenvertrages ist. Die App waehlt automatisch:
