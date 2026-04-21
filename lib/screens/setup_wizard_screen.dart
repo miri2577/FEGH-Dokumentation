@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -8,6 +10,7 @@ import '../models/mitarbeiter.dart';
 import '../services/admin_service.dart';
 import '../services/hidrive_webdav_client.dart';
 import 'home_screen.dart';
+import 'provisioning_qr_scan_screen.dart';
 
 enum StorageMode { local, hidrive }
 enum SetupPath { none, admin, invitation }
@@ -217,6 +220,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         appProvider.secureStorageService.cryptoStorage.setExternalMEK(keyBytes);
       }
     }
+  }
+
+  Future<void> _scanQr() async {
+    final raw = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const ProvisioningQrScanScreen()),
+    );
+    if (raw == null || !mounted) return;
+    setState(() {
+      _tokenController.text = raw;
+      _tokenError = null;
+    });
   }
 
   Future<void> _decryptToken() async {
@@ -519,6 +533,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             maxLines: 3,
             onChanged: (_) => setState(() {}),
           ),
+          if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('QR scannen'),
+                onPressed: _scanQr,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           TextField(
             controller: _pinController,
