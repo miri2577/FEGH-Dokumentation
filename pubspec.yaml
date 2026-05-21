@@ -55,30 +55,40 @@ dependencies:
   
   # Encryption & Security
   cryptography: ^2.7.0
-  # Geteiltes Wire-Format mit FEGH-Verwaltung
+  # Geteilte Pakete aus dem fegh-shared Repo
+  # Lokal arbeiten? Siehe pubspec_overrides.yaml (path-Overrides)
   fegh_crypto:
-    path: ../fegh-shared/fegh_crypto
-  # Geteilter Cloud-Storage-Adapter (WebDAV via webdav_client)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_crypto
   fegh_cloud:
-    path: ../fegh-shared/fegh_cloud
-  # Rechnungsmodul (Models + XRechnung UBL 2.1)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_cloud
   fegh_billing:
-    path: ../fegh-shared/fegh_billing
-  # Compliance: Audit-Log + DSGVO-Services
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_billing
   fegh_compliance:
-    path: ../fegh-shared/fegh_compliance
-  # Gemeinsames PDF-Toolkit (Design-Tokens, Layout-Bausteine, Preview)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_compliance
   fegh_pdf_kit:
-    path: ../fegh-shared/fegh_pdf_kit
-  # Backup + Recovery (RecoveryService, BackupCodec, BackupEnvelope)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_pdf_kit
   fegh_backup:
-    path: ../fegh-shared/fegh_backup
-  # Matrix-Chat (MatrixChatService, ChatListScreen, ChatRoomScreen)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_backup
   fegh_chat:
-    path: ../fegh-shared/fegh_chat
-  # Gemeinsame Domaenen-Modelle (Client, Bundesland, Employee, Team, Shift)
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_chat
   fegh_core:
-    path: ../fegh-shared/fegh_core
+    git:
+      url: https://github.com/miri2577/fegh-shared.git
+      path: fegh_core
   flutter_secure_storage: ^9.2.2
   uuid: ^4.4.2
   http: ^1.2.2

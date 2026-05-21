@@ -65,3 +65,6 @@ macos/build/
 
 # Claude Code
 .claude/
+
+pubspec_overrides.yaml
+
