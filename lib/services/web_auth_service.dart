@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
@@ -88,8 +89,8 @@ class WebAuthService {
         return false;
       }
       
-      if (password.length < 6) {
-        _authenticationError = "Passwort muss mindestens 6 Zeichen lang sein";
+      if (password.length < 10) {
+        _authenticationError = "Passwort muss mindestens 10 Zeichen lang sein";
         return false;
       }
       
@@ -136,8 +137,8 @@ class WebAuthService {
         return false;
       }
       
-      if (password.length < 6) {
-        _authenticationError = "Passwort muss mindestens 6 Zeichen lang sein";
+      if (password.length < 10) {
+        _authenticationError = "Passwort muss mindestens 10 Zeichen lang sein";
         return false;
       }
       
@@ -251,22 +252,34 @@ class WebAuthService {
   }
 
   String _generateSalt() {
-    final random = DateTime.now().microsecondsSinceEpoch;
-    final bytes = utf8.encode('fegh_$random');
-    return base64.encode(sha256.convert(bytes).bytes).substring(0, 22);
+    // Kryptographisch sicherer Zufall (16 Byte) statt vorhersagbarem Zeitstempel.
+    final rnd = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
+    return base64Url.encode(bytes).replaceAll('=', ''); // enthaelt kein ':' -> split-sicher
   }
 
   bool _verifyPassword(String password, String storedHash) {
     if (!storedHash.contains(':')) {
       // Migration: Altes Format (einfacher SHA256) -- einmalig akzeptieren
       final oldHash = sha256.convert(utf8.encode(password + 'eingliederungshilfe_salt')).toString();
-      return oldHash == storedHash;
+      return _constantTimeEquals(oldHash, storedHash);
     }
     final parts = storedHash.split(':');
     if (parts.length != 2) return false;
     final salt = parts[0];
     final newHash = _hashPassword(password, existingSalt: salt);
-    return newHash == storedHash;
+    return _constantTimeEquals(newHash, storedHash);
+  }
+
+  /// Konstant-zeitiger String-Vergleich – verhindert Timing-Seitenkanaele beim
+  /// Passwort-Hash-Vergleich.
+  bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return result == 0;
   }
 
   String _generateSessionToken(Map<String, dynamic> sessionData) {
