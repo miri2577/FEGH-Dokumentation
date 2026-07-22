@@ -308,6 +308,7 @@ class SecureStorageService {
         try {
           AppLogger.info('Storage', 'Lade Klient ${entry.title} (${entry.uuid})');
           final data = await _cryptoStorage.loadJsonDecrypted(entry.uuid);
+          if (data['_deleted'] == true) continue; // geloeschter Record (Tombstone)
           final client = Client.fromJson(data);
           clients.add(client);
           _clientIdToUuid[client.id] = entry.uuid;
@@ -410,20 +411,24 @@ class SecureStorageService {
       }
 
       if (targetUuid != null) {
+        // Tombstone statt hartem Delete: Record durch einen Loesch-Marker unter
+        // DERSELBEN UUID ersetzen. Propagiert ueber den updatedAt-Sync; auf anderen
+        // Geraeten wird der Datensatz beim Laden herausgefiltert (kein „Zombie").
+        await _cryptoStorage.saveJsonEncrypted('client', _tombstone(clientId, 'client'),
+            existingUuid: targetUuid);
         _clientIdToUuid.remove(clientId);
-        await _cryptoStorage.deleteRecord(targetUuid);
 
-        // Cloud-Delete non-blocking
+        // Cloud: den (Tombstone-)Record hochladen statt zu loeschen.
         if (_cloudSync != null) {
-          final uuidToDelete = targetUuid;
-          try { await _cloudSync!.deleteRemoteRecord(uuidToDelete); } catch (e) {
-            AppLogger.warning('Storage', 'Cloud-Delete Client (async) fehlgeschlagen: $e');
+          final uuidToSync = targetUuid;
+          try { await _syncToCloud(uuidToSync); } catch (e) {
+            AppLogger.warning('Storage', 'Cloud-Sync Tombstone Client (async) fehlgeschlagen: $e');
           }
         }
 
         await _deleteClientAppointments(clientId);
 
-        AppLogger.info('Storage', 'Klient geloescht: $clientId');
+        AppLogger.info('Storage', 'Klient geloescht (Tombstone): $clientId');
         return true;
       }
 
@@ -445,6 +450,7 @@ class SecureStorageService {
       for (final entry in appointmentEntries) {
         try {
           final data = await _cryptoStorage.loadJsonDecrypted(entry.uuid);
+          if (data['_deleted'] == true) continue; // geloeschter Record (Tombstone)
           final appointment = Appointment.fromJson(data);
           appointments.add(appointment);
           _appointmentIdToUuid[appointment.id] = entry.uuid;
@@ -540,17 +546,19 @@ class SecureStorageService {
       }
 
       if (targetUuid != null) {
-        await _cryptoStorage.deleteRecord(targetUuid);
+        // Tombstone statt hartem Delete (siehe deleteClient).
+        await _cryptoStorage.saveJsonEncrypted('appointment', _tombstone(appointmentId, 'appointment'),
+            existingUuid: targetUuid);
         _appointmentIdToUuid.remove(appointmentId);
 
-        // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
-            AppLogger.warning('Storage', 'Cloud-Delete Termin (async) fehlgeschlagen: $e');
+          final uuidToSync = targetUuid;
+          try { await _syncToCloud(uuidToSync); } catch (e) {
+            AppLogger.warning('Storage', 'Cloud-Sync Tombstone Termin (async) fehlgeschlagen: $e');
           }
         }
 
-        AppLogger.info('Storage', 'Termin geloescht: $appointmentId');
+        AppLogger.info('Storage', 'Termin geloescht (Tombstone): $appointmentId');
         return true;
       }
 
@@ -581,6 +589,7 @@ class SecureStorageService {
       for (final entry in arbeitszeitEntries) {
         try {
           final data = await _cryptoStorage.loadJsonDecrypted(entry.uuid);
+          if (data['_deleted'] == true) continue; // geloeschter Record (Tombstone)
           final arbeitszeit = Arbeitszeit.fromJson(data);
           arbeitszeiten.add(arbeitszeit);
           _arbeitszeitIdToUuid[arbeitszeit.id] = entry.uuid;
@@ -757,13 +766,15 @@ class SecureStorageService {
       }
 
       if (targetUuid != null) {
-        await _cryptoStorage.deleteRecord(targetUuid);
+        // Tombstone statt hartem Delete (siehe deleteClient).
+        await _cryptoStorage.saveJsonEncrypted('arbeitszeit', _tombstone(id, 'arbeitszeit'),
+            existingUuid: targetUuid);
         _arbeitszeitIdToUuid.remove(id);
 
-        // Cloud-Delete non-blocking
         if (_cloudSync != null) {
-          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
-            AppLogger.warning('Storage', 'Cloud-Delete Arbeitszeit (async) fehlgeschlagen: $e');
+          final uuidToSync = targetUuid;
+          try { await _syncToCloud(uuidToSync); } catch (e) {
+            AppLogger.warning('Storage', 'Cloud-Sync Tombstone Arbeitszeit (async) fehlgeschlagen: $e');
           }
         }
 
@@ -1080,9 +1091,20 @@ class SecureStorageService {
     return v is String ? DateTime.tryParse(v) : null;
   }
 
+  /// Loesch-Marker (Tombstone): ersetzt beim Loeschen den Record-Inhalt, damit die
+  /// Loeschung ueber den updatedAt-Sync propagiert und auf anderen Geraeten beim
+  /// Laden herausgefiltert wird. Enthaelt KEINE personenbezogenen Daten mehr.
+  Map<String, dynamic> _tombstone(String id, String schema) => {
+        'id': id,
+        '_schema': schema, // damit der Pull den Tombstone dem richtigen Typ zuordnet
+        '_deleted': true,
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      };
+
   /// Haelt den ID->UUID-Index nach einem Sync aktuell, damit spaetere Update-/
   /// Delete-Aufrufe den frisch geladenen Record ohne Voll-Scan wiederfinden.
   void _reindexAfterSync(String schema, Map<String, dynamic> data, String uuid) {
+    if (data['_deleted'] == true) return; // Tombstone nicht in den aktiven Index
     final id = data['id'] as String?;
     if (id == null) return;
     switch (schema) {
@@ -1152,6 +1174,7 @@ class SecureStorageService {
   }
 
   String _determineSchema(Map<String, dynamic> data) {
+    if (data['_schema'] is String) return data['_schema'] as String; // Tombstone/expliziter Marker
     if (data.containsKey('name') && data.containsKey('berufsgruppe')) return 'client';
     if (data.containsKey('clientId') && data.containsKey('date')) return 'appointment';
     if (data.containsKey('datum') && data.containsKey('startzeit')) return 'arbeitszeit';
