@@ -996,57 +996,72 @@ class SecureStorageService {
       int syncedCount = 0;
 
       for (final uuid in remoteUuids) {
-        if (!localUuids.contains(uuid)) {
-          try {
-            // Wähle Download-Methode: Team-basiert / Orga-basiert wenn möglich
-            var downloadResult = await _cloudSync!.downloadEncryptedRecord(uuid);
-            if (hasTeam) {
-              // Wir kennen den Datentyp hier noch nicht – versuche in den bekannten Typ-Ordnern
-              final types = <String>['clients', 'schedules', 'worktime'];
-              for (final t in types) {
-                final tryRes = await _cloudSync!.downloadTeamRecord(t, uuid);
-                if (tryRes.isSuccess && tryRes.data != null) {
-                  downloadResult = tryRes;
-                  break;
-                }
-              }
-            } else if (hasOrg) {
-              final scoped = orgDownloadDirs[uuid];
-              if (scoped != null) {
-                final tryRes = await _cloudSync!.downloadOrgScopedRecord(scoped, uuid);
-                if (tryRes.isSuccess && tryRes.data != null) {
-                  downloadResult = tryRes;
-                }
-              } else {
-                // Fallback: versuche administration
-                final tryRes = await _cloudSync!.downloadOrgRecord('administration', uuid);
-                if (tryRes.isSuccess && tryRes.data != null) {
-                  downloadResult = tryRes;
-                }
+        try {
+          // Wähle Download-Methode: Team-basiert / Orga-basiert wenn möglich
+          var downloadResult = await _cloudSync!.downloadEncryptedRecord(uuid);
+          if (hasTeam) {
+            // Datentyp hier noch unbekannt – in den bekannten Typ-Ordnern versuchen
+            for (final t in const ['clients', 'schedules', 'worktime']) {
+              final tryRes = await _cloudSync!.downloadTeamRecord(t, uuid);
+              if (tryRes.isSuccess && tryRes.data != null) {
+                downloadResult = tryRes;
+                break;
               }
             }
-            if (downloadResult.isSuccess && downloadResult.data != null) {
-              final dir = await _getSecureDataDir();
-              final file = File('${dir.path}/$uuid.bin');
-              await file.writeAsBytes(downloadResult.data!);
-
-              final decryptedData = await _cryptoStorage.loadJsonDecrypted(uuid);
-              final schema = _determineSchema(decryptedData);
-
-              await _updateManifest((m) {
-                m.entries.add(ManifestEntry(
-                  uuid: uuid,
-                  schema: schema,
-                  title: _extractTitle(decryptedData, schema),
-                  updatedAt: DateTime.now().toUtc(),
-                ));
-              });
-
-              syncedCount++;
+          } else if (hasOrg) {
+            final scoped = orgDownloadDirs[uuid];
+            if (scoped != null) {
+              final tryRes = await _cloudSync!.downloadOrgScopedRecord(scoped, uuid);
+              if (tryRes.isSuccess && tryRes.data != null) downloadResult = tryRes;
+            } else {
+              final tryRes = await _cloudSync!.downloadOrgRecord('administration', uuid);
+              if (tryRes.isSuccess && tryRes.data != null) downloadResult = tryRes;
             }
-          } catch (e) {
-            AppLogger.warning('Storage', 'Download fehlgeschlagen fuer $uuid: $e');
           }
+          if (!(downloadResult.isSuccess && downloadResult.data != null)) continue;
+
+          // Remote-Record entschluesseln OHNE die lokale Datei zu ueberschreiben,
+          // damit vor dem Schreiben geprueft werden kann, ob der Remote neuer ist.
+          final Map<String, dynamic> remoteData;
+          try {
+            remoteData = await _cryptoStorage.decryptJsonFromBytes(downloadResult.data!);
+          } catch (e) {
+            continue; // korrupt oder mit fremdem Schluessel verschluesselt
+          }
+          final schema = _determineSchema(remoteData);
+          final remoteTs = _recordUpdatedAt(remoteData);
+
+          // Entscheiden: neu, geaendert (Remote strikt neuer) oder ueberspringen.
+          final isNew = !localUuids.contains(uuid);
+          bool isNewer = false;
+          if (!isNew && remoteTs != null) {
+            try {
+              final localTs = _recordUpdatedAt(await _cryptoStorage.loadJsonDecrypted(uuid));
+              isNewer = localTs == null || remoteTs.isAfter(localTs);
+            } catch (_) {
+              isNewer = true; // lokal nicht lesbar -> Remote uebernehmen
+            }
+          }
+          if (!isNew && !isNewer) continue; // lokal ist aktuell/neuer -> behalten
+
+          final dir = await _getSecureDataDir();
+          await File('${dir.path}/$uuid.bin').writeAsBytes(downloadResult.data!);
+
+          await _updateManifest((m) {
+            final entry = ManifestEntry(
+              uuid: uuid,
+              schema: schema,
+              title: _extractTitle(remoteData, schema),
+              updatedAt: remoteTs ?? DateTime.now().toUtc(),
+            );
+            final idx = m.entries.indexWhere((e) => e.uuid == uuid);
+            if (idx >= 0) { m.entries[idx] = entry; } else { m.entries.add(entry); }
+          });
+          // ID->UUID-Index pflegen, damit spaetere Updates den Record wiederfinden.
+          _reindexAfterSync(schema, remoteData, uuid);
+          syncedCount++;
+        } catch (e) {
+          AppLogger.warning('Storage', 'Sync fehlgeschlagen fuer $uuid: $e');
         }
       }
 
@@ -1055,6 +1070,31 @@ class SecureStorageService {
     } catch (e) {
       AppLogger.error('Storage', 'Cloud-Sync fehlgeschlagen', e);
       return false;
+    }
+  }
+
+  /// Record-Zeitstempel (updatedAt) aus dem entschluesselten JSON – fuer den
+  /// Aenderungs-Abgleich beim Sync. Null, wenn nicht vorhanden/parsebar.
+  DateTime? _recordUpdatedAt(Map<String, dynamic> data) {
+    final v = data['updatedAt'];
+    return v is String ? DateTime.tryParse(v) : null;
+  }
+
+  /// Haelt den ID->UUID-Index nach einem Sync aktuell, damit spaetere Update-/
+  /// Delete-Aufrufe den frisch geladenen Record ohne Voll-Scan wiederfinden.
+  void _reindexAfterSync(String schema, Map<String, dynamic> data, String uuid) {
+    final id = data['id'] as String?;
+    if (id == null) return;
+    switch (schema) {
+      case 'client':
+        _clientIdToUuid[id] = uuid;
+        break;
+      case 'appointment':
+        _appointmentIdToUuid[id] = uuid;
+        break;
+      case 'arbeitszeit':
+        _arbeitszeitIdToUuid[id] = uuid;
+        break;
     }
   }
 

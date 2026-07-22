@@ -356,6 +356,16 @@ class CryptoStorage {
     return jsonDecode(utf8.decode(pt)) as Map<String, dynamic>;
   }
 
+  /// Entschluesselt die rohen Datei-Bytes eines Records (wie sie in der Cloud
+  /// liegen) direkt zu JSON – **ohne** die lokale Datei anzufassen. Wird beim
+  /// Sync benoetigt, um den Remote-Stand zu pruefen (updatedAt-Vergleich), bevor
+  /// entschieden wird, ob lokal ueberschrieben werden soll.
+  Future<Map<String, dynamic>> decryptJsonFromBytes(List<int> encryptedFileBytes) async {
+    final rec = jsonDecode(utf8.decode(encryptedFileBytes)) as Map<String, dynamic>;
+    final pt = await decryptRecord(rec);
+    return jsonDecode(utf8.decode(pt)) as Map<String, dynamic>;
+  }
+
   Future<bool> deleteRecord(String uuid) async {
     try {
       if (PlatformUtils.isWeb) {
