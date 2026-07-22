@@ -37,6 +37,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   String? _selectedRechtsgrundlage;
   HilfeTyp _selectedHilfeTyp = HilfeTyp.eingliederungshilfe;
   FachleistungsIntervall _selectedIntervall = FachleistungsIntervall.monatlich;
+  int? _selectedHbg;
 
   DateTime? _selectedGeburtsdatum;
   DateTime? _selectedBetreuungSeit;
@@ -115,6 +116,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     // Neue Felder initialisieren
     _selectedHilfeTyp = widget.client?.hilfeTyp ?? HilfeTyp.eingliederungshilfe;
     _selectedIntervall = widget.client?.fachleistungsIntervall ?? FachleistungsIntervall.monatlich;
+    _selectedHbg = widget.client?.hilfebedarfsgruppe;
     // Validierung gegen Liste - schuetzt DropdownButton vor Assertion
     final storedKt = widget.client?.kostenuebernahme ?? '';
     _selectedKostentraeger = Kostentraeger.alleGruppiert
@@ -631,6 +633,27 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
               },
             ),
             const SizedBox(height: 16),
+            DropdownButtonFormField<int?>(
+              value: _selectedHbg,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Hilfebedarfsgruppe (HBG)',
+                helperText: 'Bestimmt die bewilligten FLS/Woche (Berliner Modell 2026). '
+                    'Die kLE-Tagespauschale ist HBG-unabhängig.',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.grade),
+              ),
+              items: [
+                const DropdownMenuItem<int?>(value: null, child: Text('— keine —')),
+                for (var h = 1; h <= 12; h++)
+                  DropdownMenuItem<int?>(
+                    value: h,
+                    child: Text('HBG $h  ·  ${flsWocheFuerHbg(h)!.toStringAsFixed(3)} FLS/Woche'),
+                  ),
+              ],
+              onChanged: (value) => setState(() => _selectedHbg = value),
+            ),
+            const SizedBox(height: 16),
             DropdownButtonFormField<HilfeTyp>(
               value: _selectedHilfeTyp,
               decoration: const InputDecoration(
@@ -1115,6 +1138,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
         kostenuebernahmeVon: _selectedKostenuebernahmeVon,
         kostenuebernahmeBis: _selectedKostenuebernahmeBis,
         fachleistungsstunden: int.tryParse(_fachleistungsstundenController.text),
+        hilfebedarfsgruppe: _selectedHbg,
         fachleistungsIntervall: _selectedIntervall,
         hilfeTyp: _selectedHilfeTyp,
         icfBereiche: null, // Für später implementieren
@@ -1152,6 +1176,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
           kostenuebernahmeVon: _selectedKostenuebernahmeVon,
           kostenuebernahmeBis: _selectedKostenuebernahmeBis,
           fachleistungsstunden: int.tryParse(_fachleistungsstundenController.text),
+        hilfebedarfsgruppe: _selectedHbg,
           fachleistungsIntervall: _selectedIntervall,
           hilfeTyp: _selectedHilfeTyp,
           kalkulationsfaktorOverride: _parseOptionalDouble(_kalkulationsfaktorOverrideController.text),

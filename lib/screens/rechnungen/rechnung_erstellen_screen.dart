@@ -127,19 +127,43 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
         }
       }
       stunden += indirekteStunden[clientId] ?? 0;
-      if (stunden <= 0) continue;
 
       final satz = client.stundensatzOverride ?? settings.stundensatz;
       final minDatum = termine.map((t) => t.date).reduce((a, b) => a.isBefore(b) ? a : b);
       final maxDatum = termine.map((t) => t.date).reduce((a, b) => a.isAfter(b) ? a : b);
 
+      // Erbringungsfiktion (§18 Anlage 4 oerV): das bewilligte FLS-Soll gilt als
+      // erbracht, solange kein organisatorisches Versagen des Leistungserbringers
+      // vorliegt. Ist der Schalter aktiv und ein Soll hinterlegt, wird das Soll statt
+      // der dokumentierten Ist-Stunden abgerechnet.
+      final flsIst = stunden;
+      var abgerechnet = flsIst;
+      var istFiktion = false;
+      if (settings.erbringungsfiktion) {
+        final soll = client.flsSollImZeitraum(_von, _bis);
+        if (soll != null) {
+          abgerechnet = soll;
+          istFiktion = true;
+        }
+      }
+      // kLE-Tagespauschale (HBG-unabhaengig): Kalendertage der Betreuung im Zeitraum.
+      final kleTage =
+          settings.kleSatz > 0 ? client.kalendertageImZeitraum(_von, _bis) : 0;
+
+      // Nichts abzurechnen (weder FLS noch kLE)? -> ueberspringen.
+      if (abgerechnet <= 0 && kleTage <= 0) continue;
+
       result.add(_AggregatedPosition(
         client: client,
-        stunden: stunden,
+        stunden: abgerechnet,
         einzelpreis: satz,
         anzahlTermine: termine.length,
         vonDatum: minDatum,
         bisDatum: maxDatum,
+        flsIst: flsIst,
+        istFiktion: istFiktion,
+        kleTage: kleTage,
+        kleSatz: settings.kleSatz,
       ));
     }
     result.sort((a, b) => a.client.vollstaendigerName.compareTo(b.client.vollstaendigerName));
@@ -265,25 +289,52 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
 
     final df = DateFormat('yyyy-MM-dd');
     final nummer = await _service.naechsteRechnungsnummer();
-    final rPositionen = positionen.map((p) {
+    final rPositionen = positionen.expand<RechnungsPosition>((p) {
       final fallnr = p.client.fallnummerFuer(_empfaenger!.id);
       final geb = p.client.geburtsdatum != null ? df.format(p.client.geburtsdatum!) : null;
-      return RechnungsPosition.create(
-        bezeichnung: 'Fachleistungsstunden Eingliederungshilfe - ${p.client.vollstaendigerName}',
-        menge: p.stunden,
-        einheit: 'Stunde',
-        einzelpreis: p.einzelpreis,
-        steuerprozent: 0.0,
-        leistungszeitraumVon: df.format(p.vonDatum),
-        leistungszeitraumBis: df.format(p.bisDatum),
-        clientId: p.client.id,
-        clientName: p.client.vollstaendigerName,
-        clientGeburtsdatum: geb,
-        fallnummer: fallnr,
-        leistungstyp: p.client.leistungstypSchluessel,
-        bewilligungsRef: p.client.bewilligungsbescheidRef,
-        hinweis: '${p.anzahlTermine} Termine',
-      );
+      final posListe = <RechnungsPosition>[];
+      // 1) Fachleistungsstunden (Ist – oder bewilligtes Soll bei Erbringungsfiktion)
+      if (p.stunden > 0) {
+        posListe.add(RechnungsPosition.create(
+          bezeichnung: 'Fachleistungsstunden Eingliederungshilfe - ${p.client.vollstaendigerName}'
+              '${p.istFiktion ? ' (bewilligtes Kontingent, Erbringungsfiktion §18)' : ''}',
+          menge: p.stunden,
+          einheit: 'Stunde',
+          einzelpreis: p.einzelpreis,
+          steuerprozent: 0.0,
+          leistungszeitraumVon: df.format(p.vonDatum),
+          leistungszeitraumBis: df.format(p.bisDatum),
+          clientId: p.client.id,
+          clientName: p.client.vollstaendigerName,
+          clientGeburtsdatum: geb,
+          fallnummer: fallnr,
+          leistungstyp: p.client.leistungstypSchluessel,
+          bewilligungsRef: p.client.bewilligungsbescheidRef,
+          hinweis: p.istFiktion
+              ? 'Soll ${p.stunden.toStringAsFixed(2)} h · dokumentiert ${p.flsIst.toStringAsFixed(2)} h · ${p.anzahlTermine} Termine'
+              : '${p.anzahlTermine} Termine',
+        ));
+      }
+      // 2) Kalkulatorische Leistungseinheit je Kalendertag (HBG-unabhaengig)
+      if (p.kleTage > 0 && p.kleSatz > 0) {
+        posListe.add(RechnungsPosition.create(
+          bezeichnung: 'Kalkulatorische Leistungseinheit (kLE) - ${p.client.vollstaendigerName}',
+          menge: p.kleTage.toDouble(),
+          einheit: 'Tag',
+          einzelpreis: p.kleSatz,
+          steuerprozent: 0.0,
+          leistungszeitraumVon: df.format(_von),
+          leistungszeitraumBis: df.format(_bis),
+          clientId: p.client.id,
+          clientName: p.client.vollstaendigerName,
+          clientGeburtsdatum: geb,
+          fallnummer: fallnr,
+          leistungstyp: p.client.leistungstypSchluessel,
+          bewilligungsRef: p.client.bewilligungsbescheidRef,
+          hinweis: 'Tagespauschale, ${p.kleTage} Kalendertage',
+        ));
+      }
+      return posListe;
     }).toList();
 
     final rechnung = Rechnung.create(
@@ -316,7 +367,7 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
       body: Consumer<AppProvider>(
         builder: (context, app, _) {
           final positionen = _berechnePositionen(app);
-          final gesamt = positionen.fold<double>(0, (s, p) => s + p.stunden * p.einzelpreis);
+          final gesamt = positionen.fold<double>(0, (s, p) => s + p.gesamt);
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -445,10 +496,17 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
                         ),
                         title: Text(p.client.vollstaendigerName,
                             style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${p.stunden.toStringAsFixed(2)} h × ${p.einzelpreis.toStringAsFixed(2)} EUR '
-                            '• ${p.anzahlTermine} Termine'),
+                        subtitle: Text([
+                          '${p.stunden.toStringAsFixed(2)} h × ${p.einzelpreis.toStringAsFixed(2)} EUR'
+                              '${p.istFiktion ? ' (Soll §18)' : ''} • ${p.anzahlTermine} Termine',
+                          if (p.kleTage > 0 && p.kleSatz > 0)
+                            'kLE: ${p.kleTage} Tage × ${p.kleSatz.toStringAsFixed(3)} EUR = ${p.kleBetrag.toStringAsFixed(2)} EUR',
+                          if (p.istFiktion)
+                            'dokumentiert: ${p.flsIst.toStringAsFixed(2)} h',
+                        ].join('\n')),
+                        isThreeLine: (p.kleTage > 0 && p.kleSatz > 0) || p.istFiktion,
                         trailing: Text(
-                          '${(p.stunden * p.einzelpreis).toStringAsFixed(2)} EUR',
+                          '${p.gesamt.toStringAsFixed(2)} EUR',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -475,11 +533,15 @@ class _RechnungErstellenScreenState extends State<RechnungErstellenScreen> {
 
 class _AggregatedPosition {
   final Client client;
-  final double stunden;
-  final double einzelpreis;
+  final double stunden;      // abgerechnete FLS (Ist – oder das Soll bei Erbringungsfiktion)
+  final double einzelpreis;  // FLS-Satz je Stunde
   final int anzahlTermine;
   final DateTime vonDatum;
   final DateTime bisDatum;
+  final double flsIst;       // tatsaechlich dokumentierte FLS (fuer den Soll/Ist-Ausweis)
+  final bool istFiktion;     // true = [stunden] ist das bewilligte Soll (Erbringungsfiktion)
+  final int kleTage;         // kLE-Kalendertage im Zeitraum
+  final double kleSatz;      // kLE je Kalendertag
   _AggregatedPosition({
     required this.client,
     required this.stunden,
@@ -487,5 +549,13 @@ class _AggregatedPosition {
     required this.anzahlTermine,
     required this.vonDatum,
     required this.bisDatum,
+    this.flsIst = 0,
+    this.istFiktion = false,
+    this.kleTage = 0,
+    this.kleSatz = 0,
   });
+
+  double get flsBetrag => stunden * einzelpreis;
+  double get kleBetrag => kleTage * kleSatz;
+  double get gesamt => flsBetrag + kleBetrag;
 }

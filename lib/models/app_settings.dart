@@ -49,6 +49,15 @@ class AppSettings {
   /// eingepreist. Er darf NICHT zusaetzlich auf Rechnungen angewandt werden.
   final double kalkulationsfaktor;
   final double stundensatz; // Vergütung pro Fachleistungsstunde in EUR
+  /// Kalkulatorische Leistungseinheit (kLE) je Kalendertag in EUR — HBG-unabhaengige
+  /// Tagespauschale fuer fallunspezifische Zeiten (Erreichbarkeit, Wegezeiten,
+  /// Teamsitzung) nach dem Berliner Modell 2026. 0 = keine kLE-Abrechnung.
+  final double kleSatz;
+  /// Erbringungsfiktion (§18 Anlage 4 oerV): bewilligte FLS gelten als erbracht,
+  /// solange kein organisatorisches Versagen des Leistungserbringers vorliegt —
+  /// Klienten-Absagen gehen nicht zulasten. Bei true rechnet die Abrechnung das
+  /// FLS-Soll statt der dokumentierten Ist-Stunden.
+  final bool erbringungsfiktion;
   final String? bueroStandortId; // Standard-Startort des Mitarbeiters
   final String openRouteServiceApiKey; // API-Key fuer Online-Distanzberechnung
   final String totpSecret; // TOTP-Secret (Base32) fuer 2FA, leer = kein TOTP
@@ -95,6 +104,8 @@ class AppSettings {
     this.setupCompleted = false,
     this.kalkulationsfaktor = 1.33,
     this.stundensatz = 40.0,
+    this.kleSatz = 0.722,
+    this.erbringungsfiktion = false,
     this.bueroStandortId,
     this.openRouteServiceApiKey = '',
     this.totpSecret = '',
@@ -165,6 +176,8 @@ class AppSettings {
         setupCompleted = false,
         kalkulationsfaktor = 1.33,
         stundensatz = 40.0,
+        kleSatz = 0.722,
+        erbringungsfiktion = false,
         bueroStandortId = null,
         openRouteServiceApiKey = '',
         totpSecret = '',
@@ -219,6 +232,8 @@ class AppSettings {
     bool? setupCompleted,
     double? kalkulationsfaktor,
     double? stundensatz,
+    double? kleSatz,
+    bool? erbringungsfiktion,
     String? bueroStandortId,
     String? openRouteServiceApiKey,
     String? totpSecret,
@@ -265,6 +280,8 @@ class AppSettings {
       setupCompleted: setupCompleted ?? this.setupCompleted,
       kalkulationsfaktor: kalkulationsfaktor ?? this.kalkulationsfaktor,
       stundensatz: stundensatz ?? this.stundensatz,
+      kleSatz: kleSatz ?? this.kleSatz,
+      erbringungsfiktion: erbringungsfiktion ?? this.erbringungsfiktion,
       bueroStandortId: bueroStandortId ?? this.bueroStandortId,
       openRouteServiceApiKey: openRouteServiceApiKey ?? this.openRouteServiceApiKey,
       totpSecret: totpSecret ?? this.totpSecret,

@@ -324,58 +324,74 @@ packages:
   fegh_backup:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_backup"
-      relative: true
-    source: path
+      path: fegh_backup
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_billing:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_billing"
-      relative: true
-    source: path
+      path: fegh_billing
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_chat:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_chat"
-      relative: true
-    source: path
+      path: fegh_chat
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_cloud:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_cloud"
-      relative: true
-    source: path
+      path: fegh_cloud
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_compliance:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_compliance"
-      relative: true
-    source: path
+      path: fegh_compliance
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_core:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_core"
-      relative: true
-    source: path
+      path: fegh_core
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_crypto:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_crypto"
-      relative: true
-    source: path
+      path: fegh_crypto
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   fegh_pdf_kit:
     dependency: "direct main"
     description:
-      path: "../fegh-shared/fegh_pdf_kit"
-      relative: true
-    source: path
+      path: fegh_pdf_kit
+      ref: HEAD
+      resolved-ref: ea02e618bfc45106c522bb55bf53b7da518bc451
+      url: "https://github.com/miri2577/fegh-shared.git"
+    source: git
     version: "0.1.0"
   ffi:
     dependency: transitive

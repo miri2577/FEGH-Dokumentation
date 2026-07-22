@@ -1372,29 +1372,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settings = appProvider.settings;
 
     return _buildSection(
-      title: 'Fachleistungsstunden (Kalkulation)',
+      title: 'Abrechnung (FLS & kLE)',
       icon: Icons.calculate,
       children: [
-        ListTile(
-          leading: const Icon(Icons.calculate, color: Colors.blue),
-          title: const Text('Kalkulationsfaktor (nur informativ)'),
-          subtitle: Text(
-            'Aktuell: ${settings.kalkulationsfaktor.toStringAsFixed(2)}\n'
-            'Fuer interne Personalplanung (Gesamt-/Kontaktzeit). '
-            'KEIN Rechnungsfaktor - im Stundensatz bereits eingepreist.',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showFLSEditDialog(
-            appProvider,
-            title: 'Kalkulationsfaktor',
-            currentValue: settings.kalkulationsfaktor,
-            hint: 'Berlin-typisch: 1,25–1,33 (NICHT in Rechnung!)',
-            onSave: (value) => appProvider.updateSettings(
-              settings.copyWith(kalkulationsfaktor: value),
-            ),
-          ),
-        ),
-        const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.euro, color: Colors.green),
           title: const Text('Stundensatz (EUR)'),
@@ -1411,6 +1391,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onSave: (value) => appProvider.updateSettings(
               settings.copyWith(stundensatz: value),
             ),
+          ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.today, color: Colors.teal),
+          title: const Text('kLE-Satz (EUR/Kalendertag)'),
+          subtitle: Text(
+            'Aktuell: ${settings.kleSatz.toStringAsFixed(3)} EUR\n'
+            'Kalkulatorische Leistungseinheit je Kalendertag (HBG-unabhängig). 0 = keine kLE.',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _showFLSEditDialog(
+            appProvider,
+            title: 'kLE-Satz (EUR/Tag)',
+            currentValue: settings.kleSatz,
+            hint: 'Berlin 2026: z. B. 0,722 EUR je Kalendertag',
+            onSave: (value) => appProvider.updateSettings(
+              settings.copyWith(kleSatz: value),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        SwitchListTile(
+          secondary: const Icon(Icons.fact_check, color: Colors.indigo),
+          title: const Text('Erbringungsfiktion (§18)'),
+          subtitle: const Text(
+            'Bewilligte FLS gelten als erbracht (Klienten-Absagen nicht zulasten). '
+            'Rechnet auf der Rechnung das FLS-Soll statt der dokumentierten Ist-Stunden.',
+          ),
+          value: settings.erbringungsfiktion,
+          onChanged: (v) => appProvider.updateSettings(
+            settings.copyWith(erbringungsfiktion: v),
           ),
         ),
         const Divider(height: 1),
