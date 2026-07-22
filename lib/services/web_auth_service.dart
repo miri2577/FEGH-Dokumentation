@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import '../config/developer_mode.dart';
 
 class WebAuthService {
   static final WebAuthService _instance = WebAuthService._internal();
@@ -317,11 +319,19 @@ class WebAuthService {
     return timeout - elapsed;
   }
 
-  // Fallback-Authentifizierung für Web ohne Passwort
+  // Passwortloser Zugang – ausschliesslich fuer Demo/Schulung.
   Future<bool> authenticateWithoutPassword() async {
-    
+    // SICHERHEIT: In Produktion (Release-Build ohne Entwicklermodus) ist der
+    // passwortlose Zugang verboten – sonst waere die App ohne Anmeldung offen.
+    // Nur Debug-Builds oder aktiver Entwicklermodus duerfen ihn nutzen.
+    if (!kDebugMode && !DeveloperMode.isActive) {
+      _authenticationError =
+          "Passwortloser Zugang ist nur im Demo-/Entwicklermodus moeglich.";
+      return false;
+    }
+
     print("🌐 ⚠️ Authentifizierung ohne Passwort (nur Demo-Modus)");
-    
+
     _isAuthenticating = true;
     
     try {
