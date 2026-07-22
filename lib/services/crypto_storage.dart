@@ -277,7 +277,13 @@ class CryptoStorage {
     }
   }
 
-  Future<String> saveJsonEncrypted(String schema, Map<String, dynamic> jsonObj) async {
+  /// Speichert [jsonObj] verschluesselt und liefert die Record-UUID.
+  ///
+  /// Mit [existingUuid] wird derselbe Record **ueberschrieben** (stabile
+  /// Identitaet ueber Aenderungen hinweg) statt unter neuer UUID dupliziert –
+  /// das verhindert Duplikate/„Zombies" beim Mehrgeraete-Sync.
+  Future<String> saveJsonEncrypted(String schema, Map<String, dynamic> jsonObj,
+      {String? existingUuid}) async {
     final bytes = utf8.encode(jsonEncode(jsonObj));
     final rec = await encryptRecord(
       plaintext: bytes,
@@ -287,7 +293,7 @@ class CryptoStorage {
         'version': 1
       }
     );
-    final uuid = _uuid.v4();
+    final uuid = existingUuid ?? _uuid.v4();
 
     if (PlatformUtils.isWeb) {
       await _setWebStorage(uuid, jsonEncode(rec));
@@ -298,12 +304,19 @@ class CryptoStorage {
     }
 
     await _updateManifest((m) {
-      m.entries.add(ManifestEntry(
+      final entry = ManifestEntry(
         uuid: uuid,
         schema: schema,
         title: _extractTitle(jsonObj, schema),
         updatedAt: DateTime.now().toUtc()
-      ));
+      );
+      // Bestehenden Eintrag aktualisieren (kein Manifest-Duplikat), sonst anlegen.
+      final idx = m.entries.indexWhere((e) => e.uuid == uuid);
+      if (idx >= 0) {
+        m.entries[idx] = entry;
+      } else {
+        m.entries.add(entry);
+      }
     });
     return uuid;
   }

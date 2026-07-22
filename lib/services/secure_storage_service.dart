@@ -329,9 +329,10 @@ class SecureStorageService {
     return await saveClient(client);
   }
 
-  Future<bool> saveClient(Client client) async {
+  Future<bool> saveClient(Client client, {String? existingUuid}) async {
     try {
-      final uuid = await _cryptoStorage.saveJsonEncrypted('client', client.toJson());
+      final uuid = await _cryptoStorage.saveJsonEncrypted('client', client.toJson(),
+          existingUuid: existingUuid);
       _clientIdToUuid[client.id] = uuid;
 
       // Cloud-Sync non-blocking
@@ -370,11 +371,16 @@ class SecureStorageService {
         }
       }
 
-      if (targetUuid == null) return false;
+      // Noch kein Record vorhanden -> als neuen anlegen.
+      if (targetUuid == null) {
+        return await saveClient(updatedClient);
+      }
 
-      await _cryptoStorage.deleteRecord(targetUuid);
-      _clientIdToUuid.remove(updatedClient.id);
-      return await saveClient(updatedClient);
+      // Denselben Record unter DERSELBEN UUID ueberschreiben statt loeschen+neu
+      // anlegen. So bleibt die Identitaet stabil und es entstehen beim Sync auf
+      // anderen Geraeten keine Duplikate/„Zombies" (alter Record blieb sonst in
+      // der Cloud und wurde dort additiv wieder eingelesen).
+      return await saveClient(updatedClient, existingUuid: targetUuid);
     } catch (e) {
       AppLogger.error('Storage', 'Fehler beim Aktualisieren des Klienten', e);
       return false;
@@ -460,9 +466,10 @@ class SecureStorageService {
     return await saveAppointment(appointment);
   }
 
-  Future<bool> saveAppointment(Appointment appointment) async {
+  Future<bool> saveAppointment(Appointment appointment, {String? existingUuid}) async {
     try {
-      final uuid = await _cryptoStorage.saveJsonEncrypted('appointment', appointment.toJson());
+      final uuid = await _cryptoStorage.saveJsonEncrypted('appointment', appointment.toJson(),
+          existingUuid: existingUuid);
       _appointmentIdToUuid[appointment.id] = uuid;
 
       // Cloud-Sync non-blocking: nicht auf Netzwerk warten
@@ -501,18 +508,10 @@ class SecureStorageService {
         }
       }
 
-      if (targetUuid != null) {
-        await _cryptoStorage.deleteRecord(targetUuid);
-        _appointmentIdToUuid.remove(updatedAppointment.id);
-        // Cloud-Delete non-blocking
-        if (_cloudSync != null) {
-          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
-            AppLogger.warning('Storage', 'Cloud-Delete (async) fehlgeschlagen: $e');
-          }
-        }
-      }
-
-      return await saveAppointment(updatedAppointment);
+      // Denselben Record unter DERSELBEN UUID ueberschreiben statt loeschen+neu
+      // anlegen -> keine Duplikate/„Zombies" beim Mehrgeraete-Sync. (targetUuid
+      // null = noch nicht gespeichert -> neuer Record.)
+      return await saveAppointment(updatedAppointment, existingUuid: targetUuid);
     } catch (e) {
       AppLogger.error('Storage', 'Fehler beim Aktualisieren des Termins', e);
       return false;
@@ -598,9 +597,10 @@ class SecureStorageService {
     }
   }
 
-  Future<bool> addArbeitszeit(Arbeitszeit arbeitszeit) async {
+  Future<bool> addArbeitszeit(Arbeitszeit arbeitszeit, {String? existingUuid}) async {
     try {
-      final uuid = await _cryptoStorage.saveJsonEncrypted('arbeitszeit', arbeitszeit.toJson());
+      final uuid = await _cryptoStorage.saveJsonEncrypted('arbeitszeit', arbeitszeit.toJson(),
+          existingUuid: existingUuid);
       _arbeitszeitIdToUuid[arbeitszeit.id] = uuid;
 
       // Cloud-Sync non-blocking
@@ -727,18 +727,9 @@ class SecureStorageService {
         }
       }
 
-      if (targetUuid != null) {
-        await _cryptoStorage.deleteRecord(targetUuid);
-        _arbeitszeitIdToUuid.remove(arbeitszeit.id);
-        // Cloud-Delete non-blocking
-        if (_cloudSync != null) {
-          try { await _cloudSync!.deleteRemoteRecord(targetUuid); } catch (e) {
-            AppLogger.warning('Storage', 'Cloud-Delete Arbeitszeit (async) fehlgeschlagen: $e');
-          }
-        }
-      }
-
-      return await addArbeitszeit(arbeitszeit);
+      // Denselben Record unter DERSELBEN UUID ueberschreiben statt loeschen+neu
+      // anlegen -> keine Duplikate/„Zombies" beim Mehrgeraete-Sync.
+      return await addArbeitszeit(arbeitszeit, existingUuid: targetUuid);
     } catch (e) {
       return false;
     }
