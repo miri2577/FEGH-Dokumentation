@@ -152,7 +152,12 @@ docker logs fegh-nextcloud --tail 20
 
 ## Sicherheit
 
-- Alle Daten verschluesselt (Chat: Megolm E2E, Nextcloud: AES)
+- **Chat (Matrix/Conduit): echte Ende-zu-Ende-Verschluesselung** (Megolm) – der Server sieht nur Ciphertext.
+- **Nextcloud: server-seitige Verschlüsselung, KEIN Zero-Knowledge.** Der Server haelt die
+  Schluessel und koennte Klartext sehen. Deshalb legt die App ihre Klientendaten
+  **bereits clientseitig verschluesselt** (AES-256-GCM) als undurchsichtige Blobs ab –
+  nur so bleibt Nextcloud effektiv „blind". Rohe (unverschluesselte) Dateien direkt in
+  Nextcloud zu legen, waere NICHT DSGVO-konform fuer Art.-9-Daten.
 - Firewall: nur SSH (22), HTTP (80), HTTPS (443), TURN (3478/5349)
 - fail2ban: 3 fehlgeschlagene SSH-Versuche → 1h Sperre
 - SSL: Let's Encrypt mit automatischer Erneuerung

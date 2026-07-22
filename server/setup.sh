@@ -274,10 +274,17 @@ cat > /opt/fegh-backup.sh << 'BACKUP'
 #!/bin/bash
 BACKUP_DIR=/var/backups/fegh
 mkdir -p $BACKUP_DIR
-DATE=$(date +%Y%m%d)
-docker-compose -f /opt/fegh-server/docker-compose.yml exec -T fegh-conduit tar czf - /var/lib/matrix-conduit/ > $BACKUP_DIR/conduit-$DATE.tar.gz 2>/dev/null
+DATE=$(date +%Y%m%d-%H%M%S)
+CC="docker-compose -f /opt/fegh-server/docker-compose.yml"
+# WICHTIG: docker-compose exec erwartet den SERVICE-Namen (conduit/nextcloud),
+# nicht den Container-Namen (fegh-conduit) -> sonst schlaegt das Backup still fehl.
+# Matrix/Conduit (Chat):
+$CC exec -T conduit tar czf - /var/lib/matrix-conduit/ > $BACKUP_DIR/conduit-$DATE.tar.gz 2>/dev/null
+# Nextcloud (Cloud-Speicher inkl. SQLite-DB und Dateien unter data/) – war bisher
+# NICHT im Backup, d. h. alle Cloud-Dateien waren bei Serververlust weg:
+$CC exec -T nextcloud tar czf - /var/www/html > $BACKUP_DIR/nextcloud-$DATE.tar.gz 2>/dev/null
 find $BACKUP_DIR -name '*.tar.gz' -mtime +30 -delete
-echo "$(date): Backup erstellt" >> /var/log/fegh-backup.log
+echo "$(date): Backup erstellt (conduit + nextcloud)" >> /var/log/fegh-backup.log
 BACKUP
 chmod +x /opt/fegh-backup.sh
 (crontab -l 2>/dev/null; echo "0 2 * * * /opt/fegh-backup.sh") | sort -u | crontab - 2>/dev/null
