@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
 import keytar from 'keytar'
-import { HiDriveManager } from '../lib/hidrive'
+import { WebDavStorage } from '../lib/webdav_storage'
 import { initCrypto, generateKey, hashPassword, verifyPassword } from '../lib/crypto'
 import {
   Employee,
@@ -27,7 +27,7 @@ const ACCOUNT_HIDRIVE = 'hidrive-credentials'
 const ACCOUNT_MEK = 'master-encryption-key'
 
 let mainWindow: BrowserWindow | null = null
-let hidriveManager: HiDriveManager | null = null
+let webdavStorage: WebDavStorage | null = null
 
 // Initialize crypto on startup
 initCrypto().catch(console.error)
@@ -111,22 +111,26 @@ async function getMasterKey(): Promise<Uint8Array | null> {
   }
 }
 
-async function initializeHiDriveManager(): Promise<boolean> {
+async function initializeStorage(): Promise<boolean> {
   try {
-    const config = store.get('hidriveUrl')
+    // Provider-neutral: beliebiger WebDAV-Server (STRATO HiDrive, Nextcloud,
+    // ownCloud, generisch). 'webdavUrl' bevorzugt, 'hidriveUrl' als Alt-Schluessel.
+    const config = (store.get('webdavUrl') ?? store.get('hidriveUrl')) as string | undefined
     const credentials = await getHiDriveCredentials()
     const mek = await getMasterKey()
+    // Organisation-ID muss mit der Flutter-App uebereinstimmen (gemeinsames Layout).
+    const orgId = store.get('organizationId') as string | undefined
 
-    if (!config || !credentials || !mek) {
+    if (!config || !credentials || !mek || !orgId) {
       return false
     }
 
-    hidriveManager = new HiDriveManager(config, credentials.username, credentials.password, mek)
-    await hidriveManager.testConnection()
-    await hidriveManager.initializeDirectories()
+    webdavStorage = new WebDavStorage(config, credentials.username, credentials.password, mek, orgId)
+    await webdavStorage.testConnection()
+    await webdavStorage.initializeDirectories()
     return true
   } catch (error) {
-    console.error('Failed to initialize HiDrive manager:', error)
+    console.error('Failed to initialize WebDAV storage:', error)
     return false
   }
 }
@@ -199,7 +203,7 @@ ipcMain.handle('auth:setup', async (_, { username, password, hidriveUrl }: {
     store.set('username', username)
 
     // Initialize HiDrive manager
-    const initialized = await initializeHiDriveManager()
+    const initialized = await initializeStorage()
 
     return {
       success: initialized,
@@ -217,7 +221,7 @@ ipcMain.handle('auth:setup', async (_, { username, password, hidriveUrl }: {
 
 ipcMain.handle('auth:test-connection', async (): Promise<ApiResponse<{ connected: boolean }>> => {
   try {
-    const connected = await initializeHiDriveManager()
+    const connected = await initializeStorage()
     return {
       success: true,
       data: { connected },
@@ -235,19 +239,19 @@ ipcMain.handle('auth:test-connection', async (): Promise<ApiResponse<{ connected
 // Employee Management
 ipcMain.handle('employees:list', async (): Promise<ApiResponse<Employee[]>> => {
   try {
-    if (!hidriveManager) {
-      await initializeHiDriveManager()
+    if (!webdavStorage) {
+      await initializeStorage()
     }
 
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
-    const employeeIds = await hidriveManager.listCategory('employees')
+    const employeeIds = await webdavStorage.listCategory('employees')
     const employees: Employee[] = []
 
     for (const id of employeeIds) {
-      const employee = await hidriveManager.retrieveDecrypted<Employee>('employees', id)
+      const employee = await webdavStorage.retrieveDecrypted<Employee>('employees', id)
       if (employee) {
         employees.push(employee)
       }
@@ -269,7 +273,7 @@ ipcMain.handle('employees:list', async (): Promise<ApiResponse<Employee[]>> => {
 
 ipcMain.handle('employees:create', async (_, employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<{ id: string }>> => {
   try {
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
@@ -281,7 +285,7 @@ ipcMain.handle('employees:create', async (_, employee: Omit<Employee, 'id' | 'cr
       updatedAt: now
     }
 
-    const id = await hidriveManager.storeEncrypted('employees', newEmployee, newEmployee.id)
+    const id = await webdavStorage.storeEncrypted('employees', newEmployee, newEmployee.id)
 
     return {
       success: true,
@@ -299,11 +303,11 @@ ipcMain.handle('employees:create', async (_, employee: Omit<Employee, 'id' | 'cr
 
 ipcMain.handle('employees:update', async (_, id: string, updates: Partial<Employee>): Promise<ApiResponse> => {
   try {
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
-    const existing = await hidriveManager.retrieveDecrypted<Employee>('employees', id)
+    const existing = await webdavStorage.retrieveDecrypted<Employee>('employees', id)
     if (!existing) {
       throw new Error('Employee not found')
     }
@@ -315,7 +319,7 @@ ipcMain.handle('employees:update', async (_, id: string, updates: Partial<Employ
       updatedAt: new Date().toISOString()
     }
 
-    await hidriveManager.storeEncrypted('employees', updated, id)
+    await webdavStorage.storeEncrypted('employees', updated, id)
 
     return {
       success: true,
@@ -332,11 +336,11 @@ ipcMain.handle('employees:update', async (_, id: string, updates: Partial<Employ
 
 ipcMain.handle('employees:delete', async (_, id: string): Promise<ApiResponse> => {
   try {
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
-    const deleted = await hidriveManager.deleteItem('employees', id)
+    const deleted = await webdavStorage.deleteItem('employees', id)
 
     return {
       success: deleted,
@@ -355,11 +359,11 @@ ipcMain.handle('employees:delete', async (_, id: string): Promise<ApiResponse> =
 // System
 ipcMain.handle('system:backup', async (): Promise<ApiResponse<{ backupId: string }>> => {
   try {
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
-    const backupId = await hidriveManager.createBackup()
+    const backupId = await webdavStorage.createBackup()
 
     return {
       success: true,
@@ -377,11 +381,11 @@ ipcMain.handle('system:backup', async (): Promise<ApiResponse<{ backupId: string
 
 ipcMain.handle('system:stats', async (): Promise<ApiResponse<any>> => {
   try {
-    if (!hidriveManager) {
+    if (!webdavStorage) {
       throw new Error('HiDrive not configured')
     }
 
-    const stats = await hidriveManager.getStorageStats()
+    const stats = await webdavStorage.getStorageStats()
 
     return {
       success: true,

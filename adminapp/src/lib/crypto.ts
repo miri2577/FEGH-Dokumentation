@@ -1,163 +1,161 @@
+import crypto from 'node:crypto'
 import sodium from 'libsodium-wrappers-sumo'
 
-// Initialize libsodium
+// libsodium wird nur noch fuer Argon2id-Passwort-Hashing verwendet (siehe unten).
 export async function initCrypto(): Promise<void> {
   await sodium.ready
 }
 
-// Generate a random 32-byte key
+// 32-Byte-Zufallsschluessel (AES-256).
 export function generateKey(): Uint8Array {
-  return sodium.randombytes_buf(32)
+  return crypto.randomBytes(32)
 }
 
-// Generate a random UUID for filenames
+// UUID v4 fuer Dateinamen (identisch zu Flutter _uuid.v4()).
 export function generateUUID(): string {
-  const bytes = sodium.randombytes_buf(16)
-  const hex = sodium.to_hex(bytes)
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20, 32)
-  ].join('-')
+  return crypto.randomUUID()
 }
 
-// Encrypt data with AES-256-GCM equivalent (XChaCha20-Poly1305)
-export function encryptData(
-  key: Uint8Array,
-  plaintext: string | Uint8Array,
-  additionalData?: string
-): {
+// ---------------------------------------------------------------------------
+// Interop-Verschluesselung mit der Flutter-App (Paket fegh_crypto).
+//
+// Bit-identisch zum Dart-Wire-Format `EncryptedRecord`:
+//   AES-256-GCM, IV/Nonce 12 Byte, Auth-Tag 16 Byte (getrennt vom Ciphertext),
+//   Standard-Base64 MIT Padding. Zwei-Schichten-Envelope: pro Record eine
+//   zufaellige 32-Byte-DEK verschluesselt die Nutzdaten (AAD = kompaktes JSON des
+//   aad-Objekts), die DEK wird mit dem 32-Byte-MEK gewrappt (AAD konstant
+//   {"type":"dek"}). So koennen Flutter-App und Adminapp DIESELBEN HiDrive-Daten
+//   lesen/schreiben.
+// ---------------------------------------------------------------------------
+
+// Exakt die 14 UTF-8-Bytes von {"type":"dek"} (wie kDekWrapAad in Dart).
+const DEK_WRAP_AAD = Buffer.from('{"type":"dek"}', 'utf8')
+
+export interface GcmBox {
+  alg: 'AES-256-GCM'
   nonce: string
   ciphertext: string
   tag: string
-} {
-  const nonce = sodium.randombytes_buf(24) // XChaCha20 nonce size
-  const data = typeof plaintext === 'string' ?
-    new TextEncoder().encode(plaintext) : plaintext
+}
 
-  const aad = additionalData ?
-    new TextEncoder().encode(additionalData) : null
+export interface EncryptedRecord {
+  v: 1
+  alg: 'AES-256-GCM'
+  nonce: string
+  aad: Record<string, unknown>
+  ciphertext: string
+  tag: string
+  dekWrapped: GcmBox
+}
 
-  const encrypted = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
-    data,
-    aad,
-    null,
-    nonce,
-    key
-  )
+function b64(b: Uint8Array): string {
+  return Buffer.from(b).toString('base64')
+}
+function unb64(s: string): Buffer {
+  return Buffer.from(s, 'base64')
+}
 
-  // Split tag from ciphertext (last 16 bytes are the tag)
-  const ciphertext = encrypted.slice(0, -16)
-  const tag = encrypted.slice(-16)
+// Kanonische AAD-Bytes = kompaktes JSON (keine Leerzeichen, Einfuegereihenfolge),
+// byte-identisch zu Dart `json.encode(aad)`. JSON.stringify erzeugt dieselbe
+// kompakte Ausgabe fuer die hier genutzten Schluesseltypen (String/Zahl).
+function aadBytes(aad: Record<string, unknown>): Buffer {
+  return Buffer.from(JSON.stringify(aad), 'utf8')
+}
 
+function gcmEncrypt(key: Uint8Array, plaintext: Uint8Array, aad: Buffer): GcmBox {
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv, { authTagLength: 16 })
+  cipher.setAAD(aad)
+  const ct = Buffer.concat([cipher.update(plaintext), cipher.final()])
+  const tag = cipher.getAuthTag() // 16 Byte, getrennt gespeichert (wie Dart box.mac)
+  return { alg: 'AES-256-GCM', nonce: b64(iv), ciphertext: b64(ct), tag: b64(tag) }
+}
+
+function gcmDecrypt(key: Uint8Array, box: GcmBox, aad: Buffer): Buffer {
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, unb64(box.nonce), {
+    authTagLength: 16,
+  })
+  decipher.setAAD(aad)
+  decipher.setAuthTag(unb64(box.tag))
+  return Buffer.concat([decipher.update(unb64(box.ciphertext)), decipher.final()])
+}
+
+/** Verschluesselt Nutzdaten (roh) im Flutter-EncryptedRecord-Format. */
+export function encryptRecord(
+  mek: Uint8Array,
+  plaintext: Uint8Array,
+  aad: Record<string, unknown> = {},
+): EncryptedRecord {
+  const dek = crypto.randomBytes(32)
+  const data = gcmEncrypt(dek, plaintext, aadBytes(aad))
+  const wrapped = gcmEncrypt(mek, dek, DEK_WRAP_AAD)
   return {
-    nonce: sodium.to_base64(nonce),
-    ciphertext: sodium.to_base64(ciphertext),
-    tag: sodium.to_base64(tag)
+    v: 1,
+    alg: 'AES-256-GCM',
+    nonce: data.nonce,
+    aad,
+    ciphertext: data.ciphertext,
+    tag: data.tag,
+    dekWrapped: wrapped,
   }
 }
 
-// Decrypt data
-export function decryptData(
-  key: Uint8Array,
-  nonce: string,
-  ciphertext: string,
-  tag: string,
-  additionalData?: string
-): Uint8Array {
-  const nonceBytes = sodium.from_base64(nonce)
-  const ciphertextBytes = sodium.from_base64(ciphertext)
-  const tagBytes = sodium.from_base64(tag)
-
-  // Combine ciphertext and tag for libsodium
-  const encrypted = new Uint8Array(ciphertextBytes.length + tagBytes.length)
-  encrypted.set(ciphertextBytes)
-  encrypted.set(tagBytes, ciphertextBytes.length)
-
-  const aad = additionalData ?
-    new TextEncoder().encode(additionalData) : null
-
-  return sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
-    null,
-    encrypted,
-    aad,
-    nonceBytes,
-    key
-  )
+/** Entschluesselt ein Flutter-EncryptedRecord und liefert die Nutzdaten-Bytes. */
+export function decryptRecord(mek: Uint8Array, rec: EncryptedRecord): Uint8Array {
+  const dek = gcmDecrypt(mek, rec.dekWrapped, DEK_WRAP_AAD)
+  return gcmDecrypt(dek, { alg: 'AES-256-GCM', nonce: rec.nonce, ciphertext: rec.ciphertext, tag: rec.tag }, aadBytes(rec.aad ?? {}))
 }
 
-// Wrap/unwrap keys using master encryption key (MEK)
-export function wrapKey(mek: Uint8Array, dek: Uint8Array): {
-  nonce: string
-  wrappedKey: string
-  tag: string
-} {
-  return encryptData(mek, dek, 'DEK-WRAP-v1')
-}
-
-export function unwrapKey(
+/** Bequemlichkeit: JSON-Objekt verschluesseln (Plaintext = UTF-8 des kompakten JSON). */
+export function encryptJson(
   mek: Uint8Array,
-  nonce: string,
-  wrappedKey: string,
-  tag: string
-): Uint8Array {
-  return decryptData(mek, nonce, wrappedKey, tag, 'DEK-WRAP-v1')
+  obj: unknown,
+  aad: Record<string, unknown> = {},
+): EncryptedRecord {
+  return encryptRecord(mek, Buffer.from(JSON.stringify(obj), 'utf8'), aad)
 }
 
-// Key derivation from password (ARGON2)
-export function deriveKeyFromPassword(
-  password: string,
-  salt: Uint8Array
-): Uint8Array {
+/** Bequemlichkeit: Record entschluesseln und als JSON parsen. */
+export function decryptJson<T>(mek: Uint8Array, rec: EncryptedRecord): T {
+  return JSON.parse(Buffer.from(decryptRecord(mek, rec)).toString('utf8')) as T
+}
+
+// ---------------------------------------------------------------------------
+// Passwort-Hashing (Argon2id via libsodium) – unveraendert, fuer optionale
+// Passwort-basierte MEK-Ableitung; initCrypto() muss vorher gelaufen sein.
+// ---------------------------------------------------------------------------
+export function deriveKeyFromPassword(password: string, salt: Uint8Array): Uint8Array {
   return sodium.crypto_pwhash(
-    32, // key length
+    32,
     password,
     salt,
     sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
     sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
-    sodium.crypto_pwhash_ALG_ARGON2ID
+    sodium.crypto_pwhash_ALG_ARGON2ID,
   )
 }
 
-// Generate salt for password hashing
 export function generateSalt(): Uint8Array {
   return sodium.randombytes_buf(sodium.crypto_pwhash_SALTBYTES)
 }
 
-// Hash password for storage
-export function hashPassword(password: string): {
-  hash: string
-  salt: string
-} {
+export function hashPassword(password: string): { hash: string; salt: string } {
   const salt = generateSalt()
   const hash = deriveKeyFromPassword(password, salt)
-
-  return {
-    hash: sodium.to_base64(hash),
-    salt: sodium.to_base64(salt)
-  }
+  return { hash: sodium.to_base64(hash), salt: sodium.to_base64(salt) }
 }
 
-// Verify password
-export function verifyPassword(
-  password: string,
-  storedHash: string,
-  storedSalt: string
-): boolean {
+export function verifyPassword(password: string, storedHash: string, storedSalt: string): boolean {
   try {
     const salt = sodium.from_base64(storedSalt)
     const hash = deriveKeyFromPassword(password, salt)
-    const expectedHash = sodium.from_base64(storedHash)
-
-    return sodium.memcmp(hash, expectedHash)
+    return sodium.memcmp(hash, sodium.from_base64(storedHash))
   } catch {
     return false
   }
 }
 
-// Secure memory clearing
+// Speicher ueberschreiben.
 export function secureZero(data: Uint8Array): void {
-  sodium.memzero(data)
+  data.fill(0)
 }
