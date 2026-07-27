@@ -199,8 +199,8 @@ class _ArbeitszeitTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final az = arbeitszeit;
-    final statusColor = Arbeitszeit.statusColor(az.genehmigungsStatus);
-    final statusName = Arbeitszeit.statusName(az.genehmigungsStatus);
+    final statusColor = ArbeitszeitUi.statusColor(az.genehmigungsStatus);
+    final statusName = ArbeitszeitUi.statusName(az.genehmigungsStatus);
 
     return ListTile(
       dense: true,
